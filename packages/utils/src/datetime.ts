@@ -522,16 +522,16 @@ export const formatDateRange = (
 
     // Same year, same month
     if (startYear === endYear && startMonth === endMonth) {
-      const startDay = format(parsedStartDate, "dd");
-      const endDay = format(parsedEndDate, "dd");
-      return `${format(parsedStartDate, "MMM")} ${startDay} - ${endDay}, ${startYear}`;
+      const startDay = format(parsedStartDate, "d");
+      const endDay = format(parsedEndDate, "d");
+      return `${startYear}年${startMonth + 1}月${startDay}–${endDay}日`;
     }
 
     // Same year, different month
     if (startYear === endYear) {
       const startFormatted = format(parsedStartDate, "M月d日");
       const endFormatted = format(parsedEndDate, "M月d日");
-      return `${startFormatted} - ${endFormatted}, ${startYear}`;
+      return `${startYear}年${startFormatted}–${endFormatted}`;
     }
 
     // Different year

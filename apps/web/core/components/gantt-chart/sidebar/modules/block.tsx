@@ -55,11 +55,7 @@ export const ModulesSidebarBlock = observer(function ModulesSidebarBlock(props: 
           <div className="flex-grow truncate">
             <ModuleGanttSidebarBlock moduleId={block.data.id} />
           </div>
-          {duration !== undefined && (
-            <div className="flex-shrink-0 text-13 text-secondary">
-              {duration} day{duration > 1 ? "s" : ""}
-            </div>
-          )}
+          {duration !== undefined && <div className="flex-shrink-0 text-13 text-secondary">{duration} 天</div>}
         </div>
       </Row>
     </div>

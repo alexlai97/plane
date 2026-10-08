@@ -33,17 +33,17 @@ const PROJECT_ARCHIVES_BREADCRUMB_LIST: {
   };
 } = {
   issues: {
-    label: "Work items",
+    label: "工作项",
     href: "/issues",
     icon: WorkItemsIcon,
   },
   cycles: {
-    label: "Cycles",
+    label: "周期",
     href: "/cycles",
     icon: CycleIcon,
   },
   modules: {
-    label: "Modules",
+    label: "模块",
     href: "/modules",
     icon: ModuleIcon,
   },
@@ -77,7 +77,7 @@ export const ProjectArchivesHeader = observer(function ProjectArchivesHeader(pro
               component={
                 <BreadcrumbLink
                   href={`/${workspaceSlug}/projects/${projectId}/archives/issues`}
-                  label="Archives"
+                  label="归档"
                   icon={<ArchiveIcon className="h-4 w-4 text-tertiary" />}
                 />
               }

@@ -4,3 +4,6 @@ USER root
 ARG ASSET_PATH=/usr/share/nginx/html
 RUN rm -rf /usr/share/nginx/html/*
 COPY client/ ${ASSET_PATH}/
+ARG HEALTHCHECK_PATH=/
+ENV HEALTHCHECK_PATH=${HEALTHCHECK_PATH}
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 CMD curl -fsS "http://127.0.0.1:3000${HEALTHCHECK_PATH}" >/dev/null || exit 1

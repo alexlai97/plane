@@ -44,7 +44,7 @@ export const WorkItemDetailsHeader = observer(function WorkItemDetailsHeader() {
           <Breadcrumbs.Item
             component={
               <BreadcrumbLink
-                label="Work Items"
+                label="工作项"
                 href={`/${workspaceSlug}/projects/${projectId}/issues/`}
                 icon={<WorkItemsIcon className="h-4 w-4 text-tertiary" />}
               />

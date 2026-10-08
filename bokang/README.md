@@ -20,7 +20,7 @@ pnpm install --filter 'web...' --filter 'admin...' --filter 'space...' --frozen-
 ```
 
 Web uses `apps/web/build/client` at `/usr/share/nginx/html`. Admin uses
-`apps/admin/build/client` at `/usr/share/nginx/html/god-mode` (ASSET_PATH build arg).
+`apps/admin/build/client` at `/usr/share/nginx/html/god-mode` (ASSET_PATH build arg, HEALTHCHECK_PATH=/god-mode/).
 Package these with `Dockerfile.runtime`. Space serves SSR through Node and uses
 all of `apps/space/build`, copied to `/app/apps/space/build` by `Dockerfile.space-runtime`.
 The build script sets the same API/admin/space/live base paths as upstream Dockerfiles.
