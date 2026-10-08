@@ -25,7 +25,7 @@ import icon512 from "@/app/assets/icons/icon-512x512.png?url";
 import { AppProvider } from "./provider";
 
 export const meta = () => [
-  { title: "Plane | Simple, extensible, open-source project management tool." },
+  { title: "泊康项目管理系统" },
   { name: "description", content: SITE_DESCRIPTION },
   {
     name: "keywords",
@@ -37,29 +37,29 @@ export const meta = () => [
     content:
       "width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover",
   },
-  { property: "og:title", content: "Plane | Simple, extensible, open-source project management tool." },
+  { property: "og:title", content: "泊康项目管理系统" },
   {
     property: "og:description",
     content: "Open-source project management tool to manage work items, cycles, and product roadmaps easily",
   },
-  { property: "og:url", content: "https://app.plane.so/" },
+  { property: "og:url", content: "http://172.16.8.31:5110/" },
   { property: "og:image", content: "https://app.plane.so/og-image.png" },
   { property: "og:image:width", content: "1200" },
   { property: "og:image:height", content: "630" },
-  { property: "og:image:alt", content: "Plane - Modern project management" },
-  { name: "twitter:site", content: "@planepowers" },
+  { property: "og:image:alt", content: "泊康项目管理系统" },
+
   { name: "twitter:card", content: "summary_large_image" },
   { name: "twitter:image", content: "https://app.plane.so/og-image.png" },
   { name: "twitter:image:width", content: "1200" },
   { name: "twitter:image:height", content: "630" },
-  { name: "twitter:image:alt", content: "Plane - Modern project management" },
+  { name: "twitter:image:alt", content: "泊康项目管理系统" },
 ];
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const isSessionRecorderEnabled = parseInt(process.env.VITE_ENABLE_SESSION_RECORDER || "0");
 
   return (
-    <html lang="en">
+    <html lang="zh-CN">
       <head>
         <meta name="theme-color" content="#fff" />
         <link rel="icon" type="image/png" sizes="32x32" href={favicon32} />
@@ -67,7 +67,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="manifest" href="/site.webmanifest.json" />
         <link rel="shortcut icon" href={faviconIco} />
         {/* Meta info for PWA */}
-        <meta name="application-name" content="Plane" />
+        <meta name="application-name" content="泊康项目管理系统" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content={SITE_NAME} />

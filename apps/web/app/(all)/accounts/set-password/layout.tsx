@@ -11,4 +11,4 @@ export default function SetPasswordLayout() {
   return <Outlet />;
 }
 
-export const meta: Route.MetaFunction = () => [{ title: "Set Password - Plane" }];
+export const meta: Route.MetaFunction = () => [{ title: "Set Password · 泊康项目管理系统" }];

@@ -1,0 +1,5 @@
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE}
+USER root
+RUN rm -rf /usr/share/nginx/html/*
+COPY client/ /usr/share/nginx/html/

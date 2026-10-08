@@ -11,4 +11,4 @@ export default function ForgotPasswordLayout() {
   return <Outlet />;
 }
 
-export const meta: Route.MetaFunction = () => [{ title: "Forgot Password - Plane" }];
+export const meta: Route.MetaFunction = () => [{ title: "Forgot Password · 泊康项目管理系统" }];

@@ -52,7 +52,7 @@ export const AuthEmailForm = observer(function AuthEmailForm(props: TAuthEmailFo
     <form onSubmit={handleFormSubmit} className="space-y-4">
       <div className="space-y-1">
         <label htmlFor="email" className="text-13 font-medium text-tertiary">
-          {t("auth.common.email.label")}
+          {"登录账号"}
         </label>
         <div
           className={cn(
@@ -72,7 +72,7 @@ export const AuthEmailForm = observer(function AuthEmailForm(props: TAuthEmailFo
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder={t("auth.common.email.placeholder")}
+            placeholder={"请输入管理员提供的登录账号"}
             className={`h-10 w-full border-0 disable-autofill-style placeholder:text-placeholder autofill:bg-danger-primary focus:bg-none active:bg-transparent`}
             autoComplete="off"
             autoFocus
@@ -101,7 +101,7 @@ export const AuthEmailForm = observer(function AuthEmailForm(props: TAuthEmailFo
         )}
       </div>
       <Button type="submit" variant="primary" className="w-full" size="xl" disabled={isButtonDisabled}>
-        {isSubmitting ? <Spinner height="20px" width="20px" /> : t("common.continue")}
+        {isSubmitting ? <Spinner height="20px" width="20px" /> : "继续"}
       </Button>
     </form>
   );

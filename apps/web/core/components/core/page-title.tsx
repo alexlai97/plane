@@ -16,7 +16,9 @@ export function PageHead(props: PageHeadTitleProps) {
 
   useEffect(() => {
     if (title) {
-      document.title = title ?? "Plane | Simple, extensible, open-source project management tool.";
+      document.title = title.replace(/Plane/g, "泊康项目管理系统").includes("泊康项目管理系统")
+        ? title.replace(/Plane/g, "泊康项目管理系统")
+        : title + " · 泊康项目管理系统";
     }
   }, [title]);
 

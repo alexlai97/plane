@@ -30,44 +30,5 @@ export const usePowerKHelpCommands = (): TPowerKCommandConfig[] => {
       isVisible: () => true,
       closeOnSelect: true,
     },
-    {
-      id: "open_plane_documentation",
-      type: "action",
-      group: "help",
-      i18n_title: "power_k.help_actions.open_plane_documentation",
-      icon: FileText,
-      action: () => {
-        window.open("https://docs.plane.so/", "_blank", "noopener,noreferrer");
-      },
-      isEnabled: () => true,
-      isVisible: () => true,
-      closeOnSelect: true,
-    },
-    {
-      id: "join_forum",
-      type: "action",
-      group: "help",
-      i18n_title: "power_k.help_actions.join_forum",
-      icon: MessageSquare,
-      action: () => {
-        window.open("https://forum.plane.so", "_blank", "noopener,noreferrer");
-      },
-      isEnabled: () => true,
-      isVisible: () => true,
-      closeOnSelect: true,
-    },
-    {
-      id: "report_bug",
-      type: "action",
-      group: "help",
-      i18n_title: "power_k.help_actions.report_bug",
-      icon: GithubIcon,
-      action: () => {
-        window.open("https://github.com/makeplane/plane/issues/new/choose", "_blank", "noopener,noreferrer");
-      },
-      isEnabled: () => true,
-      isVisible: () => true,
-      closeOnSelect: true,
-    },
   ];
 };

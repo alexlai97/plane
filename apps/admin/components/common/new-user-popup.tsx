@@ -29,8 +29,8 @@ export const NewUserPopup = observer(function NewUserPopup() {
         <div className="grow">
           <div className="text-14 font-semibold">Create workspace</div>
           <div className="py-2 text-13 font-medium text-tertiary">
-            Instance setup done! Welcome to Plane instance portal. Start your journey with by creating your first
-            workspace.
+            Instance setup done! Welcome to 泊康项目管理系统 instance portal. Start your journey with by creating your
+            first workspace.
           </div>
           <div className="flex items-center gap-4 pt-2">
             <Link href="/workspace/create" className={getButtonStyling("primary", "lg")}>
@@ -46,7 +46,7 @@ export const NewUserPopup = observer(function NewUserPopup() {
             src={resolveGeneralTheme(resolvedTheme) === "dark" ? TakeoffIconDark : TakeoffIconLight}
             height={80}
             width={80}
-            alt="Plane icon"
+            alt="泊康项目管理系统 icon"
           />
         </div>
       </div>

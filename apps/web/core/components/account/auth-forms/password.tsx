@@ -172,7 +172,7 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
         {nextPath && <input type="hidden" value={nextPath} name="next_path" />}
         <div className="space-y-1">
           <label htmlFor="email" className="text-13 font-medium text-tertiary">
-            {t("auth.common.email.label")}
+            {"登录账号"}
           </label>
           <div className={`relative flex items-center rounded-md border border-strong bg-surface-1`}>
             <Input
@@ -181,7 +181,7 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
               type="email"
               value={passwordFormData.email}
               onChange={(e) => handleFormChange("email", e.target.value)}
-              placeholder={t("auth.common.email.placeholder")}
+              placeholder={"请输入管理员提供的登录账号"}
               className={`h-10 w-full border-0 disable-autofill-style placeholder:text-placeholder`}
               disabled
             />
@@ -200,7 +200,7 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
 
         <div className="space-y-1">
           <label htmlFor="password" className="text-13 font-medium text-tertiary">
-            {mode === EAuthModes.SIGN_IN ? t("auth.common.password.label") : t("auth.common.password.set_password")}
+            {mode === EAuthModes.SIGN_IN ? "密码" : t("auth.common.password.set_password")}
           </label>
           <div className="relative flex items-center rounded-md bg-surface-1">
             <Input
@@ -209,7 +209,7 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
               name="password"
               value={passwordFormData.password}
               onChange={(e) => handleFormChange("password", e.target.value)}
-              placeholder={t("auth.common.password.placeholder")}
+              placeholder={"请输入密码"}
               className="h-10 w-full border border-strong !bg-surface-1 pr-12 disable-autofill-style placeholder:text-placeholder"
               onFocus={() => setIsPasswordInputFocused(true)}
               onBlur={() => setIsPasswordInputFocused(false)}
@@ -281,13 +281,7 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
           {mode === EAuthModes.SIGN_IN ? (
             <>
               <Button type="submit" variant="primary" className="w-full" size="xl" disabled={isButtonDisabled}>
-                {isSubmitting ? (
-                  <Spinner height="20px" width="20px" />
-                ) : isSMTPConfigured ? (
-                  t("common.continue")
-                ) : (
-                  t("common.go_to_workspace")
-                )}
+                {isSubmitting ? <Spinner height="20px" width="20px" /> : isSMTPConfigured ? "继续" : "登录"}
               </Button>
               {isSMTPConfigured && (
                 <Button
