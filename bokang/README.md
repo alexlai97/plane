@@ -30,3 +30,12 @@ The original image tags and compose file are retained on the server for rollback
 `/open-source.html` offers corresponding source and the full AGPL license.
 `/bokang-help.html` describes the department's workflow and account recovery.
 Do not commit production credentials, account handoffs, database dumps or API keys.
+
+## Daily UI Chinese localization
+
+Common project/view/filter controls, state-group and priority labels, activity text,
+Chinese dates and Gantt calendar labels are maintained in this Chinese-first fork.
+Shared constants/utils/UI packages are rebuilt before the three frontend apps.
+Existing default project state names are renamed through server maintenance while
+preserving UUIDs and task associations; this is separate from frontend deployment.
+Custom state names are preserved. Administrator screens are outside this scope.

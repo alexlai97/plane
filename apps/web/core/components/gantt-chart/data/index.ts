@@ -15,28 +15,28 @@ export const generateWeeks = (startOfWeek: EStartOfTheWeek = EStartOfTheWeek.SUN
 ];
 
 export const weeks: WeekMonthDataType[] = [
-  { key: 0, shortTitle: "sun", title: "sunday", abbreviation: "Su" },
-  { key: 1, shortTitle: "mon", title: "monday", abbreviation: "M" },
-  { key: 2, shortTitle: "tue", title: "tuesday", abbreviation: "T" },
-  { key: 3, shortTitle: "wed", title: "wednesday", abbreviation: "W" },
-  { key: 4, shortTitle: "thurs", title: "thursday", abbreviation: "Th" },
-  { key: 5, shortTitle: "fri", title: "friday", abbreviation: "F" },
-  { key: 6, shortTitle: "sat", title: "saturday", abbreviation: "Sa" },
+  { key: 0, shortTitle: "sun", title: "周日", abbreviation: "周日" },
+  { key: 1, shortTitle: "mon", title: "周一", abbreviation: "周一" },
+  { key: 2, shortTitle: "tue", title: "周二", abbreviation: "周二" },
+  { key: 3, shortTitle: "wed", title: "周三", abbreviation: "周三" },
+  { key: 4, shortTitle: "thurs", title: "周四", abbreviation: "周四" },
+  { key: 5, shortTitle: "fri", title: "周五", abbreviation: "周五" },
+  { key: 6, shortTitle: "sat", title: "周六", abbreviation: "周六" },
 ];
 
 export const months: WeekMonthDataType[] = [
-  { key: 0, shortTitle: "jan", title: "january", abbreviation: "Jan" },
-  { key: 1, shortTitle: "feb", title: "february", abbreviation: "Feb" },
-  { key: 2, shortTitle: "mar", title: "march", abbreviation: "Mar" },
-  { key: 3, shortTitle: "apr", title: "april", abbreviation: "Apr" },
-  { key: 4, shortTitle: "may", title: "may", abbreviation: "May" },
-  { key: 5, shortTitle: "jun", title: "june", abbreviation: "Jun" },
-  { key: 6, shortTitle: "jul", title: "july", abbreviation: "Jul" },
-  { key: 7, shortTitle: "aug", title: "august", abbreviation: "Aug" },
-  { key: 8, shortTitle: "sept", title: "september", abbreviation: "Sept" },
-  { key: 9, shortTitle: "oct", title: "october", abbreviation: "Oct" },
-  { key: 10, shortTitle: "nov", title: "november", abbreviation: "Nov" },
-  { key: 11, shortTitle: "dec", title: "december", abbreviation: "Dec" },
+  { key: 0, shortTitle: "jan", title: "1月", abbreviation: "1月" },
+  { key: 1, shortTitle: "feb", title: "2月", abbreviation: "2月" },
+  { key: 2, shortTitle: "mar", title: "3月", abbreviation: "3月" },
+  { key: 3, shortTitle: "apr", title: "4月", abbreviation: "4月" },
+  { key: 4, shortTitle: "may", title: "5月", abbreviation: "5月" },
+  { key: 5, shortTitle: "jun", title: "6月", abbreviation: "6月" },
+  { key: 6, shortTitle: "jul", title: "7月", abbreviation: "7月" },
+  { key: 7, shortTitle: "aug", title: "8月", abbreviation: "8月" },
+  { key: 8, shortTitle: "sept", title: "9月", abbreviation: "9月" },
+  { key: 9, shortTitle: "oct", title: "10月", abbreviation: "10月" },
+  { key: 10, shortTitle: "nov", title: "11月", abbreviation: "11月" },
+  { key: 11, shortTitle: "dec", title: "12月", abbreviation: "12月" },
 ];
 
 export const quarters: WeekMonthDataType[] = [

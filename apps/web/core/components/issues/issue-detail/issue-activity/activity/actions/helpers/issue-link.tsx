@@ -33,10 +33,7 @@ export function IssueLink(props: TIssueLink) {
     sequenceId: activity.issue_detail.sequence_id,
   });
   return (
-    <Tooltip
-      tooltipContent={activity.issue_detail ? activity.issue_detail.name : "This work item has been deleted"}
-      isMobile={isMobile}
-    >
+    <Tooltip tooltipContent={activity.issue_detail ? activity.issue_detail.name : "此工作项已删除"} isMobile={isMobile}>
       <a
         aria-disabled={activity.issue === null}
         href={`${activity.issue_detail ? workItemLink : "#"}`}

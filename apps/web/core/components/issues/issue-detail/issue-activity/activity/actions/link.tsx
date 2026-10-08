@@ -32,7 +32,7 @@ export const IssueLinkActivity = observer(function IssueLinkActivity(props: TIss
       <>
         {activity.verb === "created" ? (
           <>
-            <span>added </span>
+            <span>添加了 </span>
             <a
               href={`${activity.new_value}`}
               target="_blank"
@@ -44,7 +44,7 @@ export const IssueLinkActivity = observer(function IssueLinkActivity(props: TIss
           </>
         ) : activity.verb === "updated" ? (
           <>
-            <span>updated the </span>
+            <span>更新了 </span>
             <a
               href={`${activity.old_value}`}
               target="_blank"
@@ -56,7 +56,7 @@ export const IssueLinkActivity = observer(function IssueLinkActivity(props: TIss
           </>
         ) : (
           <>
-            <span>removed this </span>
+            <span>移除了 </span>
             <a
               href={`${activity.old_value}`}
               target="_blank"
@@ -67,7 +67,7 @@ export const IssueLinkActivity = observer(function IssueLinkActivity(props: TIss
             </a>
           </>
         )}
-        {showIssue && (activity.verb === "created" ? ` to ` : ` from `)}
+        {showIssue && (activity.verb === "created" ? `，工作项：` : `，工作项：`)}
         {showIssue && <IssueLink activityId={activityId} />}.
       </>
     </IssueActivityBlockComponent>

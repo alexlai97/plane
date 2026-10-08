@@ -96,7 +96,7 @@ export const FiltersRow = observer(function FiltersRow<K extends TFilterProperty
           onClick={filter.clearFilters}
           data-ph-element={trackerElements?.clearFilter}
         >
-          {filter.clearFilterOptions?.label ?? "Clear all"}
+          {filter.clearFilterOptions?.label ?? "清除全部"}
         </Button>
       </ElementTransition>
       <ElementTransition show={filter.canSaveView}>
@@ -106,7 +106,7 @@ export const FiltersRow = observer(function FiltersRow<K extends TFilterProperty
           onClick={filter.saveView}
           data-ph-element={trackerElements?.saveView}
         >
-          {filter.saveViewOptions?.label ?? "Save view"}
+          {filter.saveViewOptions?.label ?? "保存视图"}
         </Button>
       </ElementTransition>
       <ElementTransition show={filter.canUpdateView}>
@@ -118,7 +118,7 @@ export const FiltersRow = observer(function FiltersRow<K extends TFilterProperty
           disabled={isUpdating}
           data-ph-element={trackerElements?.updateView}
         >
-          {isUpdating ? "Confirming" : (filter.updateViewOptions?.label ?? "Update view")}
+          {isUpdating ? "Confirming" : (filter.updateViewOptions?.label ?? "更新视图")}
         </Button>
       </ElementTransition>
     </>

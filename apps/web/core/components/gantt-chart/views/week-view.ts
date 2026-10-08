@@ -160,8 +160,8 @@ export const getWeeksBetweenTwoDates = (
       children: shouldPopulateDaysForWeek ? populateDaysForWeek(weekStartDate, startOfWeek) : undefined,
       weekNumber,
       weekData: {
-        shortTitle: `w${weekNumber}`,
-        title: `Week ${weekNumber}`,
+        shortTitle: `第${weekNumber}周`,
+        title: `第${weekNumber}周`,
       },
       title:
         monthAtStartOfTheWeek === monthAtEndOfTheWeek

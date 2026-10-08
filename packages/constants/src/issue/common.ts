@@ -70,23 +70,23 @@ export const ISSUE_PRIORITIES: {
 }[] = [
   {
     key: "urgent",
-    title: "Urgent",
+    title: "紧急",
   },
   {
     key: "high",
-    title: "High",
+    title: "高",
   },
   {
     key: "medium",
-    title: "Medium",
+    title: "中",
   },
   {
     key: "low",
-    title: "Low",
+    title: "低",
   },
   {
     key: "none",
-    title: "None",
+    title: "无",
   },
 ];
 

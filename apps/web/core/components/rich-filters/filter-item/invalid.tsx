@@ -32,7 +32,7 @@ export const InvalidFilterItem = observer(function InvalidFilterItem<
       <FilterItemProperty
         conditionId={condition.id}
         icon={CircleAlert}
-        label="Invalid filter"
+        label="无效筛选"
         filter={filter}
         isDisabled={isDisabled}
       />

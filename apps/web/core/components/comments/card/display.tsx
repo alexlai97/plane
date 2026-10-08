@@ -121,14 +121,14 @@ export const CommentCardDisplay = observer(function CommentCardDisplay(props: TC
         <div className="flex flex-1 flex-wrap items-center gap-1">
           <div className="text-caption-sm-medium">{displayName}</div>
           <div className="text-caption-sm-regular text-tertiary">
-            commented{" "}
+            评论于{" "}
             <Tooltip
-              tooltipContent={`${renderFormattedDate(comment.created_at)} at ${renderFormattedTime(comment.created_at)}`}
+              tooltipContent={`${renderFormattedDate(comment.created_at)} ${renderFormattedTime(comment.created_at)}`}
               position="bottom"
             >
               <span className="text-tertiary">
                 {calculateTimeAgo(comment.created_at)}
-                {comment.edited_at && " (edited)"}
+                {comment.edited_at && "（已编辑）"}
               </span>
             </Tooltip>
           </div>

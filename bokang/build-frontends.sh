@@ -7,6 +7,9 @@ export VITE_SPACE_BASE_URL="" VITE_SPACE_BASE_PATH="/spaces"
 export VITE_LIVE_BASE_URL="" VITE_LIVE_BASE_PATH="/live"
 export VITE_WEB_BASE_URL="" VITE_WEB_BASE_PATH=""
 export VITE_WEBSITE_URL="" VITE_SUPPORT_EMAIL=""
+for package in constants utils ui; do
+ (cd "packages/$package" && ./node_modules/.bin/tsdown) > "/tmp/bokang-$package-release-build.log" 2>&1
+done
 pids=()
 for app in web admin space; do
  (cd "apps/$app" && ./node_modules/.bin/react-router build) > "/tmp/bokang-$app-release-build.log" 2>&1 &

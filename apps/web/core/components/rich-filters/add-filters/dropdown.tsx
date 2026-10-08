@@ -54,7 +54,7 @@ export const AddFilterDropdown = observer(function AddFilterDropdown<
     ? [
         {
           value: "all_filters_applied",
-          content: <div className="text-placeholder italic">All filters applied</div>,
+          content: <div className="text-placeholder italic">已应用所有筛选</div>,
           query: "all filters applied",
           disabled: true,
         },
