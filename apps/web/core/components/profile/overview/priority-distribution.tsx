@@ -37,13 +37,16 @@ export function ProfilePriorityDistribution({ userProfile }: Props) {
               margin={{ top: 20, right: 30, bottom: 5, left: 0 }}
               data={userProfile.priority_distribution.map((priority) => ({
                 key: priority.priority ?? "None",
-                name: capitalizeFirstLetter(priority.priority ?? "None"),
+                name:
+                  ({ urgent: "紧急", high: "高", medium: "中", low: "低", none: "无" } as Record<string, string>)[
+                    priority.priority ?? "none"
+                  ] ?? capitalizeFirstLetter(priority.priority ?? "None"),
                 count: priority.priority_count,
               }))}
               bars={[
                 {
                   key: "count",
-                  label: "Count",
+                  label: "数量",
                   stackId: "bar-one",
                   fill: (payload: any) => priorityColors[payload.key as keyof typeof priorityColors], // TODO: fix types
                   textClassName: "",

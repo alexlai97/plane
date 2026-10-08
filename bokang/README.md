@@ -39,3 +39,13 @@ Shared constants/utils/UI packages are rebuilt before the three frontend apps.
 Existing default project state names are renamed through server maintenance while
 preserving UUIDs and task associations; this is separate from frontend deployment.
 Custom state names are preserved. Administrator screens are outside this scope.
+
+## AI Strategy workspace URL
+
+Production workspace slug: `ai-strategy`, display name: AI战略部.
+Workspace UUID, membership, projects, tasks and API keys are unchanged.
+`bokang/Caddyfile` redirects old browser URLs and rewrites old workspace API
+paths for compatibility. Mount it read-only at `/etc/caddy/Caddyfile` in proxy.
+New integrations should use `/api/v1/workspaces/ai-strategy/`.
+Separate departments can use separate workspaces; cross-workspace reporting
+requires API aggregation rather than the current workspace views.

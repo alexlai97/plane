@@ -59,7 +59,7 @@ export const ProjectSelect = observer(function ProjectSelect(props: Props) {
                   ?.filter((p) => value.includes(p))
                   .map((p) => getProjectById(p)?.name)
                   .join(", ")
-              : "All projects"}
+              : "所有项目"}
           <ChevronDownIcon className="h-3 w-3" aria-hidden="true" />
         </div>
       }

@@ -28,6 +28,17 @@ const RadarChart = lazy(function RadarChart() {
 
 const analyticsService = new AnalyticsService();
 
+const insightLabels: Record<string, string> = {
+  "Work Items": "工作项",
+  "Work items": "工作项",
+  Cycles: "周期",
+  Modules: "模块",
+  Intake: "收集",
+  Members: "成员",
+  Pages: "页面",
+  Views: "视图",
+};
+
 const ProjectInsights = observer(function ProjectInsights() {
   const params = useParams();
   const { t } = useTranslation();
@@ -72,12 +83,12 @@ const ProjectInsights = observer(function ProjectInsights() {
             <Suspense fallback={<ProjectInsightsLoader />}>
               <RadarChart
                 className="h-[350px] w-full text-accent-primary lg:w-3/5"
-                data={projectInsightsData}
+                data={projectInsightsData.map((item) => ({ ...item, name: insightLabels[item.name] ?? item.name }))}
                 dataKey="key"
                 radars={[
                   {
                     key: "count",
-                    name: "Count",
+                    name: "数量",
                     fill: "var(--text-color-accent-primary)",
                     stroke: "var(--text-color-accent-primary)",
                     fillOpacity: 0.6,
@@ -105,7 +116,7 @@ const ProjectInsights = observer(function ProjectInsights() {
               </div>
               {projectInsightsData?.map((item) => (
                 <div key={item.key} className="flex items-center justify-between text-13 text-primary">
-                  <div>{item.name}</div>
+                  <div>{insightLabels[item.name] ?? item.name}</div>
                   <div className="flex items-center gap-1">
                     {/* <TrendPiece key={item.key} size='xs' /> */}
                     <div className="text-secondary">{item.count}</div>

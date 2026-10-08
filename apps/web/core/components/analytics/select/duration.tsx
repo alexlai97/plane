@@ -27,7 +27,7 @@ type Props = TDropdownProps & {
   tabIndex?: number;
 };
 
-function DurationDropdown({ placeholder = "Duration", onChange, value }: Props) {
+function DurationDropdown({ placeholder = "时间范围", onChange, value }: Props) {
   useTranslation();
 
   const options = ANALYTICS_DURATION_FILTER_OPTIONS.map((option) => ({

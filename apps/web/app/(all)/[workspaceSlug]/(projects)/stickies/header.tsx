@@ -32,7 +32,7 @@ export const WorkspaceStickyHeader = observer(function WorkspaceStickyHeader() {
               <Breadcrumbs.Item
                 component={
                   <BreadcrumbLink
-                    label={`Stickies`}
+                    label={`便签`}
                     icon={<RecentStickyIcon className="size-5 rotate-90 text-secondary" />}
                   />
                 }
@@ -52,7 +52,7 @@ export const WorkspaceStickyHeader = observer(function WorkspaceStickyHeader() {
             }}
             loading={creatingSticky}
           >
-            Add sticky
+            添加便签
           </Button>
         </Header.RightItem>
       </Header>

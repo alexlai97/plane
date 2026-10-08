@@ -24,7 +24,7 @@ function WorkspaceViewsPage() {
   const { currentWorkspace } = useWorkspace();
   const { t } = useTranslation();
   // derived values
-  const pageTitle = currentWorkspace?.name ? `${currentWorkspace?.name} - All Views` : undefined;
+  const pageTitle = currentWorkspace?.name ? `${currentWorkspace?.name} - 全部视图` : undefined;
 
   return (
     <>
