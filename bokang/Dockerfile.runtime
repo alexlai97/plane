@@ -1,5 +1,6 @@
-ARG BASE_IMAGE
+ARG BASE_IMAGE=makeplane/plane-frontend:v1.4.2
 FROM ${BASE_IMAGE}
 USER root
+ARG ASSET_PATH=/usr/share/nginx/html
 RUN rm -rf /usr/share/nginx/html/*
-COPY client/ /usr/share/nginx/html/
+COPY client/ ${ASSET_PATH}/

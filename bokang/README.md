@@ -16,11 +16,14 @@ Node >=22.18, pnpm 11.3.0. Dependencies are pinned by the upstream lockfile.
 
 ```sh
 pnpm install --filter 'web...' --filter 'admin...' --filter 'space...' --frozen-lockfile
-pnpm exec turbo run build --filter=web --filter=admin --filter=space
+./bokang/build-frontends.sh
 ```
 
-`apps/{web,admin,space}/build/client` are the static production artifacts.
-Package each into the matching upstream v1.4.2 frontend image using `Dockerfile.runtime`.
+Web uses `apps/web/build/client` at `/usr/share/nginx/html`. Admin uses
+`apps/admin/build/client` at `/usr/share/nginx/html/god-mode` (ASSET_PATH build arg).
+Package these with `Dockerfile.runtime`. Space serves SSR through Node and uses
+all of `apps/space/build`, copied to `/app/apps/space/build` by `Dockerfile.space-runtime`.
+The build script sets the same API/admin/space/live base paths as upstream Dockerfiles.
 Only three frontend images need to be replaced. Preserve production volumes.
 The original image tags and compose file are retained on the server for rollback.
 
