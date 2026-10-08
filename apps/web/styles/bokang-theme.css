@@ -1,0 +1,87 @@
+/* Bokang AI Strategy department: approved A / blue-gray reporting theme.
+ * Semantic palette only: preserve task status colors, layout and interaction.
+ * Scoped by workspace UUID in WorkspaceLayout; other departments keep upstream.
+ */
+:root:not([data-theme*="dark"]):not([data-theme="custom"]) [data-bokang-theme="blue-gray"] {
+  --bg-canvas: #f7f9fc;
+  --bg-surface-1: #fbfcfe;
+  --bg-surface-2: #f1f5fa;
+  --bg-layer-1: #eaf0f7;
+  --bg-layer-1-hover: #e1eaf4;
+  --bg-layer-1-active: #dce8f4;
+  --bg-layer-1-selected: #dce8f4;
+  --bg-layer-2: #ffffff;
+  --bg-layer-2-hover: #f4f7fb;
+  --bg-layer-2-active: #eaf0f7;
+  --bg-layer-2-selected: #eaf0f7;
+  --bg-layer-transparent-hover: #356d9a0d;
+  --bg-layer-transparent-active: #356d9a1a;
+  --bg-accent-primary: #356d9a;
+  --bg-accent-primary-hover: #2c5e88;
+  --bg-accent-primary-active: #244e73;
+  --bg-accent-subtle: #e8f0f8;
+  --bg-accent-subtle-hover: #d9e7f4;
+  --bg-accent-subtle-active: #c8dcee;
+  --border-subtle: #dbe4ee;
+  --border-strong: #b9c9db;
+  --border-accent-strong: #356d9a;
+  --border-accent-subtle: #c8dcee;
+  --txt-primary: #20364d;
+  --txt-secondary: #425b73;
+  --txt-tertiary: #586f86;
+  --txt-placeholder: #5f748a;
+  --txt-accent-primary: #356d9a;
+  --txt-accent-secondary: #2c5e88;
+  --txt-icon-primary: #425b73;
+  --txt-icon-accent-primary: #356d9a;
+}
+
+[data-bokang-theme="blue-gray"] :is(#main-sidebar, [aria-label="Sidebar peek view"]) {
+  --bg-surface-1: #18344f;
+  --bg-surface-2: #203f5c;
+  --bg-layer-1: #244660;
+  --bg-layer-1-hover: #2c506d;
+  --bg-layer-1-active: #356080;
+  --bg-layer-1-selected: #356080;
+  --bg-layer-2: #244660;
+  --bg-layer-2-hover: #2c506d;
+  --bg-layer-2-active: #356080;
+  --bg-layer-2-selected: #356080;
+  --bg-layer-transparent-hover: #ffffff0f;
+  --bg-layer-transparent-active: #356d9a;
+  --bg-layer-transparent-selected: #356d9a;
+  --border-subtle: #ffffff1a;
+  --border-strong: #ffffff33;
+  --txt-primary: #f4f8fd;
+  --txt-secondary: #d4e1ee;
+  --txt-tertiary: #a8bdd1;
+  --txt-placeholder: #a8bdd1;
+  --txt-icon-primary: #d4e1ee;
+  --txt-accent-primary: #b9d9f8;
+  --scrollbar-thumb: #ffffff26;
+  --scrollbar-thumb-hover: #ffffff40;
+  background-color: #18344f;
+}
+
+.bokang-department-brand {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+  padding-block: 5px;
+}
+
+.bokang-department-mark {
+  display: grid;
+  height: 36px;
+  width: 36px;
+  flex-shrink: 0;
+  place-items: center;
+  border: 1px solid #ffffff26;
+  border-radius: 8px;
+  background: #356d9a;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}

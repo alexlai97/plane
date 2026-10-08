@@ -22,12 +22,13 @@ import { IconButton } from "@plane/propel/icon-button";
 
 type TSidebarWrapperProps = {
   title: string;
+  brand?: React.ReactNode;
   children: React.ReactNode;
   quickActions?: React.ReactNode;
 };
 
 export const SidebarWrapper = observer(function SidebarWrapper(props: TSidebarWrapperProps) {
-  const { title, children, quickActions } = props;
+  const { title, brand, children, quickActions } = props;
   // state
   const [isCustomizeNavDialogOpen, setIsCustomizeNavDialogOpen] = useState(false);
   // store hooks
@@ -55,7 +56,9 @@ export const SidebarWrapper = observer(function SidebarWrapper(props: TSidebarWr
           {/* Workspace switcher and settings */}
 
           <div className="flex items-center justify-between gap-2 px-2">
-            <span className="pt-1 text-16 font-medium text-primary">{title === "Projects" ? "项目" : title}</span>
+            {brand ?? (
+              <span className="pt-1 text-16 font-medium text-primary">{title === "Projects" ? "项目" : title}</span>
+            )}
             <div className="flex items-center gap-2">
               {title === "Projects" && (
                 <IconButton

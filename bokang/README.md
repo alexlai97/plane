@@ -49,3 +49,14 @@ paths for compatibility. Mount it read-only at `/etc/caddy/Caddyfile` in proxy.
 New integrations should use `/api/v1/workspaces/ai-strategy/`.
 Separate departments can use separate workspaces; cross-workspace reporting
 requires API aggregation rather than the current workspace views.
+
+## Approved A / blue-gray department theme
+
+The AI Strategy workspace (UUID bb96243d-e9cd-424e-8fb6-6117ae54f621) opts into
+`data-bokang-theme="blue-gray"`. Its light palette uses white/blue-gray surfaces,
+steel-blue accents and a navy sidebar. Semantic status colors and existing
+components/permissions are unchanged. Other workspace UUIDs do not opt in.
+The default appearance is light; users may still choose dark/custom themes.
+Scoped palette overrides do not replace a user's custom main-area palette.
+Existing department profiles with no explicit appearance or system preference
+were initialized to light; original values are retained for targeted rollback.
