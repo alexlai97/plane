@@ -98,7 +98,7 @@ const BASIC_MARK_ITEMS: ToolbarMenuItem<"bold" | "italic" | "underline" | "strik
   {
     itemKey: "bold",
     renderKey: "bold",
-    name: "Bold",
+    name: "加粗",
     icon: Bold,
     shortcut: ["Cmd", "B"],
     editors: ["lite", "document"],
@@ -106,7 +106,7 @@ const BASIC_MARK_ITEMS: ToolbarMenuItem<"bold" | "italic" | "underline" | "strik
   {
     itemKey: "italic",
     renderKey: "italic",
-    name: "Italic",
+    name: "斜体",
     icon: Italic,
     shortcut: ["Cmd", "I"],
     editors: ["lite", "document"],
@@ -114,7 +114,7 @@ const BASIC_MARK_ITEMS: ToolbarMenuItem<"bold" | "italic" | "underline" | "strik
   {
     itemKey: "underline",
     renderKey: "underline",
-    name: "Underline",
+    name: "下划线",
     icon: Underline,
     shortcut: ["Cmd", "U"],
     editors: ["lite", "document"],
@@ -122,7 +122,7 @@ const BASIC_MARK_ITEMS: ToolbarMenuItem<"bold" | "italic" | "underline" | "strik
   {
     itemKey: "strikethrough",
     renderKey: "strikethrough",
-    name: "Strikethrough",
+    name: "删除线",
     icon: Strikethrough,
     shortcut: ["Cmd", "Shift", "S"],
     editors: ["lite", "document"],
@@ -133,7 +133,7 @@ const LIST_ITEMS: ToolbarMenuItem<"bulleted-list" | "numbered-list" | "to-do-lis
   {
     itemKey: "bulleted-list",
     renderKey: "bulleted-list",
-    name: "Bulleted list",
+    name: "无序列表",
     icon: List,
     shortcut: ["Cmd", "Shift", "7"],
     editors: ["lite", "document"],
@@ -141,7 +141,7 @@ const LIST_ITEMS: ToolbarMenuItem<"bulleted-list" | "numbered-list" | "to-do-lis
   {
     itemKey: "numbered-list",
     renderKey: "numbered-list",
-    name: "Numbered list",
+    name: "有序列表",
     icon: ListOrdered,
     shortcut: ["Cmd", "Shift", "8"],
     editors: ["lite", "document"],
@@ -149,7 +149,7 @@ const LIST_ITEMS: ToolbarMenuItem<"bulleted-list" | "numbered-list" | "to-do-lis
   {
     itemKey: "to-do-list",
     renderKey: "to-do-list",
-    name: "To-do list",
+    name: "待办清单",
     icon: ListTodo,
     shortcut: ["Cmd", "Shift", "9"],
     editors: ["lite", "document"],
@@ -157,13 +157,13 @@ const LIST_ITEMS: ToolbarMenuItem<"bulleted-list" | "numbered-list" | "to-do-lis
 ];
 
 export const USER_ACTION_ITEMS: ToolbarMenuItem<"quote" | "code">[] = [
-  { itemKey: "quote", renderKey: "quote", name: "Quote", icon: TextQuote, editors: ["lite", "document"] },
-  { itemKey: "code", renderKey: "code", name: "Code", icon: Code2, editors: ["lite", "document"] },
+  { itemKey: "quote", renderKey: "quote", name: "引用", icon: TextQuote, editors: ["lite", "document"] },
+  { itemKey: "code", renderKey: "code", name: "代码", icon: Code2, editors: ["lite", "document"] },
 ];
 
 export const COMPLEX_ITEMS: ToolbarMenuItem<"table" | "image">[] = [
-  { itemKey: "table", renderKey: "table", name: "Table", icon: Table, editors: ["document"] },
-  { itemKey: "image", renderKey: "image", name: "Image", icon: Image, editors: ["lite", "document"] },
+  { itemKey: "table", renderKey: "table", name: "表格", icon: Table, editors: ["document"] },
+  { itemKey: "image", renderKey: "image", name: "图片", icon: Image, editors: ["lite", "document"] },
 ];
 
 export const IMAGE_ITEM = COMPLEX_ITEMS.find((item): item is ToolbarMenuItem<"image"> => item.itemKey === "image")!;

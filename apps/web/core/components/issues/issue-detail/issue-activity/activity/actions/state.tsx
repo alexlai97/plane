@@ -24,6 +24,13 @@ export const IssueStateActivity = observer(function IssueStateActivity(props: TI
   const activity = getActivityById(activityId);
 
   if (!activity) return <></>;
+  const displayLabels: Record<string, string> = {
+    Backlog: "待规划",
+    Todo: "待开始",
+    "In Progress": "进行中",
+    Done: "已完成",
+    Cancelled: "已取消",
+  };
   return (
     <IssueActivityBlockComponent
       icon={<StatePropertyIcon className="h-4 w-4 flex-shrink-0 text-secondary" />}
@@ -31,7 +38,10 @@ export const IssueStateActivity = observer(function IssueStateActivity(props: TI
       ends={ends}
     >
       <>
-        将状态设为 <span className="font-medium text-primary">{activity.new_value}</span>
+        将状态设为{" "}
+        <span className="font-medium text-primary">
+          {displayLabels[activity.new_value ?? ""] ?? activity.new_value}
+        </span>
         {showIssue ? `，工作项：` : ``}
         {showIssue && <IssueLink activityId={activityId} />}.
       </>

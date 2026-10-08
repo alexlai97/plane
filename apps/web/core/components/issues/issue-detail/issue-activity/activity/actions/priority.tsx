@@ -23,6 +23,7 @@ export const IssuePriorityActivity = observer(function IssuePriorityActivity(pro
   const activity = getActivityById(activityId);
 
   if (!activity) return <></>;
+  const displayLabels: Record<string, string> = { urgent: "紧急", high: "高", medium: "中", low: "低", none: "无" };
   return (
     <IssueActivityBlockComponent
       icon={<PriorityPropertyIcon className="h-3.5 w-3.5 text-secondary" aria-hidden="true" />}
@@ -30,7 +31,10 @@ export const IssuePriorityActivity = observer(function IssuePriorityActivity(pro
       ends={ends}
     >
       <>
-        将优先级设为 <span className="font-medium text-primary">{activity.new_value}</span>
+        将优先级设为{" "}
+        <span className="font-medium text-primary">
+          {displayLabels[activity.new_value ?? ""] ?? activity.new_value}
+        </span>
         {showIssue ? `，工作项：` : ``}
         {showIssue && <IssueLink activityId={activityId} />}.
       </>
