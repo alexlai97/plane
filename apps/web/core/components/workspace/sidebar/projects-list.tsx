@@ -263,7 +263,7 @@ export const SidebarProjectsList = observer(function SidebarProjectsList() {
                           )}
                         >
                           <Ellipsis className="size-4 flex-shrink-0" />
-                          <span>{isExtendedProjectSidebarOpened ? "Hide" : "More"}</span>
+                          <span>{isExtendedProjectSidebarOpened ? "收起" : "更多"}</span>
                         </button>
                       </SidebarNavItem>
                     )}

@@ -19,21 +19,8 @@ import { useInstance, useTheme } from "@/hooks/store";
 // assets
 
 const helpOptions = [
-  {
-    name: "Documentation",
-    href: "https://docs.plane.so/",
-    Icon: PageIcon,
-  },
-  {
-    name: "Join our Forum",
-    href: "https://forum.plane.so",
-    Icon: MessageSquare,
-  },
-  {
-    name: "Report a bug",
-    href: "https://github.com/makeplane/plane/issues/new/choose",
-    Icon: GithubIcon,
-  },
+  { name: "使用帮助", href: "/bokang-help.html", Icon: PageIcon },
+  { name: "开源说明与源码", href: "/open-source.html", Icon: PageIcon },
 ];
 
 export const AdminSidebarHelpSection = observer(function AdminSidebarHelpSection() {
