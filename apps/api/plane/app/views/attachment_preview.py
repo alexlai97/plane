@@ -157,7 +157,7 @@ class AttachmentPreviewEndpoint(BaseAPIView):
             if "</head>" in html:
                 html = html.replace("</head>", """<script>document.addEventListener('webviewerloaded',function(event){event.detail.source.PDFViewerApplicationOptions.set('localeProperties',{lang:'zh-CN'});event.detail.source.PDFViewerApplicationOptions.set('viewerCssTheme',1)});</script></head>""")
             html = re.sub(r"<title>.*?</title>", "<title>附件预览 · 泊康项目管理系统</title>", html, flags=re.S)
-            style = "<style>body{background:#f8fafc;color:#203953;font-family:Arial,'Microsoft YaHei',sans-serif} .panel{border-color:#d9e3ef}.panel-heading{background:#edf3f9!important} a{color:#356f9f} .panel-title{font-size:14px}</style>"
+            style = "<style>body{background:#f8fafc;color:#203953;font-family:Arial,'Microsoft YaHei',sans-serif} .panel{border-color:#d9e3ef}.panel-heading{background:#edf3f9!important} a{color:#356f9f} .panel-title{font-size:14px} #markdown table{border-collapse:collapse;width:100%;margin:16px 0} #markdown th,#markdown td{border:1px solid #d9e3ef;padding:8px 12px;text-align:left} #markdown th{background:#edf3f9}</style>"
             html = html.replace('"#page=', '"#locale=zh-CN&page=')
             html = html.replace("</head>", style + CLOSE_BRIDGE + "</head>")
             result.close()
