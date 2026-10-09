@@ -15,7 +15,7 @@ export function AuthHeaderBase({ pageTitle }: { pageTitle: string; additionalAct
     <>
       <PageHead title={pageTitle + " · 泊康项目管理系统"} />
       <div className="flex items-center gap-3">
-        <img src="/bokang-icon.svg" alt="泊康" className="h-9 w-9" />
+        <img src="/bokang-logo.png" alt="泊康" className="h-9 w-9" />
         <span className="text-lg font-semibold text-primary">泊康项目管理系统</span>
       </div>
     </>

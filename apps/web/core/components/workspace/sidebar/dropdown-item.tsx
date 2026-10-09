@@ -55,9 +55,13 @@ const SidebarDropdownItem = observer(function SidebarDropdownItem(props: TProps)
                 !workspace?.logo_url && "rounded-md bg-[#026292] text-on-color"
               }`}
             >
-              {workspace?.logo_url && workspace.logo_url !== "" ? (
+              {workspace.id === "bb96243d-e9cd-424e-8fb6-6117ae54f621" || workspace?.logo_url ? (
                 <img
-                  src={getFileURL(workspace.logo_url)}
+                  src={
+                    workspace.id === "bb96243d-e9cd-424e-8fb6-6117ae54f621"
+                      ? "/ai-strategy-icon.png"
+                      : getFileURL(workspace.logo_url ?? "")
+                  }
                   className="absolute top-0 left-0 h-full w-full rounded-sm object-cover"
                   alt={t("workspace_logo")}
                 />

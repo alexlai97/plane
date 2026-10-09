@@ -40,9 +40,7 @@ export const AppSidebar = observer(function AppSidebar() {
       brand={
         isAIStrategy ? (
           <div className="bokang-department-brand">
-            <span className="bokang-department-mark" aria-hidden="true">
-              BK
-            </span>
+            <img src="/bokang-logo.png" alt="泊康" className="size-9 shrink-0 rounded-md bg-white object-contain p-1" />
             <div className="min-w-0">
               <div className="truncate text-16 font-semibold text-primary">AI战略部</div>
               <div className="text-11 text-tertiary">项目与工作协作</div>
