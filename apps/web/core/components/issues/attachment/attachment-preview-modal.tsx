@@ -34,7 +34,10 @@ export function AttachmentPreviewModal({
     <Dialog open onClose={onClose} className="relative z-[100]">
       <div className="fixed inset-0 bg-black/35" aria-hidden="true" />
       <div className="fixed inset-0 flex items-center justify-center p-2 sm:p-5">
-        <Dialog.Panel className="shadow-xl flex h-[94vh] w-full max-w-[1500px] flex-col overflow-hidden rounded-xl border border-subtle bg-surface-1">
+        <Dialog.Panel
+          data-prevent-outside-click
+          className="shadow-xl flex h-[94vh] w-full max-w-[1500px] flex-col overflow-hidden rounded-xl border border-subtle bg-surface-1"
+        >
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-subtle px-4 py-3">
             <div className="min-w-0 flex-1">
               <Dialog.Title className="truncate text-16 font-semibold text-primary">{fileName}</Dialog.Title>
