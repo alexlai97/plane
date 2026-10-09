@@ -21,9 +21,6 @@ export function HelpMenuRoot() {
         使用帮助
       </CustomMenu.MenuItem>
       <CustomMenu.MenuItem onClick={() => toggleShortcutsListModal(true)}>键盘快捷键</CustomMenu.MenuItem>
-      <CustomMenu.MenuItem onClick={() => window.open("/open-source.html", "_blank", "noopener,noreferrer")}>
-        开源说明与源码
-      </CustomMenu.MenuItem>
     </CustomMenu>
   );
 }
