@@ -66,6 +66,7 @@ export const IssueView = observer(function IssueView(props: IIssueView) {
   // store hooks
   const {
     setPeekIssue,
+    peekTrail,
     isAnyModalOpen,
     issue: { getIssueById },
   } = useIssueDetail();
@@ -135,6 +136,9 @@ export const IssueView = observer(function IssueView(props: IIssueView) {
 
   const portalContainer = document.getElementById("full-screen-portal") as HTMLElement;
 
+  const previousPeek = !embedIssue ? peekTrail.at(-1) : undefined;
+  const returnToPrevious = previousPeek ? () => setPeekIssue(previousPeek) : undefined;
+
   const content = (
     <div className="w-full text-body-sm-regular">
       {issueId && (
@@ -148,10 +152,10 @@ export const IssueView = observer(function IssueView(props: IIssueView) {
         >
           {isError ? (
             <div className="relative h-screen w-full overflow-hidden">
-              <IssuePeekOverviewError removeRoutePeekId={removeRoutePeekId} />
+              <IssuePeekOverviewError removeRoutePeekId={removeRoutePeekId} onBack={returnToPrevious} />
             </div>
           ) : (
-            isLoading && <IssuePeekOverviewLoader removeRoutePeekId={removeRoutePeekId} />
+            isLoading && <IssuePeekOverviewLoader removeRoutePeekId={removeRoutePeekId} onBack={returnToPrevious} />
           )}
           {!isLoading && !isError && issue && (
             <>
