@@ -4,6 +4,9 @@
  * See the LICENSE file for details.
  */
 
+import { useState } from "react";
+import { AttachmentPreviewModal } from "./attachment-preview-modal";
+
 import { observer } from "mobx-react";
 
 import { useTranslation } from "@plane/i18n";
@@ -32,6 +35,7 @@ type TIssueAttachmentsListItem = {
 
 export const IssueAttachmentsListItem = observer(function IssueAttachmentsListItem(props: TIssueAttachmentsListItem) {
   const { t } = useTranslation();
+  const [previewOpen, setPreviewOpen] = useState(false);
   // props
   const { attachmentId, disabled, issueServiceType = EIssueServiceType.ISSUES } = props;
   // store hooks
@@ -49,15 +53,23 @@ export const IssueAttachmentsListItem = observer(function IssueAttachmentsListIt
   // hooks
   const { isMobile } = usePlatformOS();
 
-  if (!attachment) return <></>;
+  if (!attachment || !fileURL) return <></>;
 
   return (
     <>
+      {previewOpen && (
+        <AttachmentPreviewModal
+          fileName={attachment.attributes.name ?? "附件"}
+          fileURL={fileURL}
+          onClose={() => setPreviewOpen(false)}
+        />
+      )}
       <button
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          window.open(fileURL, "_blank");
+          if (issueServiceType === EIssueServiceType.ISSUES) setPreviewOpen(true);
+          else window.open(fileURL, "_blank", "noopener,noreferrer");
         }}
       >
         <div className="group flex h-11 items-center justify-between gap-3 pr-2 pl-9 hover:bg-surface-2">
@@ -77,7 +89,7 @@ export const IssueAttachmentsListItem = observer(function IssueAttachmentsListIt
                   isMobile={isMobile}
                   tooltipContent={`${
                     getUserDetails(attachment?.created_by)?.display_name ?? ""
-                  } uploaded on ${renderFormattedDate(attachment.updated_at)}`}
+                  } 上传于 ${renderFormattedDate(attachment.updated_at)}`}
                 >
                   <div className="flex items-center justify-center">
                     <ButtonAvatars showTooltip userIds={attachment?.created_by} />

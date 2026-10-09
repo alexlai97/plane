@@ -97,13 +97,30 @@ const validateAndDetectFileType = async (file: File): Promise<string> => {
   try {
     const signatureType = await detectMimeTypeFromSignature(file);
     if (signatureType) {
-      return signatureType;
+      return signatureType === "audio/x-wav" ? "audio/wav" : signatureType;
     }
   } catch (_error) {
     console.warn("Error detecting file type from signature:", _error);
   }
 
-  // fallback for unknown files
+  // Text formats have no binary magic number. Only known text extensions may
+  // fall back, and reject NUL/control bytes rather than accepting arbitrary data.
+  const textTypes: Record<string, string> = {
+    md: "text/markdown",
+    markdown: "text/markdown",
+    txt: "text/plain",
+    csv: "text/csv",
+    json: "application/json",
+    xml: "application/xml",
+    log: "text/plain",
+  };
+  const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
+  const textType = textTypes[extension];
+  if (textType && !filenameError) {
+    const bytes = new Uint8Array(await file.slice(0, 65536).arrayBuffer());
+    const isText = !bytes.some((byte) => byte === 0 || (byte < 32 && ![9, 10, 12, 13].includes(byte)));
+    if (isText) return textType;
+  }
   return "";
 };
 

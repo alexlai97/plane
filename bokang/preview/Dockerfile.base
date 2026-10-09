@@ -1,0 +1,6 @@
+FROM eclipse-temurin:21-jre-noble@sha256:000fd431958bc81a24abe1e8e5f0f0fd3ae365a594bd50aadb20696805f9408c
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends libreoffice-writer libreoffice-calc libreoffice-impress fonts-noto-cjk fonts-liberation curl && rm -rf /var/lib/apt/lists/*
+RUN useradd --create-home --uid 10001 preview && mkdir -p /opt/preview/cache && chown -R preview:preview /opt/preview
+ENV HOME=/home/preview
+USER preview
+WORKDIR /opt/preview

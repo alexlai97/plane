@@ -1,0 +1,28 @@
+services:
+  file-preview:
+    image: bokang/file-preview:5.0.3
+    restart: unless-stopped
+    volumes:
+      - preview-cache:/opt/preview/cache
+    networks:
+      - default
+      - plane
+    environment:
+      JAVA_TOOL_OPTIONS: '-Xms128m -Xmx768m -Dfile.encoding=UTF-8'
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:8012/actuator/health']
+      interval: 30s
+      timeout: 5s
+      start_period: 90s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+networks:
+  plane:
+    external: true
+    name: bokang-plane_default
+volumes:
+  preview-cache:

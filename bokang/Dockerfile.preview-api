@@ -1,0 +1,4 @@
+FROM bokang/plane-backend:1.4.2-e11316a
+COPY apps/api/plane/app/views/attachment_preview.py /code/plane/app/views/attachment_preview.py
+COPY apps/api/plane/app/urls/issue.py /code/plane/app/urls/issue.py
+COPY apps/api/plane/tests/unit/test_attachment_preview.py /code/plane/tests/unit/test_attachment_preview.py

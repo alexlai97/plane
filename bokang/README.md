@@ -7,7 +7,7 @@ This fork preserves upstream AGPL-3.0-only licensing and copyright notices.
 
 Chinese login and navigation, Bokang branding/icons/titles/PWA metadata, internal help,
 removal of GitHub stars, Community/upgrade badges and external promotional help.
-The backend API, database schema, permissions and project behavior stay upstream.
+Existing project behavior and permissions are preserved; shared work-item templates and authenticated attachment previews are maintained in this fork.
 Production uses managed local accounts, password login and administrator recovery without SMTP.
 
 ## Build
@@ -60,3 +60,11 @@ The default appearance is light; users may still choose dark/custom themes.
 Scoped palette overrides do not replace a user's custom main-area palette.
 Existing department profiles with no explicit appearance or system preference
 were initialized to light; original values are retained for targeted rollback.
+
+## Attachment preview
+
+Separate kkFileView-based internal service. Mingkongban is unrelated and is not integrated.
+Preview cache endpoints are authorized against the original attachment and project on every request.
+Only UUID-prefixed output for the authorized asset and fixed viewer resources can be read.
+Upstream receives X-Base-Url for per-attachment paths. It fetches only short-lived signed source URLs.
+User-supplied source URLs are ignored; original download endpoints stay available.
