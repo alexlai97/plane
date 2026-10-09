@@ -58,7 +58,7 @@ export const IssueParentSiblingItem = observer(function IssueParentSiblingItem(p
           else router.push(workItemLink);
         }}
       >
-        <div className="flex items-center gap-2 py-0.5">
+        <div className="pointer-events-none flex items-center gap-2 py-0.5">
           {issueDetail.project_id && projectDetails?.identifier && (
             <IssueIdentifier
               projectId={issueDetail.project_id}

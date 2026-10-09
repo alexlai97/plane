@@ -10,7 +10,6 @@ import { ArrowUpLeft, MinusCircle } from "lucide-react";
 import { useTranslation } from "@plane/i18n";
 import type { TIssue } from "@plane/types";
 // component
-import { IssueIdentifier } from "@/components/issues/issue-detail/issue-identifier";
 // ui
 import { ControlLink, CustomMenu } from "@plane/ui";
 // helpers
@@ -83,12 +82,9 @@ export const IssueParentDetail = observer(function IssueParentDetail(props: TIss
             <div className="flex items-center gap-2.5">
               <span className="block h-2 w-2 rounded-full" style={{ backgroundColor: stateColor }} />
               {parentIssue.project_id && (
-                <IssueIdentifier
-                  projectId={parentIssue.project_id}
-                  issueId={parentIssue.id}
-                  size="xs"
-                  variant="secondary"
-                />
+                <span className="font-medium text-secondary">
+                  {projectIdentifier}-{parentIssue.sequence_id}
+                </span>
               )}
             </div>
             <span className="truncate text-primary">{(parentIssue?.name ?? "").substring(0, 50)}</span>
