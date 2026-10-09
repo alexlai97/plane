@@ -13,7 +13,19 @@ export const ADDITIONAL_NOTIFICATION_CONTENT_MAP: TNotificationContentMap = {};
 // Fallback action renderer for fields not in the map
 export const renderAdditionalAction = (notificationField: string, verb: string | undefined) => {
   const baseAction = !["comment", "archived_at"].includes(notificationField) ? verb : "";
-  return `${baseAction} ${replaceUnderscoreIfSnakeCase(notificationField)}`;
+  const actions: Record<string, string> = { created: "添加了", updated: "更新了", deleted: "删除了" };
+  const fields: Record<string, string> = {
+    state: "状态",
+    priority: "优先级",
+    link: "链接",
+    attachment: "附件",
+    description: "描述",
+    name: "标题",
+    estimate_point: "预估工作量",
+    cycle: "周期",
+    modules: "模块",
+  };
+  return `${actions[baseAction ?? ""] ?? "更新了"}${fields[notificationField] ?? replaceUnderscoreIfSnakeCase(notificationField)}`;
 };
 
 // Fallback value renderer for fields not in the map

@@ -4,6 +4,8 @@
  * See the LICENSE file for details.
  */
 
+import { ArrowLeft } from "lucide-react";
+import { useNotificationReturn } from "@/hooks/use-notification-return";
 import { observer } from "mobx-react";
 // plane imports
 import { useTranslation } from "@plane/i18n";
@@ -23,11 +25,21 @@ export const NotificationSidebarHeader = observer(function NotificationSidebarHe
 ) {
   const { workspaceSlug } = props;
   const { t } = useTranslation();
+  const { close } = useNotificationReturn(workspaceSlug);
 
   if (!workspaceSlug) return <></>;
   return (
     <Header className="my-auto bg-surface-1">
       <Header.LeftItem>
+        <button
+          type="button"
+          onClick={close}
+          aria-label="关闭通知，返回之前页面"
+          className="mr-2 flex shrink-0 items-center gap-1 rounded-sm px-2 py-1 text-13 text-secondary hover:bg-layer-1"
+        >
+          <ArrowLeft className="size-4" />
+          返回
+        </button>
         <Breadcrumbs>
           <Breadcrumbs.Item
             component={

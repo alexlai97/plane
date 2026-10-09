@@ -5,6 +5,7 @@
  */
 
 // components
+import { useNotificationReturn } from "@/hooks/use-notification-return";
 import { observer } from "mobx-react";
 import { useParams, usePathname } from "next/navigation";
 import { cn } from "@plane/utils";
@@ -25,6 +26,8 @@ export const TopNavigationRoot = observer(function TopNavigationRoot() {
   // router
   const { workspaceSlug } = useParams();
   const pathname = usePathname();
+  const isInbox = pathname?.includes("/notifications/");
+  const notificationNavigation = useNotificationReturn(workspaceSlug?.toString() ?? "");
 
   // store hooks
   const { unreadNotificationsCount, getUnreadNotificationsCount } = useWorkspaceNotifications();
@@ -60,20 +63,21 @@ export const TopNavigationRoot = observer(function TopNavigationRoot() {
       </div>
       {/* Additional Actions */}
       <div className="flex flex-1 shrink-0 items-center justify-end gap-1">
-        <Tooltip tooltipContent="Inbox" position="bottom">
+        <Tooltip tooltipContent={isInbox ? "关闭通知，返回之前页面" : "收件箱"} position="bottom">
           <AppSidebarItem
-            variant="link"
+            variant="button"
             item={{
-              href: `/${workspaceSlug?.toString()}/notifications/`,
+              onClick: isInbox ? notificationNavigation.close : notificationNavigation.open,
               icon: (
                 <div className="relative">
+                  <span className="sr-only">{isInbox ? "关闭通知，返回之前页面" : "收件箱"}</span>
                   <InboxIcon className="size-5" />
                   {totalNotifications > 0 && (
                     <span className="absolute top-0 right-0 size-2 rounded-full bg-danger-primary" />
                   )}
                 </div>
               ),
-              isActive: pathname?.includes("/notifications/"),
+              isActive: isInbox,
             }}
           />
         </Tooltip>
