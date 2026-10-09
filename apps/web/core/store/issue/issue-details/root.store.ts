@@ -96,6 +96,7 @@ export interface IIssueDetail
   getIsIssuePeeked: (issueId: string) => boolean;
   // actions
   setPeekIssue: (peekIssue: TPeekIssue | undefined) => void;
+  goBackPeek: () => void;
   setIssueLinkData: (issueLinkData: TIssueLink | null) => void;
   toggleCreateIssueModal: (value: boolean) => void;
   toggleIssueLinkModal: (value: boolean) => void;
@@ -190,6 +191,7 @@ export class IssueDetail implements IIssueDetail {
       isPeekOpen: computed,
       // action
       setPeekIssue: action,
+      goBackPeek: action,
       setIssueLinkData: action,
       toggleCreateIssueModal: action,
       toggleIssueLinkModal: action,
@@ -248,6 +250,10 @@ export class IssueDetail implements IIssueDetail {
   setPeekIssue = (peekIssue: TPeekIssue | undefined) => {
     this.peekTrail = nextPeekTrail(this.peekTrail, this.peekIssue, peekIssue);
     this.peekIssue = peekIssue;
+  };
+  goBackPeek = () => {
+    const previous = this.peekTrail.at(-1);
+    if (previous) this.setPeekIssue(previous);
   };
   toggleCreateIssueModal = (value: boolean) => (this.isCreateIssueModalOpen = value);
   toggleIssueLinkModal = (value: boolean) => (this.isIssueLinkModalOpen = value);

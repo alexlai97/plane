@@ -67,6 +67,7 @@ export const IssueView = observer(function IssueView(props: IIssueView) {
   const {
     setPeekIssue,
     peekTrail,
+    goBackPeek,
     isAnyModalOpen,
     issue: { getIssueById },
   } = useIssueDetail();
@@ -137,7 +138,7 @@ export const IssueView = observer(function IssueView(props: IIssueView) {
   const portalContainer = document.getElementById("full-screen-portal") as HTMLElement;
 
   const previousPeek = !embedIssue ? peekTrail.at(-1) : undefined;
-  const returnToPrevious = previousPeek ? () => setPeekIssue(previousPeek) : undefined;
+  const returnToPrevious = previousPeek ? goBackPeek : undefined;
 
   const content = (
     <div className="w-full text-body-sm-regular">

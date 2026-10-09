@@ -94,6 +94,7 @@ export const IssuePeekOverviewHeader = observer(function IssuePeekOverviewHeader
     issue: { getIssueById },
     setPeekIssue,
     peekTrail,
+    goBackPeek,
     removeIssue,
     archiveIssue,
     getIsIssuePeeked,
@@ -165,7 +166,7 @@ export const IssuePeekOverviewHeader = observer(function IssuePeekOverviewHeader
           <button
             type="button"
             aria-label="返回上一工作项"
-            onClick={() => setPeekIssue(previousPeek)}
+            onClick={goBackPeek}
             className="flex items-center gap-1 text-13 text-secondary hover:text-primary"
           >
             <ArrowLeft className="size-4" /> 返回
