@@ -1,0 +1,222 @@
+{
+  "schema_version": 2,
+  "workspace_slug": "ai-strategy",
+  "project_id": "0191c5ba-d1aa-4420-a624-0bb52a57a395",
+  "status": "reviewed_seed_definition",
+  "analyzed_work_item_count": 37,
+  "default_template_key": "general",
+  "templates": [
+    {
+      "key": "general",
+      "name": "通用任务",
+      "recommended_for": [],
+      "recommended_member_ids": [],
+      "evidence_work_items": [],
+      "description_rows": [
+        {
+          "label": "需求来源",
+          "hint": "谁提出、谁使用？自发工作可写部门安排。"
+        },
+        {
+          "label": "描述",
+          "hint": "要完成什么？做到什么算完成？各写一句即可。"
+        },
+        {
+          "label": "交付物",
+          "hint": "计划交付什么；完成后补文件或访问链接。"
+        },
+        {
+          "label": "展示成果",
+          "hint": "完成后补一张图、一段演示或一句结果；创建时留空。"
+        }
+      ],
+      "description_html": "<table><tbody><tr><td><p>需求来源</p></td><td><p>谁提出、谁使用？自发工作可写部门安排。</p></td></tr><tr><td><p>描述</p></td><td><p>要完成什么？做到什么算完成？各写一句即可。</p></td></tr><tr><td><p>交付物</p></td><td><p>计划交付什么；完成后补文件或访问链接。</p></td></tr><tr><td><p>展示成果</p></td><td><p>完成后补一张图、一段演示或一句结果；创建时留空。</p></td></tr></tbody></table>",
+      "default_properties": {},
+      "auto_assign": false
+    },
+    {
+      "key": "materials",
+      "name": "资料与流程交付",
+      "recommended_for": ["包菲凡"],
+      "recommended_member_ids": ["d13aecb0-70a3-4436-a80a-4a2296704eae"],
+      "evidence_work_items": [
+        "AISTRAT-11",
+        "AISTRAT-12",
+        "AISTRAT-13",
+        "AISTRAT-14",
+        "AISTRAT-25",
+        "AISTRAT-30",
+        "AISTRAT-32",
+        "AISTRAT-36",
+        "AISTRAT-40",
+        "AISTRAT-46",
+        "AISTRAT-48",
+        "AISTRAT-49"
+      ],
+      "description_rows": [
+        {
+          "label": "对象与依据",
+          "hint": "机型／配置／工序，以及使用的资料版本。"
+        },
+        {
+          "label": "描述",
+          "hint": "本次制作或修改什么？怎样检查并确认完成？"
+        },
+        {
+          "label": "交付物",
+          "hint": "源文件、发布文件或资料包；完成后补链接和版本。"
+        },
+        {
+          "label": "展示成果",
+          "hint": "预览图、前后对比或确认结果；创建时留空。"
+        }
+      ],
+      "description_html": "<table><tbody><tr><td><p>对象与依据</p></td><td><p>机型／配置／工序，以及使用的资料版本。</p></td></tr><tr><td><p>描述</p></td><td><p>本次制作或修改什么？怎样检查并确认完成？</p></td></tr><tr><td><p>交付物</p></td><td><p>源文件、发布文件或资料包；完成后补链接和版本。</p></td></tr><tr><td><p>展示成果</p></td><td><p>预览图、前后对比或确认结果；创建时留空。</p></td></tr></tbody></table>",
+      "default_properties": {},
+      "auto_assign": false
+    },
+    {
+      "key": "tool-system",
+      "name": "工具与系统交付",
+      "recommended_for": ["曹燕", "赖星宇"],
+      "recommended_member_ids": ["bb60f732-aa0b-45d8-8c65-b8b0c9195002", "f9f79f8b-8573-4903-b8d4-687d589ed15f"],
+      "evidence_work_items": [
+        "AISTRAT-1",
+        "AISTRAT-3",
+        "AISTRAT-4",
+        "AISTRAT-21",
+        "AISTRAT-22",
+        "AISTRAT-37",
+        "AISTRAT-45"
+      ],
+      "description_rows": [
+        {
+          "label": "需求来源",
+          "hint": "提出需求的人或使用部门。"
+        },
+        {
+          "label": "描述",
+          "hint": "解决什么问题、实现什么？用样本或使用流程说明怎样算完成。"
+        },
+        {
+          "label": "交付物",
+          "hint": "网站、工具包或文档；可附一句使用方式。"
+        },
+        {
+          "label": "展示成果",
+          "hint": "截图、演示或实际验证结果；未验证时如实说明。"
+        }
+      ],
+      "description_html": "<table><tbody><tr><td><p>需求来源</p></td><td><p>提出需求的人或使用部门。</p></td></tr><tr><td><p>描述</p></td><td><p>解决什么问题、实现什么？用样本或使用流程说明怎样算完成。</p></td></tr><tr><td><p>交付物</p></td><td><p>网站、工具包或文档；可附一句使用方式。</p></td></tr><tr><td><p>展示成果</p></td><td><p>截图、演示或实际验证结果；未验证时如实说明。</p></td></tr></tbody></table>",
+      "default_properties": {},
+      "auto_assign": false
+    },
+    {
+      "key": "application-materials",
+      "name": "申报与答辩",
+      "recommended_for": ["包菲凡", "曹燕", "金罗军"],
+      "recommended_member_ids": [
+        "d13aecb0-70a3-4436-a80a-4a2296704eae",
+        "bb60f732-aa0b-45d8-8c65-b8b0c9195002",
+        "44748afd-f779-4621-897b-6cdafb059433"
+      ],
+      "evidence_work_items": ["AISTRAT-17", "AISTRAT-18", "AISTRAT-19"],
+      "description_rows": [
+        {
+          "label": "申报要求",
+          "hint": "申报对象、材料清单和格式；截止日期填任务属性。"
+        },
+        {
+          "label": "描述",
+          "hint": "本次负责哪份材料？谁审核，怎样确认可提交？"
+        },
+        {
+          "label": "交付物",
+          "hint": "申报表、PPT、讲稿等文件或版本链接。"
+        },
+        {
+          "label": "提交结果",
+          "hint": "确认后的提交回执或最终版本；尚未提交时留空。"
+        }
+      ],
+      "description_html": "<table><tbody><tr><td><p>申报要求</p></td><td><p>申报对象、材料清单和格式；截止日期填任务属性。</p></td></tr><tr><td><p>描述</p></td><td><p>本次负责哪份材料？谁审核，怎样确认可提交？</p></td></tr><tr><td><p>交付物</p></td><td><p>申报表、PPT、讲稿等文件或版本链接。</p></td></tr><tr><td><p>提交结果</p></td><td><p>确认后的提交回执或最终版本；尚未提交时留空。</p></td></tr></tbody></table>",
+      "default_properties": {},
+      "auto_assign": false
+    },
+    {
+      "key": "decision",
+      "name": "待决策事项",
+      "recommended_for": ["金罗军"],
+      "recommended_member_ids": ["44748afd-f779-4621-897b-6cdafb059433"],
+      "evidence_work_items": [],
+      "description_rows": [
+        {
+          "label": "需要决定",
+          "hint": "要决定什么？会影响什么？"
+        },
+        {
+          "label": "选项与建议",
+          "hint": "可选方案及主要取舍；一句话写明建议。"
+        },
+        {
+          "label": "决策结果",
+          "hint": "决定后记录结论和关联任务；尚未决定时留空。"
+        }
+      ],
+      "description_html": "<table><tbody><tr><td><p>需要决定</p></td><td><p>要决定什么？会影响什么？</p></td></tr><tr><td><p>选项与建议</p></td><td><p>可选方案及主要取舍；一句话写明建议。</p></td></tr><tr><td><p>决策结果</p></td><td><p>决定后记录结论和关联任务；尚未决定时留空。</p></td></tr></tbody></table>",
+      "default_properties": {},
+      "auto_assign": false
+    }
+  ],
+  "rules": [
+    "Template instances are independent of later template edits.",
+    "Never copy fixed dates, completion states, old files or evidence into new work items.",
+    "Progress belongs in comments; template fields guide initial goal and acceptance.",
+    "Recommended people are suggestions, not access restrictions or automatic assignment.",
+    "Parent/subtask examples are not counted as distinct projects.",
+    "No reported benefit numbers are invented."
+  ],
+  "reference_work_item": "AISTRAT-3",
+  "reference_structure": ["需求来源", "描述", "交付物", "展示成果"],
+  "design_rules": [
+    "Four-row, two-column native editor tables by default; decision template has three rows.",
+    "Hints are optional guidance, not required form fields.",
+    "Completion condition is a short part of description; do not add a separate acceptance report.",
+    "Keep owner/state/priority/dates in native properties; subtasks carry actual work division.",
+    "Use native links and attachments; show selected evidence in description and record ongoing progress in comments.",
+    "No prefilled person/date/status/evidence from reference work items.",
+    "Shared templates with member recommendations; no private copies.",
+    "Weekly reporting belongs in a project Page linking actual tasks, not a duplicated weekly task list."
+  ],
+  "member_guidance": {
+    "包菲凡": "推荐资料与流程交付；根据机型文档、SOP或规范调整对象与依据提示。",
+    "曹燕": "推荐工具与系统交付；描述中重点写输入、业务规则和结果核对。",
+    "赖星宇": "推荐工具与系统交付；描述中重点写关键使用流程与上线可用条件。",
+    "金罗军": "推荐待决策事项；周会使用页面引用任务和成果，不重复维护状态。"
+  },
+  "weekly_page_outline": [
+    {
+      "label": "本周成果",
+      "hint": "选择重要结果，链接对应任务与证据。"
+    },
+    {
+      "label": "下阶段重点",
+      "hint": "链接关键交付任务，负责人和日期以任务字段为准。"
+    },
+    {
+      "label": "风险与决策",
+      "hint": "有事项时写影响和需要的决定；未评估时明确说明。"
+    }
+  ],
+  "review_summary": {
+    "project_manager": "Reduce duplication and use native task fields.",
+    "product_manager": "Merge similar templates and preserve visible outcomes from user example.",
+    "development_manager": "Keep input/rule or user-flow differences as hints inside one shared tool/system template.",
+    "test_manager": "Distinguish planned completion conditions from actual evidence; do not force acceptance checklists."
+  },
+  "references": [
+    "https://www.notion.com/help/database-templates",
+    "https://www.atlassian.com/software/confluence/templates/product-requirements",
+    "https://www.atlassian.com/software/confluence/templates/project-status"
+  ]
+}

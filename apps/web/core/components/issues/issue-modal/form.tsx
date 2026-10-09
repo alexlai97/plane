@@ -1,6 +1,7 @@
 // oxlint-disable promise/always-return
 // oxlint-disable no-shadow
 // oxlint-disable jsx_a11y/prefer-tag-over-role
+import { WorkItemTemplates } from "./components/work-item-templates";
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -147,6 +148,7 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
     setValue,
   } = methods;
 
+  const [templateFormGeneration, setTemplateFormGeneration] = useState(0);
   const projectId = watch("project_id");
   const activeAdditionalPropertiesLength = getActiveAdditionalPropertiesLength({
     projectId: projectId,
@@ -260,6 +262,7 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
             description_html: data?.description_html ?? "<p></p>",
           });
           editorRef?.current?.clearEditor();
+          setTemplateFormGeneration((prev) => prev + 1);
         }
       })
       .catch((error) => {
@@ -370,6 +373,13 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
                   />
                 </div>
               </div>
+              <WorkItemTemplates
+                key={templateFormGeneration}
+                workspaceSlug={workspaceSlug}
+                projectId={projectId}
+                editorRef={editorRef}
+                eligible={!data?.id && !data?.sourceIssueId && !isDraft}
+              />
               {watch("parent_id") && selectedParentIssue && (
                 <div className="pb-4">
                   <IssueParentTag

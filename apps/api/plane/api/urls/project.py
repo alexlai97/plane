@@ -12,7 +12,11 @@ from plane.api.views import (
     ProjectSummaryAPIEndpoint,
 )
 
+from plane.api.views.work_item_template import WorkItemTemplateAPIEndpoint
+
 urlpatterns = [
+    path("workspaces/<str:slug>/projects/<uuid:project_id>/work-item-templates/", WorkItemTemplateAPIEndpoint.as_view(), name="work-item-templates"),
+    path("workspaces/<str:slug>/projects/<uuid:project_id>/work-item-templates/<uuid:pk>/", WorkItemTemplateAPIEndpoint.as_view(), name="work-item-template"),
     path(
         "workspaces/<str:slug>/projects/",
         ProjectListCreateAPIEndpoint.as_view(http_method_names=["get", "post"]),

@@ -1,0 +1,9 @@
+FROM makeplane/plane-backend:v1.4.2
+COPY apps/api/plane/db/models/work_item_template.py /code/plane/db/models/work_item_template.py
+RUN printf '\nfrom .work_item_template import WorkItemTemplate\n' >> /code/plane/db/models/__init__.py
+COPY apps/api/plane/db/migrations/0123_work_item_template.py /code/plane/db/migrations/0123_work_item_template.py
+COPY apps/api/plane/app/views/work_item_template.py /code/plane/app/views/work_item_template.py
+COPY apps/api/plane/api/views/work_item_template.py /code/plane/api/views/work_item_template.py
+COPY apps/api/plane/app/urls/project.py /code/plane/app/urls/project.py
+COPY apps/api/plane/api/urls/project.py /code/plane/api/urls/project.py
+COPY apps/api/plane/tests/unit/test_work_item_templates.py /code/plane/tests/unit/test_work_item_templates.py

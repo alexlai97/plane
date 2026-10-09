@@ -21,7 +21,11 @@ from plane.app.views import (
 )
 
 
+from plane.app.views.work_item_template import WorkItemTemplateEndpoint
+
 urlpatterns = [
+    path("workspaces/<str:slug>/projects/<uuid:project_id>/work-item-templates/", WorkItemTemplateEndpoint.as_view(), name="work-item-templates"),
+    path("workspaces/<str:slug>/projects/<uuid:project_id>/work-item-templates/<uuid:pk>/", WorkItemTemplateEndpoint.as_view(), name="work-item-template"),
     path(
         "workspaces/<str:slug>/projects/",
         ProjectViewSet.as_view({"get": "list", "post": "create"}),
