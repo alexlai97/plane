@@ -19,6 +19,8 @@ import { TimeLineTypeContext } from "@/components/gantt-chart/contexts";
 import { GanttChartRoot } from "@/components/gantt-chart/root";
 import { IssueGanttSidebar } from "@/components/gantt-chart/sidebar/issues/sidebar";
 // hooks
+import { useGanttDisplay } from "@/hooks/use-gantt-display";
+import { useProjectState } from "@/hooks/store/use-project-state";
 import { useIssues } from "@/hooks/store/use-issues";
 import { useUserPermissions } from "@/hooks/store/user";
 import { useIssueStoreType } from "@/hooks/use-issue-layout-store";
@@ -46,6 +48,8 @@ export type GanttStoreType =
 export const BaseGanttRoot = observer(function BaseGanttRoot(props: IBaseGanttRoot) {
   const { viewId, isCompletedCycle = false, isEpic = false } = props;
   const { t } = useTranslation();
+  const { display, toggle } = useGanttDisplay();
+  const { getProjectStates } = useProjectState();
   // router
   const { workspaceSlug, projectId } = useParams();
 
@@ -126,29 +130,53 @@ export const BaseGanttRoot = observer(function BaseGanttRoot(props: IBaseGanttRo
   return (
     <IssueLayoutHOC layout={EIssueLayoutTypes.GANTT}>
       <TimeLineTypeContext.Provider value={GANTT_TIMELINE_TYPE.ISSUE}>
-        <div className="h-full w-full">
-          <GanttChartRoot
-            border={false}
-            title={isEpic ? t("epic.label", { count: 2 }) : t("issue.label", { count: 2 })}
-            loaderTitle={isEpic ? t("epic.label", { count: 2 }) : t("issue.label", { count: 2 })}
-            blockIds={issuesIds}
-            blockUpdateHandler={updateIssueBlockStructure}
-            blockToRender={(data: TIssue) => <IssueGanttBlock issueId={data.id} isEpic={isEpic} />}
-            sidebarToRender={(props) => <IssueGanttSidebar {...props} showAllBlocks isEpic={isEpic} />}
-            enableBlockLeftResize={isAllowed}
-            enableBlockRightResize={isAllowed}
-            enableBlockMove={isAllowed}
-            enableReorder={appliedDisplayFilters?.order_by === "sort_order" && isAllowed}
-            enableAddBlock={isAllowed}
-            enableSelection={isBulkOperationsEnabled && isAllowed}
-            quickAdd={quickAdd}
-            loadMoreBlocks={loadMoreIssues}
-            canLoadMoreBlocks={nextPageResults}
-            updateBlockDates={updateBlockDates}
-            showAllBlocks
-            enableDependency
-            isEpic={isEpic}
-          />
+        <div className="flex h-full w-full flex-col">
+          {display.legend && (
+            <div
+              className="flex shrink-0 flex-wrap items-center gap-3 border-b border-subtle px-4 py-2 text-11 text-secondary"
+              aria-label="状态颜色图例"
+            >
+              <span>状态</span>
+              {(getProjectStates(projectId?.toString() ?? "") ?? []).map((state) => (
+                <span key={state.id} className="flex items-center gap-1">
+                  <span className="size-2.5 rounded-sm" style={{ backgroundColor: state.color }} />
+                  {state.name}
+                </span>
+              ))}
+              <button
+                type="button"
+                className="ml-auto hover:text-primary"
+                onClick={() => toggle("legend")}
+                aria-label="隐藏状态颜色图例"
+              >
+                隐藏图例
+              </button>
+            </div>
+          )}
+          <div className="min-h-0 flex-1">
+            <GanttChartRoot
+              border={false}
+              title={isEpic ? t("epic.label", { count: 2 }) : t("issue.label", { count: 2 })}
+              loaderTitle={isEpic ? t("epic.label", { count: 2 }) : t("issue.label", { count: 2 })}
+              blockIds={issuesIds}
+              blockUpdateHandler={updateIssueBlockStructure}
+              blockToRender={(data: TIssue) => <IssueGanttBlock issueId={data.id} isEpic={isEpic} />}
+              sidebarToRender={(props) => <IssueGanttSidebar {...props} showAllBlocks isEpic={isEpic} />}
+              enableBlockLeftResize={isAllowed}
+              enableBlockRightResize={isAllowed}
+              enableBlockMove={isAllowed}
+              enableReorder={appliedDisplayFilters?.order_by === "sort_order" && isAllowed}
+              enableAddBlock={isAllowed}
+              enableSelection={isBulkOperationsEnabled && isAllowed}
+              quickAdd={quickAdd}
+              loadMoreBlocks={loadMoreIssues}
+              canLoadMoreBlocks={nextPageResults}
+              updateBlockDates={updateBlockDates}
+              showAllBlocks
+              enableDependency
+              isEpic={isEpic}
+            />
+          </div>
         </div>
       </TimeLineTypeContext.Provider>
     </IssueLayoutHOC>

@@ -23,6 +23,7 @@ import { useIssueStoreType } from "@/hooks/use-issue-layout-store";
 import useIssuePeekOverviewRedirection from "@/hooks/use-issue-peek-overview-redirection";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 // local imports
+import { GanttMetadata } from "./metadata";
 import { WorkItemPreviewCard } from "../../preview-card";
 import { getBlockViewDetails } from "../utils";
 import type { GanttStoreType } from "./base-gantt-root";
@@ -141,19 +142,22 @@ export const IssueGanttSidebarBlock = observer(function IssueGanttSidebarBlock(p
       className="line-clamp-1 w-full cursor-pointer text-13 text-primary"
       disabled={!!issueDetails?.tempId}
     >
-      <div className="relative flex h-full w-full cursor-pointer items-center gap-2">
-        {issueDetails?.project_id && (
-          <IssueIdentifier
-            issueId={issueDetails.id}
-            projectId={issueDetails.project_id}
-            size="xs"
-            variant="tertiary"
-            displayProperties={issuesFilter?.issueFilters?.displayProperties}
-          />
-        )}
-        <Tooltip tooltipContent={issueDetails?.name} isMobile={isMobile}>
-          <span className="flex-grow truncate text-13 font-medium">{issueDetails?.name}</span>
-        </Tooltip>
+      <div className="flex w-full min-w-0 flex-col justify-center gap-0.5">
+        <div className="relative flex w-full min-w-0 cursor-pointer items-center gap-2">
+          {issueDetails?.project_id && (
+            <IssueIdentifier
+              issueId={issueDetails.id}
+              projectId={issueDetails.project_id}
+              size="xs"
+              variant="tertiary"
+              displayProperties={issuesFilter?.issueFilters?.displayProperties}
+            />
+          )}
+          <Tooltip tooltipContent={issueDetails?.name} isMobile={isMobile}>
+            <span className="flex-grow truncate text-13 font-medium">{issueDetails?.name}</span>
+          </Tooltip>
+        </div>
+        {issueDetails && <GanttMetadata issue={issueDetails} />}
       </div>
     </ControlLink>
   );

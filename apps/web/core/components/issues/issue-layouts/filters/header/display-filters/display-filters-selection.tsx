@@ -5,6 +5,7 @@
  */
 
 import React from "react";
+import { GanttDisplayOptions } from "@/components/issues/issue-layouts/gantt/display-options";
 import { isEmpty } from "lodash-es";
 import { observer } from "mobx-react";
 import type {
@@ -60,6 +61,7 @@ export const DisplayFiltersSelection = observer(function DisplayFiltersSelection
 
   return (
     <div className="vertical-scrollbar relative scrollbar-sm h-full w-full divide-y divide-subtle-1 overflow-hidden overflow-y-auto px-2.5">
+      {displayFilters?.layout === "gantt_chart" && <GanttDisplayOptions moduleDisabled={moduleViewDisabled} />}
       {/* display properties */}
       {layoutDisplayFiltersOptions?.display_properties && layoutDisplayFiltersOptions.display_properties.length > 0 && (
         <div className="py-2">

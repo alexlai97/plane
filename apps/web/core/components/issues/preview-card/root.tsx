@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+import { GanttMetadata } from "@/components/issues/issue-layouts/gantt/metadata";
 import { observer } from "mobx-react";
 // plane imports
 import { PriorityIcon, StateGroupIcon } from "@plane/propel/icons";
@@ -23,7 +24,8 @@ type Props = {
     id?: string;
     name?: string;
   };
-  workItem: Pick<TIssue, "id" | "name" | "sequence_id" | "priority" | "start_date" | "target_date" | "type_id">;
+  workItem: Pick<TIssue, "id" | "name" | "sequence_id" | "priority" | "start_date" | "target_date" | "type_id"> &
+    Partial<Pick<TIssue, "assignee_ids" | "module_ids">>;
 };
 
 export const WorkItemPreviewCard = observer(function WorkItemPreviewCard(props: Props) {
@@ -56,6 +58,12 @@ export const WorkItemPreviewCard = observer(function WorkItemPreviewCard(props: 
       <div>
         <h6 className="text-13 wrap-break-word">{workItem.name}</h6>
       </div>
+      {workItem.assignee_ids && (
+        <GanttMetadata
+          issue={{ ...workItem, assignee_ids: workItem.assignee_ids, module_ids: workItem.module_ids ?? [] }}
+          preview
+        />
+      )}
       <div className="flex h-5 items-center gap-1">
         <PriorityIcon priority={workItem.priority} withContainer />
         <WorkItemPreviewCardDate
