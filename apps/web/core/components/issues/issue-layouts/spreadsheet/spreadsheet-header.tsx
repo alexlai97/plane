@@ -18,6 +18,8 @@ import type { TSelectionHelper } from "@/hooks/use-multiple-select";
 import { SpreadsheetHeaderColumn } from "./spreadsheet-header-column";
 
 interface Props {
+  expanded: boolean;
+  onToggleExpand: () => void;
   displayProperties: IIssueDisplayProperties;
   displayFilters: IIssueDisplayFilterOptions;
   handleDisplayFilterUpdate: (data: Partial<IIssueDisplayFilterOptions>) => void;
@@ -30,6 +32,8 @@ interface Props {
 
 export const SpreadsheetHeader = observer(function SpreadsheetHeader(props: Props) {
   const {
+    expanded,
+    onToggleExpand,
     displayProperties,
     displayFilters,
     handleDisplayFilterUpdate,
@@ -72,6 +76,16 @@ export const SpreadsheetHeader = observer(function SpreadsheetHeader(props: Prop
                 </div>
               )}
               <span className="text-13 font-medium">{`${isEpic ? "史诗" : "工作项"}`}</span>
+              {!isEpic && (
+                <button
+                  type="button"
+                  className="ml-auto rounded px-2 py-1 text-12 text-secondary hover:bg-layer-2"
+                  aria-expanded={expanded}
+                  onClick={onToggleExpand}
+                >
+                  {expanded ? "全部收起" : "全部展开"}
+                </button>
+              )}
             </div>
           </div>
         </th>

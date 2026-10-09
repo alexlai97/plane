@@ -5,7 +5,7 @@
  */
 
 import type { Dispatch, MouseEvent, MutableRefObject, SetStateAction } from "react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { MoreHorizontal } from "lucide-react";
@@ -19,6 +19,7 @@ import type { IIssueDisplayProperties, TIssue } from "@plane/types";
 import { EIssueServiceType } from "@plane/types";
 // ui
 import { ControlLink, Row } from "@plane/ui";
+import { setToast, TOAST_TYPE } from "@plane/propel/toast";
 import { cn, generateWorkItemLink } from "@plane/utils";
 // components
 import { MultipleSelectEntityAction } from "@/components/core/multiple-select";
@@ -35,6 +36,9 @@ import { usePlatformOS } from "@/hooks/use-platform-os";
 import type { TRenderQuickActions } from "../list/list-view-types";
 import { isIssueNew } from "../utils";
 import { IssueColumn } from "./issue-column";
+import { useSpreadsheetHierarchy } from "./hierarchy-context";
+import { useIssuesStore } from "@/hooks/use-issue-layout-store";
+import { IssueService } from "@/services/issue/issue.service";
 
 interface Props {
   displayProperties: IIssueDisplayProperties;
@@ -75,12 +79,84 @@ export const SpreadsheetIssueRow = observer(function SpreadsheetIssueRow(props: 
   // states
   const [isExpanded, setExpanded] = useState<boolean>(false);
   // store hooks
-  const { subIssues: subIssuesStore } = useIssueDetail(isEpic ? EIssueServiceType.EPICS : EIssueServiceType.ISSUES);
-  const { issueMap } = useIssues();
+  const detailStore = useIssueDetail(isEpic ? EIssueServiceType.EPICS : EIssueServiceType.ISSUES);
+  const { subIssues: subIssuesStore } = detailStore;
+  const issueStore = useIssues();
+  const { issueMap } = issueStore;
 
   // derived values
   const issue = issueMap[issueId];
-  const subIssues = subIssuesStore.subIssuesByIssueId(issueId);
+  const hierarchy = useSpreadsheetHierarchy();
+  const { issuesFilter } = useIssuesStore();
+  const { workspaceSlug, moduleId, cycleId } = useParams();
+  const queryKey = JSON.stringify(issuesFilter.appliedFilters ?? {});
+  const cachedIds = subIssuesStore.subIssuesByIssueId(issueId) ?? [];
+  const [filteredChildren, setFilteredChildren] = useState<string[]>([]);
+  const [loadedQuery, setLoadedQuery] = useState<string>();
+  // Observe edits to loaded children. Revalidate through the canonical server filter.
+  const observedChildren = useRef(new Set<string>());
+  for (const id of [...cachedIds, ...filteredChildren]) observedChildren.current.add(id);
+  const childRevision = JSON.stringify([...observedChildren.current].map((id) => issueMap[id]));
+  useEffect(() => {
+    setExpanded(hierarchy.expanded);
+  }, [hierarchy.revision, hierarchy.expanded]);
+  useEffect(() => {
+    let active = true;
+    if (!isExpanded || !workspaceSlug || !issue?.project_id || isEpic || !issue.sub_issues_count) return;
+    const service = new IssueService();
+    const load = async () => {
+      const query = {
+        ...JSON.parse(queryKey),
+        parent: issueId,
+        sub_issue: true,
+        group_by: undefined,
+        sub_group_by: undefined,
+        ...(moduleId ? { module: String(moduleId) } : {}),
+        ...(cycleId ? { cycle: String(cycleId) } : {}),
+        per_page: 100,
+      };
+      let cursor: string | undefined;
+      const children: TIssue[] = [];
+      do {
+        // oxlint-disable-next-line no-await-in-loop -- Each cursor depends on the previous response.
+        const response = await service.getIssuesFromServer(String(workspaceSlug), issue.project_id!, {
+          ...query,
+          cursor,
+        });
+        if (!active) return;
+        children.push(...(response.results as TIssue[]));
+        cursor = response.next_page_results ? response.next_cursor : undefined;
+      } while (cursor);
+      if (!active) return;
+      // Keep the unfiltered detail cache intact; only this table owns the filtered IDs.
+      detailStore.rootIssueStore.issues.addIssue(children);
+      setFilteredChildren([...new Set(children.map((child) => child.id))]);
+      setLoadedQuery(queryKey);
+    };
+    void load().catch(() => {
+      if (active) {
+        setFilteredChildren([]);
+        setExpanded(false);
+        setToast({ type: TOAST_TYPE.ERROR, title: "子工作项加载失败", message: "请再次展开重试。" });
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [
+    isExpanded,
+    queryKey,
+    issueId,
+    workspaceSlug,
+    moduleId,
+    cycleId,
+    childRevision,
+    isEpic,
+    issue?.project_id,
+    issue?.sub_issues_count,
+    detailStore.rootIssueStore.issues,
+  ]);
+  const subIssues = loadedQuery === queryKey ? filteredChildren.filter((id) => !hierarchy.rootIds.has(id)) : [];
   const isIssueSelected = selectionHelpers.getIsEntitySelected(issueId);
   const isIssueActive = selectionHelpers.getIsEntityActive(issueId);
 
@@ -191,7 +267,7 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
   const [isMenuActive, setIsMenuActive] = useState(false);
   // refs
   const cellRef = useRef(null);
-  const menuActionRef = useRef<HTMLDivElement | null>(null);
+  const menuActionRef = useRef<HTMLButtonElement | null>(null);
   // router
   const { workspaceSlug, projectId } = useParams();
   // hooks
@@ -213,7 +289,9 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
   useOutsideClickDetector(menuActionRef, () => setIsMenuActive(false));
 
   const customActionButton = (
-    <div
+    <button
+      type="button"
+      aria-label="工作项操作"
       ref={menuActionRef}
       className={`flex h-full w-full cursor-pointer items-center rounded-sm p-1 text-placeholder hover:bg-layer-1 ${
         isMenuActive ? "bg-layer-1 text-primary" : "text-secondary"
@@ -221,7 +299,7 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
       onClick={() => setIsMenuActive(!isMenuActive)}
     >
       <MoreHorizontal className="h-3.5 w-3.5" />
-    </div>
+    </button>
   );
   if (!issueDetail) return null;
 
@@ -343,6 +421,8 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
                   <button
                     type="button"
                     className="grid size-4 place-items-center rounded-xs text-placeholder hover:text-tertiary"
+                    aria-label={isExpanded ? "收起子工作项" : "展开子工作项"}
+                    aria-expanded={isExpanded}
                     onClick={handleToggleExpand}
                   >
                     <ChevronRightIcon
@@ -369,6 +449,7 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
                   </div>
                 </div>
                 <div
+                  role="presentation"
                   className={`opacity-0 transition-opacity group-hover:opacity-100 ${isMenuActive ? "!opacity-100" : ""}`}
                   onClick={(e) => e.stopPropagation()}
                 >

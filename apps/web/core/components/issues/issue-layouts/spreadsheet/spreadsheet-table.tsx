@@ -5,8 +5,9 @@
  */
 
 import type { MutableRefObject } from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { observer } from "mobx-react";
+import { useParams } from "next/navigation";
 // plane imports
 import type { IIssueDisplayFilterOptions, IIssueDisplayProperties, TIssue } from "@plane/types";
 // components
@@ -21,6 +22,7 @@ import type { TRenderQuickActions } from "../list/list-view-types";
 import { getDisplayPropertiesCount } from "../utils";
 import { SpreadsheetIssueRow } from "./issue-row";
 import { SpreadsheetHeader } from "./spreadsheet-header";
+import { SpreadsheetHierarchyContext } from "./hierarchy-context";
 
 type Props = {
   displayProperties: IIssueDisplayProperties;
@@ -61,11 +63,19 @@ export const SpreadsheetTable = observer(function SpreadsheetTable(props: Props)
 
   // states
   const isScrolled = useRef(false);
+  const [expansion, setExpansion] = useState({ expanded: false, revision: 0 });
   const [intersectionElement, setIntersectionElement] = useState<HTMLTableSectionElement | null>(null);
 
   const {
     issues: { getIssueLoader },
+    issuesFilter,
   } = useIssuesStore();
+
+  const routeKey = JSON.stringify(useParams());
+  const filterKey = JSON.stringify(issuesFilter.appliedFilters ?? {});
+  useEffect(() => {
+    setExpansion((value) => ({ expanded: false, revision: value.revision + 1 }));
+  }, [filterKey, routeKey]);
 
   const handleScroll = useCallback(() => {
     if (!containerRef.current) return;
@@ -110,45 +120,50 @@ export const SpreadsheetTable = observer(function SpreadsheetTable(props: Props)
   if (!isEstimateEnabled) ignoreFieldsForCounting.push("estimate");
   const displayPropertiesCount = getDisplayPropertiesCount(displayProperties, ignoreFieldsForCounting);
 
+  const hierarchy = useMemo(() => ({ ...expansion, rootIds: new Set(issueIds) }), [expansion, issueIds]);
   return (
-    <table className="w-full overflow-y-auto bg-surface-1" onKeyDown={handleKeyBoardNavigation}>
-      <SpreadsheetHeader
-        displayProperties={displayProperties}
-        displayFilters={displayFilters}
-        handleDisplayFilterUpdate={handleDisplayFilterUpdate}
-        canEditProperties={canEditProperties}
-        isEstimateEnabled={isEstimateEnabled}
-        spreadsheetColumnsList={spreadsheetColumnsList}
-        selectionHelpers={selectionHelpers}
-        isEpic={isEpic}
-      />
-      <tbody>
-        {issueIds.map((id) => (
-          <SpreadsheetIssueRow
-            key={id}
-            issueId={id}
-            displayProperties={displayProperties}
-            quickActions={quickActions}
-            canEditProperties={canEditProperties}
-            nestingLevel={0}
-            isEstimateEnabled={isEstimateEnabled}
-            updateIssue={updateIssue}
-            portalElement={portalElement}
-            containerRef={containerRef}
-            isScrolled={isScrolled}
-            spreadsheetColumnsList={spreadsheetColumnsList}
-            selectionHelpers={selectionHelpers}
-            isEpic={isEpic}
-          />
-        ))}
-      </tbody>
-      {canLoadMoreIssues && (
-        <tfoot ref={setIntersectionElement}>
-          {Array.from({ length: 3 }).map((_, index) => (
-            <SpreadsheetIssueRowLoader key={index} columnCount={displayPropertiesCount} />
+    <SpreadsheetHierarchyContext.Provider value={hierarchy}>
+      <table className="w-full overflow-y-auto bg-surface-1" onKeyDown={handleKeyBoardNavigation}>
+        <SpreadsheetHeader
+          expanded={expansion.expanded}
+          onToggleExpand={() => setExpansion((value) => ({ expanded: !value.expanded, revision: value.revision + 1 }))}
+          displayProperties={displayProperties}
+          displayFilters={displayFilters}
+          handleDisplayFilterUpdate={handleDisplayFilterUpdate}
+          canEditProperties={canEditProperties}
+          isEstimateEnabled={isEstimateEnabled}
+          spreadsheetColumnsList={spreadsheetColumnsList}
+          selectionHelpers={selectionHelpers}
+          isEpic={isEpic}
+        />
+        <tbody>
+          {issueIds.map((id) => (
+            <SpreadsheetIssueRow
+              key={id}
+              issueId={id}
+              displayProperties={displayProperties}
+              quickActions={quickActions}
+              canEditProperties={canEditProperties}
+              nestingLevel={0}
+              isEstimateEnabled={isEstimateEnabled}
+              updateIssue={updateIssue}
+              portalElement={portalElement}
+              containerRef={containerRef}
+              isScrolled={isScrolled}
+              spreadsheetColumnsList={spreadsheetColumnsList}
+              selectionHelpers={selectionHelpers}
+              isEpic={isEpic}
+            />
           ))}
-        </tfoot>
-      )}
-    </table>
+        </tbody>
+        {canLoadMoreIssues && (
+          <tfoot ref={setIntersectionElement}>
+            {["first", "second", "third"].map((key) => (
+              <SpreadsheetIssueRowLoader key={key} columnCount={displayPropertiesCount} />
+            ))}
+          </tfoot>
+        )}
+      </table>
+    </SpreadsheetHierarchyContext.Provider>
   );
 });
