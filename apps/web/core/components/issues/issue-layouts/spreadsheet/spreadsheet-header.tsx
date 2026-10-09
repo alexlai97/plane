@@ -5,6 +5,7 @@
  */
 
 import { observer } from "mobx-react";
+import { ChevronsDownUp, ChevronsUpDown } from "lucide-react";
 import { useParams } from "next/navigation";
 // constants
 import { SPREADSHEET_SELECT_GROUP } from "@plane/constants";
@@ -79,10 +80,15 @@ export const SpreadsheetHeader = observer(function SpreadsheetHeader(props: Prop
               {!isEpic && (
                 <button
                   type="button"
-                  className="ml-auto rounded px-2 py-1 text-12 text-secondary hover:bg-layer-2"
+                  className="focus-visible:outline-accent-primary ml-auto inline-flex cursor-pointer items-center gap-1.5 rounded border border-subtle bg-surface-1 px-2 py-1 text-12 text-secondary hover:border-strong hover:bg-layer-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
                   aria-expanded={expanded}
                   onClick={onToggleExpand}
                 >
+                  {expanded ? (
+                    <ChevronsDownUp className="size-3.5" aria-hidden="true" />
+                  ) : (
+                    <ChevronsUpDown className="size-3.5" aria-hidden="true" />
+                  )}
                   {expanded ? "全部收起" : "全部展开"}
                 </button>
               )}
