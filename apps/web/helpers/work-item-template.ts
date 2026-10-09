@@ -9,5 +9,5 @@ export function hasTemplateDescriptionContent(html: string): boolean {
     return true;
   // An empty paragraph is the editor's initial value. Tables, media, embeds,
   // and mention nodes are meaningful even when their HTML has no plain text.
-  return /<(?!\/?(?:p|div|span|br)\b)[a-z][^>]*>/i.test(html) || /\bdata-(?:type|id|entity|asset)[\w-]*=/i.test(html);
+  return /<(?!\/?(?:p|div|span|br)\b)[a-z][^>]*>/i.test(html) || /\bdata-(?:type|entity|asset)[\w-]*=/i.test(html);
 }

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { hasTemplateDescriptionContent } from "../../apps/web/helpers/work-item-template.ts";
 
 test("empty initial editor paragraphs permit the default template", () => {
-  for (const html of ["", "<p></p>", "<p><br></p>", "<div><p>&nbsp;</p></div>"])
+  for (const html of ["", "<p></p>", '<p data-id="editor-block"></p>', "<p><br></p>", "<div><p>&nbsp;</p></div>"])
     assert.equal(hasTemplateDescriptionContent(html), false);
 });
 test("text, tables, media-only, and mention-only descriptions require a choice", () => {

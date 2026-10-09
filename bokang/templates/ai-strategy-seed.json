@@ -30,7 +30,7 @@
           "hint": "完成后补一张图、一段演示或一句结果；创建时留空。"
         }
       ],
-      "description_html": "<table><tbody><tr><td><p>需求来源</p></td><td><p>谁提出、谁使用？自发工作可写部门安排。</p></td></tr><tr><td><p>描述</p></td><td><p>要完成什么？做到什么算完成？各写一句即可。</p></td></tr><tr><td><p>交付物</p></td><td><p>计划交付什么；完成后补文件或访问链接。</p></td></tr><tr><td><p>展示成果</p></td><td><p>完成后补一张图、一段演示或一句结果；创建时留空。</p></td></tr></tbody></table>",
+      "description_html": "<table><tbody><tr><td colwidth=\"140\"><p>需求来源</p></td><td colwidth=\"560\"><p>谁提出、谁使用？自发工作可写部门安排。</p></td></tr><tr><td colwidth=\"140\"><p>描述</p></td><td colwidth=\"560\"><p>要完成什么？做到什么算完成？各写一句即可。</p></td></tr><tr><td colwidth=\"140\"><p>交付物</p></td><td colwidth=\"560\"><p>计划交付什么；完成后补文件或访问链接。</p></td></tr><tr><td colwidth=\"140\"><p>展示成果</p></td><td colwidth=\"560\"><p>完成后补一张图、一段演示或一句结果；创建时留空。</p></td></tr></tbody></table>",
       "default_properties": {},
       "auto_assign": false
     },
@@ -71,7 +71,7 @@
           "hint": "预览图、前后对比或确认结果；创建时留空。"
         }
       ],
-      "description_html": "<table><tbody><tr><td><p>对象与依据</p></td><td><p>机型／配置／工序，以及使用的资料版本。</p></td></tr><tr><td><p>描述</p></td><td><p>本次制作或修改什么？怎样检查并确认完成？</p></td></tr><tr><td><p>交付物</p></td><td><p>源文件、发布文件或资料包；完成后补链接和版本。</p></td></tr><tr><td><p>展示成果</p></td><td><p>预览图、前后对比或确认结果；创建时留空。</p></td></tr></tbody></table>",
+      "description_html": "<table><tbody><tr><td colwidth=\"140\"><p>对象与依据</p></td><td colwidth=\"560\"><p>机型／配置／工序，以及使用的资料版本。</p></td></tr><tr><td colwidth=\"140\"><p>描述</p></td><td colwidth=\"560\"><p>本次制作或修改什么？怎样检查并确认完成？</p></td></tr><tr><td colwidth=\"140\"><p>交付物</p></td><td colwidth=\"560\"><p>源文件、发布文件或资料包；完成后补链接和版本。</p></td></tr><tr><td colwidth=\"140\"><p>展示成果</p></td><td colwidth=\"560\"><p>预览图、前后对比或确认结果；创建时留空。</p></td></tr></tbody></table>",
       "default_properties": {},
       "auto_assign": false
     },
@@ -107,7 +107,7 @@
           "hint": "截图、演示或实际验证结果；未验证时如实说明。"
         }
       ],
-      "description_html": "<table><tbody><tr><td><p>需求来源</p></td><td><p>提出需求的人或使用部门。</p></td></tr><tr><td><p>描述</p></td><td><p>解决什么问题、实现什么？用样本或使用流程说明怎样算完成。</p></td></tr><tr><td><p>交付物</p></td><td><p>网站、工具包或文档；可附一句使用方式。</p></td></tr><tr><td><p>展示成果</p></td><td><p>截图、演示或实际验证结果；未验证时如实说明。</p></td></tr></tbody></table>",
+      "description_html": "<table><tbody><tr><td colwidth=\"140\"><p>需求来源</p></td><td colwidth=\"560\"><p>提出需求的人或使用部门。</p></td></tr><tr><td colwidth=\"140\"><p>描述</p></td><td colwidth=\"560\"><p>解决什么问题、实现什么？用样本或使用流程说明怎样算完成。</p></td></tr><tr><td colwidth=\"140\"><p>交付物</p></td><td colwidth=\"560\"><p>网站、工具包或文档；可附一句使用方式。</p></td></tr><tr><td colwidth=\"140\"><p>展示成果</p></td><td colwidth=\"560\"><p>截图、演示或实际验证结果；未验证时如实说明。</p></td></tr></tbody></table>",
       "default_properties": {},
       "auto_assign": false
     },
@@ -139,7 +139,7 @@
           "hint": "确认后的提交回执或最终版本；尚未提交时留空。"
         }
       ],
-      "description_html": "<table><tbody><tr><td><p>申报要求</p></td><td><p>申报对象、材料清单和格式；截止日期填任务属性。</p></td></tr><tr><td><p>描述</p></td><td><p>本次负责哪份材料？谁审核，怎样确认可提交？</p></td></tr><tr><td><p>交付物</p></td><td><p>申报表、PPT、讲稿等文件或版本链接。</p></td></tr><tr><td><p>提交结果</p></td><td><p>确认后的提交回执或最终版本；尚未提交时留空。</p></td></tr></tbody></table>",
+      "description_html": "<table><tbody><tr><td colwidth=\"140\"><p>申报要求</p></td><td colwidth=\"560\"><p>申报对象、材料清单和格式；截止日期填任务属性。</p></td></tr><tr><td colwidth=\"140\"><p>描述</p></td><td colwidth=\"560\"><p>本次负责哪份材料？谁审核，怎样确认可提交？</p></td></tr><tr><td colwidth=\"140\"><p>交付物</p></td><td colwidth=\"560\"><p>申报表、PPT、讲稿等文件或版本链接。</p></td></tr><tr><td colwidth=\"140\"><p>提交结果</p></td><td colwidth=\"560\"><p>确认后的提交回执或最终版本；尚未提交时留空。</p></td></tr></tbody></table>",
       "default_properties": {},
       "auto_assign": false
     },
@@ -163,7 +163,7 @@
           "hint": "决定后记录结论和关联任务；尚未决定时留空。"
         }
       ],
-      "description_html": "<table><tbody><tr><td><p>需要决定</p></td><td><p>要决定什么？会影响什么？</p></td></tr><tr><td><p>选项与建议</p></td><td><p>可选方案及主要取舍；一句话写明建议。</p></td></tr><tr><td><p>决策结果</p></td><td><p>决定后记录结论和关联任务；尚未决定时留空。</p></td></tr></tbody></table>",
+      "description_html": "<table><tbody><tr><td colwidth=\"140\"><p>需要决定</p></td><td colwidth=\"560\"><p>要决定什么？会影响什么？</p></td></tr><tr><td colwidth=\"140\"><p>选项与建议</p></td><td colwidth=\"560\"><p>可选方案及主要取舍；一句话写明建议。</p></td></tr><tr><td colwidth=\"140\"><p>决策结果</p></td><td colwidth=\"560\"><p>决定后记录结论和关联任务；尚未决定时留空。</p></td></tr></tbody></table>",
       "default_properties": {},
       "auto_assign": false
     }
