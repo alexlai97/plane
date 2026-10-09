@@ -9,6 +9,9 @@ import { observer } from "mobx-react";
 import { CustomMenu } from "@plane/ui";
 // helpers
 import { generateWorkItemLink } from "@plane/utils";
+import { useRouter } from "next/navigation";
+import useIssuePeekOverviewRedirection from "@/hooks/use-issue-peek-overview-redirection";
+import { usePlatformOS } from "@/hooks/use-platform-os";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useProject } from "@/hooks/store/use-project";
@@ -24,8 +27,12 @@ export const IssueParentSiblingItem = observer(function IssueParentSiblingItem(p
   const { workspaceSlug, issueId } = props;
   // hooks
   const { getProjectById } = useProject();
+  const router = useRouter();
+  const { handleRedirection } = useIssuePeekOverviewRedirection();
+  const { isMobile } = usePlatformOS();
   const {
     issue: { getIssueById },
+    isPeekOpen,
   } = useIssueDetail();
 
   // derived values
@@ -46,7 +53,10 @@ export const IssueParentSiblingItem = observer(function IssueParentSiblingItem(p
     <>
       <CustomMenu.MenuItem
         key={issueDetail.id}
-        onClick={() => window.open(workItemLink, "_blank", "noopener,noreferrer")}
+        onClick={() => {
+          if (isPeekOpen) handleRedirection(workspaceSlug, issueDetail, isMobile);
+          else router.push(workItemLink);
+        }}
       >
         <div className="flex items-center gap-2 py-0.5">
           {issueDetail.project_id && projectDetails?.identifier && (
@@ -58,6 +68,7 @@ export const IssueParentSiblingItem = observer(function IssueParentSiblingItem(p
               size="xs"
             />
           )}
+          <span className="truncate text-13 text-primary">{issueDetail.name}</span>
         </div>
       </CustomMenu.MenuItem>
     </>
