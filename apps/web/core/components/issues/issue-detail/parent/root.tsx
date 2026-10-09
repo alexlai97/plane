@@ -6,7 +6,7 @@
 
 import { observer } from "mobx-react";
 import { useRouter } from "next/navigation";
-import { MinusCircle } from "lucide-react";
+import { ArrowUpLeft, MinusCircle } from "lucide-react";
 import { useTranslation } from "@plane/i18n";
 import type { TIssue } from "@plane/types";
 // component
@@ -16,6 +16,7 @@ import { ControlLink, CustomMenu } from "@plane/ui";
 // helpers
 import { generateWorkItemLink } from "@plane/utils";
 // hooks
+import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useIssues } from "@/hooks/store/use-issues";
 import { useProject } from "@/hooks/store/use-project";
 import { useProjectState } from "@/hooks/store/use-project-state";
@@ -40,6 +41,7 @@ export const IssueParentDetail = observer(function IssueParentDetail(props: TIss
   const { t } = useTranslation();
   // hooks
   const { issueMap } = useIssues();
+  const { getIsIssuePeeked } = useIssueDetail();
   const { getProjectStates } = useProjectState();
   const { handleRedirection } = useIssuePeekOverviewRedirection();
   const { isMobile } = usePlatformOS();
@@ -67,15 +69,17 @@ export const IssueParentDetail = observer(function IssueParentDetail(props: TIss
   });
 
   const handleParentIssueClick = () => {
-    if (isParentEpic) router.push(workItemLink);
+    if (isParentEpic || !getIsIssuePeeked(issueId)) router.push(workItemLink);
     else handleRedirection(workspaceSlug, parentIssue, isMobile);
   };
 
   return (
     <>
       <div className="mb-5 flex w-min items-center gap-3 rounded-md border border-strong bg-layer-1 px-2.5 py-1 text-11 whitespace-nowrap">
-        <ControlLink href={workItemLink} onClick={handleParentIssueClick}>
+        <ControlLink href={workItemLink} onClick={handleParentIssueClick} aria-label="返回上级工作项">
           <div className="flex items-center gap-2">
+            <ArrowUpLeft className="size-4 shrink-0" />
+            <span className="font-medium">返回上级</span>
             <div className="flex items-center gap-2.5">
               <span className="block h-2 w-2 rounded-full" style={{ backgroundColor: stateColor }} />
               {parentIssue.project_id && (

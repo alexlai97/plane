@@ -31,7 +31,13 @@ export function AttachmentPreviewModal({
   const actionClass =
     "flex items-center gap-1.5 rounded-md border border-subtle px-3 py-2 text-13 text-secondary hover:bg-layer-1";
   return (
-    <Dialog open onClose={onClose} className="relative z-[100]">
+    <Dialog
+      open
+      onClose={onClose}
+      data-prevent-outside-click
+      data-bokang-attachment-preview
+      className="relative z-[100]"
+    >
       <div className="fixed inset-0 bg-black/35" aria-hidden="true" />
       <div className="fixed inset-0 flex items-center justify-center p-2 sm:p-5">
         <Dialog.Panel

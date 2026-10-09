@@ -7,7 +7,7 @@
 import { useRef } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
-import { MoveDiagonal, MoveRight } from "lucide-react";
+import { MoveDiagonal, ArrowLeft, X } from "lucide-react";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { CenterPanelIcon, CopyLinkIcon, FullScreenPanelIcon, SidePanelIcon } from "@plane/propel/icons";
@@ -93,6 +93,7 @@ export const IssuePeekOverviewHeader = observer(function IssuePeekOverviewHeader
   const {
     issue: { getIssueById },
     setPeekIssue,
+    peekTrail,
     removeIssue,
     archiveIssue,
     getIsIssuePeeked,
@@ -101,6 +102,7 @@ export const IssuePeekOverviewHeader = observer(function IssuePeekOverviewHeader
   const { getProjectIdentifierById } = useProject();
   // derived values
   const issueDetails = getIssueById(issueId);
+  const previousPeek = peekTrail.at(-1);
   const currentMode = PEEK_OPTIONS.find((m) => m.key === peekMode);
   const projectIdentifier = getProjectIdentifierById(issueDetails?.project_id);
   const {
@@ -125,6 +127,7 @@ export const IssuePeekOverviewHeader = observer(function IssuePeekOverviewHeader
         title: t("common.link_copied"),
         message: t("common.link_copied_to_clipboard"),
       });
+      return undefined;
     });
   };
 
@@ -132,9 +135,8 @@ export const IssuePeekOverviewHeader = observer(function IssuePeekOverviewHeader
     try {
       const deleteIssue = issueDetails?.archived_at ? removeArchivedIssue : removeIssue;
 
-      return deleteIssue(workspaceSlug, projectId, issueId).then(() => {
-        setPeekIssue(undefined);
-      });
+      await deleteIssue(workspaceSlug, projectId, issueId);
+      setPeekIssue(undefined);
     } catch (_error) {
       setToast({
         title: t("toast.error"),
@@ -159,9 +161,19 @@ export const IssuePeekOverviewHeader = observer(function IssuePeekOverviewHeader
       }`}
     >
       <div className="flex items-center gap-4">
+        {previousPeek && !embedIssue && (
+          <button
+            type="button"
+            aria-label="返回上一工作项"
+            onClick={() => setPeekIssue(previousPeek)}
+            className="flex items-center gap-1 text-13 text-secondary hover:text-primary"
+          >
+            <ArrowLeft className="size-4" /> 返回
+          </button>
+        )}
         <Tooltip tooltipContent={t("common.close_peek_view")} isMobile={isMobile}>
-          <button onClick={removeRoutePeekId}>
-            <MoveRight className="h-4 w-4 text-tertiary hover:text-secondary" />
+          <button type="button" aria-label="关闭工作项" onClick={removeRoutePeekId}>
+            <X className="h-4 w-4 text-tertiary hover:text-secondary" />
           </button>
         </Tooltip>
 

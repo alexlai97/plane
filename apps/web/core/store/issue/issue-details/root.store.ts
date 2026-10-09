@@ -5,6 +5,7 @@
  */
 
 import { action, computed, makeObservable, observable } from "mobx";
+import { nextPeekTrail } from "@/helpers/peek-navigation";
 // types
 import type {
   TIssue,
@@ -74,6 +75,7 @@ export interface IIssueDetail
     IIssueCommentReactionStoreActions {
   // observables
   peekIssue: TPeekIssue | undefined;
+  peekTrail: TPeekIssue[];
   relationKey: TIssueRelationTypes | null;
   issueLinkData: TIssueLink | null;
   issueCrudOperationState: TIssueCrudOperationState;
@@ -125,6 +127,7 @@ export interface IIssueDetail
 export class IssueDetail implements IIssueDetail {
   // observables
   peekIssue: TPeekIssue | undefined = undefined;
+  peekTrail: TPeekIssue[] = [];
   relationKey: TIssueRelationTypes | null = null;
   issueLinkData: TIssueLink | null = null;
   issueCrudOperationState: TIssueCrudOperationState = {
@@ -168,6 +171,7 @@ export class IssueDetail implements IIssueDetail {
     makeObservable(this, {
       // observables
       peekIssue: observable,
+      peekTrail: observable.ref,
       relationKey: observable,
       issueLinkData: observable,
       issueCrudOperationState: observable,
@@ -241,7 +245,10 @@ export class IssueDetail implements IIssueDetail {
   // actions
   setRelationKey = (relationKey: TIssueRelationTypes | null) => (this.relationKey = relationKey);
   setIssueCrudOperationState = (state: TIssueCrudOperationState) => (this.issueCrudOperationState = state);
-  setPeekIssue = (peekIssue: TPeekIssue | undefined) => (this.peekIssue = peekIssue);
+  setPeekIssue = (peekIssue: TPeekIssue | undefined) => {
+    this.peekTrail = nextPeekTrail(this.peekTrail, this.peekIssue, peekIssue);
+    this.peekIssue = peekIssue;
+  };
   toggleCreateIssueModal = (value: boolean) => (this.isCreateIssueModalOpen = value);
   toggleIssueLinkModal = (value: boolean) => (this.isIssueLinkModalOpen = value);
   toggleParentIssueModal = (issueId: string | null) => (this.isParentIssueModalOpen = issueId);
@@ -255,8 +262,8 @@ export class IssueDetail implements IIssueDetail {
     this.openWidgets = state;
     if (this.lastWidgetAction) this.lastWidgetAction = null;
   };
-  setLastWidgetAction = (action: TWorkItemWidgets) => {
-    this.openWidgets = [action];
+  setLastWidgetAction = (widget: TWorkItemWidgets) => {
+    this.openWidgets = [widget];
   };
   toggleOpenWidget = (state: TWorkItemWidgets) => {
     if (this.openWidgets && this.openWidgets.includes(state))

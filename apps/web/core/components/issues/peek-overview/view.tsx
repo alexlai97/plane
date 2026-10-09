@@ -100,6 +100,8 @@ export const IssueView = observer(function IssueView(props: IIssueView) {
   );
 
   const handleKeyDown = () => {
+    // Escape belongs to the topmost attachment dialog, never its underlying work item.
+    if (document.querySelector("[data-bokang-attachment-preview]")) return;
     const editorImageFullScreenModalElement = document.querySelector(".editor-image-full-screen-modal");
     const dropdownElement = document.activeElement?.tagName === "INPUT";
     const isAnyDropbarOpen = editorRef.current?.isAnyDropbarOpen();
