@@ -57,7 +57,7 @@ export const IssuePeekOverview = observer(function IssuePeekOverview(props: IWor
     storeType === EIssuesStoreType.EPIC ? EIssueServiceType.EPICS : EIssueServiceType.ISSUES
   );
   // state
-  const [error, setError] = useState(false);
+  const [failedIssueId, setFailedIssueId] = useState<string | null>(null);
 
   const removeRoutePeekId = useCallback(() => {
     setPeekIssue(undefined);
@@ -68,10 +68,10 @@ export const IssuePeekOverview = observer(function IssuePeekOverview(props: IWor
     () => ({
       fetch: async (workspaceSlug: string, projectId: string, issueId: string) => {
         try {
-          setError(false);
+          setFailedIssueId(null);
           await fetchIssue(workspaceSlug, projectId, issueId);
         } catch (error) {
-          setError(true);
+          setFailedIssueId(issueId);
           console.error("Error fetching the parent issue", error);
         }
       },
@@ -241,7 +241,7 @@ export const IssuePeekOverview = observer(function IssuePeekOverview(props: IWor
       projectId={peekIssue.projectId}
       issueId={peekIssue.issueId}
       isLoading={isLoading}
-      isError={error}
+      isError={failedIssueId === peekIssue.issueId}
       is_archived={!!peekIssue.isArchived}
       disabled={!isEditable}
       embedIssue={embedIssue}
