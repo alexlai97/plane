@@ -367,7 +367,7 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
         >
           <Row
             className={cn(
-              "group clickable z-10 flex min-h-11 w-full cursor-pointer items-center border-r-[0.5px] border-subtle-1 bg-transparent text-13 group-[.selected-issue-row]:bg-accent-primary/5 after:absolute group-[.selected-issue-row]:hover:bg-accent-primary/10",
+              "group clickable z-10 flex h-11 w-full cursor-pointer items-center border-r-[0.5px] border-subtle-1 bg-transparent text-13 group-[.selected-issue-row]:bg-accent-primary/5 after:absolute group-[.selected-issue-row]:hover:bg-accent-primary/10",
               {
                 "border-b-[0.5px]": !getIsIssuePeeked(issueDetail.id),
                 "border border-accent-strong hover:border-accent-strong":
@@ -402,7 +402,7 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
 
             {/* Workitem section */}
             <div
-              className={cn("flex flex-grow items-center gap-0.5 py-2", {
+              className={cn("flex min-w-0 flex-grow items-center gap-0.5 py-0.5", {
                 "min-w-[360px]": !displayProperties?.key,
                 "min-w-60": displayProperties?.key,
               })}
