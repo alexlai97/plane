@@ -6,6 +6,7 @@
 
 import type { Dispatch, MouseEvent, MutableRefObject, SetStateAction } from "react";
 import { useEffect, useRef, useState } from "react";
+import useSWR from "swr";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { MoreHorizontal } from "lucide-react";
@@ -36,6 +37,7 @@ import { usePlatformOS } from "@/hooks/use-platform-os";
 import type { TRenderQuickActions } from "../list/list-view-types";
 import { isIssueNew } from "../utils";
 import { IssueColumn } from "./issue-column";
+import { loadHierarchyPath } from "./hierarchy-path";
 import { useSpreadsheetHierarchy } from "./hierarchy-context";
 import { useIssuesStore } from "@/hooks/use-issue-layout-store";
 import { IssueService } from "@/services/issue/issue.service";
@@ -87,6 +89,7 @@ export const SpreadsheetIssueRow = observer(function SpreadsheetIssueRow(props: 
   // derived values
   const issue = issueMap[issueId];
   const hierarchy = useSpreadsheetHierarchy();
+  const { onExpansionChange } = hierarchy;
   const { issuesFilter } = useIssuesStore();
   const { workspaceSlug, moduleId, cycleId } = useParams();
   const queryKey = JSON.stringify(issuesFilter.appliedFilters ?? {});
@@ -97,6 +100,10 @@ export const SpreadsheetIssueRow = observer(function SpreadsheetIssueRow(props: 
   const observedChildren = useRef(new Set<string>());
   for (const id of [...cachedIds, ...filteredChildren]) observedChildren.current.add(id);
   const childRevision = JSON.stringify([...observedChildren.current].map((id) => issueMap[id]));
+  useEffect(() => {
+    onExpansionChange(issueId, isExpanded && !!issue?.sub_issues_count);
+    return () => onExpansionChange(issueId, false);
+  }, [onExpansionChange, issueId, isExpanded, issue?.sub_issues_count]);
   useEffect(() => {
     setExpanded(hierarchy.expanded);
   }, [hierarchy.revision, hierarchy.expanded]);
@@ -212,7 +219,7 @@ export const SpreadsheetIssueRow = observer(function SpreadsheetIssueRow(props: 
             quickActions={quickActions}
             canEditProperties={canEditProperties}
             nestingLevel={nestingLevel + 1}
-            spacingLeft={spacingLeft + 12}
+            spacingLeft={spacingLeft + 28}
             isEstimateEnabled={isEstimateEnabled}
             updateIssue={updateIssue}
             portalElement={portalElement}
@@ -284,6 +291,16 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
 
   const issueDetail = issue.getIssueById(issueId);
 
+  const parentId = nestingLevel === 0 ? issueDetail?.parent_id : null;
+  const { data: parentPath, error: parentPathError } = useSWR(
+    parentId && workspaceSlug && issueDetail?.project_id
+      ? ["spreadsheet-parent-path", workspaceSlug, issueDetail.project_id, parentId]
+      : null,
+    ([, slug, project, parent]) =>
+      loadHierarchyPath(parent, (id) => new IssueService().retrieve(String(slug), project, id)),
+    { revalidateOnFocus: false }
+  );
+  const contextPath = parentPath?.map((parent) => parent.name).join(" / ");
   const subIssueIndentation = `${spacingLeft}px`;
 
   useOutsideClickDetector(menuActionRef, () => setIsMenuActive(false));
@@ -350,7 +367,7 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
         >
           <Row
             className={cn(
-              "group clickable z-10 flex h-11 w-full cursor-pointer items-center border-r-[0.5px] border-subtle-1 bg-transparent text-13 group-[.selected-issue-row]:bg-accent-primary/5 after:absolute group-[.selected-issue-row]:hover:bg-accent-primary/10",
+              "group clickable z-10 flex min-h-11 w-full cursor-pointer items-center border-r-[0.5px] border-subtle-1 bg-transparent text-13 group-[.selected-issue-row]:bg-accent-primary/5 after:absolute group-[.selected-issue-row]:hover:bg-accent-primary/10",
               {
                 "border-b-[0.5px]": !getIsIssuePeeked(issueDetail.id),
                 "border border-accent-strong hover:border-accent-strong":
@@ -359,6 +376,13 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
               }
             )}
           >
+            {nestingLevel > 0 && (
+              <div
+                className="shrink-0 self-stretch border-r border-subtle-1"
+                style={{ width: subIssueIndentation }}
+                aria-hidden="true"
+              />
+            )}
             {/* Identifier section - conditionally rendered */}
             {displayProperties?.key && (
               <div className="flex h-full min-w-24 flex-shrink-0 items-center">
@@ -412,9 +436,6 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
                 </Tooltip>
               )}
 
-              {/* sub issues indentation */}
-              {nestingLevel !== 0 && <div style={{ width: subIssueIndentation }} />}
-
               {/* sub-issues chevron */}
               <div className="grid size-4 place-items-center">
                 {subIssuesCount > 0 && !isEpic && (
@@ -436,7 +457,15 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
               </div>
 
               <div className="my-auto flex h-full w-full items-center justify-between gap-2 truncate">
-                <div className="line-clamp-1 w-full text-14 text-primary">
+                <div className="w-full min-w-0 text-14 text-primary">
+                  {parentId && (
+                    <div
+                      className="mb-0.5 truncate pr-4 text-11 text-secondary"
+                      title={contextPath ? `所属：${contextPath}（上级未纳入本视图）` : undefined}
+                    >
+                      所属：{contextPath ?? (parentPathError ? "上级工作项暂无法读取" : "正在读取上级…")}
+                    </div>
+                  )}
                   <div className="w-full overflow-hidden">
                     <Tooltip tooltipContent={issueDetail.name} isMobile={isMobile}>
                       <div

@@ -63,6 +63,16 @@ export const SpreadsheetTable = observer(function SpreadsheetTable(props: Props)
 
   // states
   const isScrolled = useRef(false);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const onExpansionChange = useCallback((id: string, expanded: boolean) => {
+    setExpandedIds((current) => {
+      if (current.has(id) === expanded) return current;
+      const next = new Set(current);
+      if (expanded) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }, []);
   const [expansion, setExpansion] = useState({ expanded: false, revision: 0 });
   const [intersectionElement, setIntersectionElement] = useState<HTMLTableSectionElement | null>(null);
 
@@ -74,6 +84,7 @@ export const SpreadsheetTable = observer(function SpreadsheetTable(props: Props)
   const routeKey = JSON.stringify(useParams());
   const filterKey = JSON.stringify(issuesFilter.appliedFilters ?? {});
   useEffect(() => {
+    setExpandedIds(new Set());
     setExpansion((value) => ({ expanded: false, revision: value.revision + 1 }));
   }, [filterKey, routeKey]);
 
@@ -120,13 +131,18 @@ export const SpreadsheetTable = observer(function SpreadsheetTable(props: Props)
   if (!isEstimateEnabled) ignoreFieldsForCounting.push("estimate");
   const displayPropertiesCount = getDisplayPropertiesCount(displayProperties, ignoreFieldsForCounting);
 
-  const hierarchy = useMemo(() => ({ ...expansion, rootIds: new Set(issueIds) }), [expansion, issueIds]);
+  const hierarchy = useMemo(
+    () => ({ ...expansion, rootIds: new Set(issueIds), onExpansionChange }),
+    [expansion, issueIds, onExpansionChange]
+  );
   return (
     <SpreadsheetHierarchyContext.Provider value={hierarchy}>
       <table className="w-full overflow-y-auto bg-surface-1" onKeyDown={handleKeyBoardNavigation}>
         <SpreadsheetHeader
-          expanded={expansion.expanded}
-          onToggleExpand={() => setExpansion((value) => ({ expanded: !value.expanded, revision: value.revision + 1 }))}
+          expanded={expandedIds.size > 0}
+          onToggleExpand={() =>
+            setExpansion((value) => ({ expanded: expandedIds.size === 0, revision: value.revision + 1 }))
+          }
           displayProperties={displayProperties}
           displayFilters={displayFilters}
           handleDisplayFilterUpdate={handleDisplayFilterUpdate}
