@@ -1,0 +1,2 @@
+FROM bokang/plane-backend:1.4.2-7846f99
+COPY apps/api/plane/app/views/issue/base.py /code/plane/app/views/issue/base.py

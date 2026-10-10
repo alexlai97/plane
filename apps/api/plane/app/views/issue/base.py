@@ -279,8 +279,21 @@ class IssueViewSet(BaseViewSet):
         # Apply rich filters
         issue_queryset = self.filter_queryset(issue_queryset)
 
-        # Apply legacy filters
+        # A collapsed filtered hierarchy starts at matching items whose parent
+        # does not match, rather than only at database roots. Apply this before
+        # grouping/pagination so eligible descendants cannot become unreachable.
+        collapsed = (
+            query_params.get("sub_issue", "false") == "false"
+            and not query_params.get("parent")
+        )
+        if collapsed:
+            filters.pop("parent__isnull", None)
         issue_queryset = issue_queryset.filter(**filters, **extra_filters)
+        if collapsed:
+            matching_parent = issue_queryset.filter(id=OuterRef("parent_id"))
+            issue_queryset = issue_queryset.annotate(
+                matching_parent_exists=Exists(matching_parent)
+            ).filter(matching_parent_exists=False)
 
         # Keeping a copy of the queryset before applying annotations
         filtered_issue_queryset = copy.deepcopy(issue_queryset)
