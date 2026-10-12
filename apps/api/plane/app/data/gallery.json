@@ -1,0 +1,167 @@
+{
+  "workspace_id": "bb96243d-e9cd-424e-8fb6-6117ae54f621",
+  "categories": ["产品与研发", "生产与质量", "采购与物料"],
+  "cards": [
+    {
+      "key": "model-entry",
+      "title": "机型资料录入工具",
+      "summary": "导入 BOM Excel，辅助录入新机型资料。",
+      "category": "产品与研发",
+      "kind": "内网应用",
+      "sources": ["2f249c41-6612-490f-9a12-e0b64c67f4dd"],
+      "assets": [
+        { "id": "8f5b82e0-797d-48e5-83db-14fc648cdb54", "entity_type": "ISSUE_ATTACHMENT" },
+        { "id": "f14b5b4e-43ae-4dc3-8fd1-fa48605640a9", "entity_type": "ISSUE_DESCRIPTION" },
+        { "id": "72e9268e-1c91-4a83-8255-cda4f4091333", "entity_type": "COMMENT_DESCRIPTION" }
+      ],
+      "cover_asset_id": "f14b5b4e-43ae-4dc3-8fd1-fa48605640a9",
+      "links": [{ "title": "打开机型资料录入工具", "url": "http://172.16.8.31:5100/models", "kind": "application" }],
+      "primary_action": { "type": "link", "label": "打开应用", "url": "http://172.16.8.31:5100/models" }
+    },
+    {
+      "key": "bom-code-generator",
+      "title": "BOM 编码生成工具",
+      "summary": "根据编码规则，批量生成 BOM 物料编码。",
+      "category": "产品与研发",
+      "kind": "桌面工具",
+      "sources": ["24c011b5-67c9-48d0-bae2-f91c24d330f1"],
+      "assets": [],
+      "links": [
+        {
+          "title": "外部演示链接（权限待确认）",
+          "url": "https://my.feishu.cn/file/ZVzQbpw2pooMIYx9b0rcYRC0nGg",
+          "kind": "demo"
+        }
+      ],
+      "primary_action": {
+        "type": "link",
+        "label": "查看演示",
+        "url": "https://my.feishu.cn/file/ZVzQbpw2pooMIYx9b0rcYRC0nGg"
+      }
+    },
+    {
+      "key": "engineering-drawing-standards",
+      "title": "工程图规范与模板整理",
+      "summary": "整理研发工程图规范、出图模板与标准件重用资料。",
+      "category": "产品与研发",
+      "kind": "文档成果",
+      "sources": ["70525526-893a-447b-8656-0e6ebb54d773"],
+      "assets": [{ "id": "dd314ef3-5f96-445c-b2b8-c95f42ed9b82", "entity_type": "ISSUE_ATTACHMENT" }],
+      "primary_action": {
+        "type": "attachment",
+        "label": "预览规范文档",
+        "attachment_id": "dd314ef3-5f96-445c-b2b8-c95f42ed9b82"
+      }
+    },
+    {
+      "key": "data-analysis-template",
+      "title": "数据分析与直方图模板",
+      "summary": "提供自动生成数据分析与直方图的模板，附数据表和结果截图。",
+      "category": "生产与质量",
+      "kind": "表格模板",
+      "sources": ["9817b035-9900-4da9-9304-a5aaa527e61a"],
+      "assets": [
+        { "id": "64acb8ae-d14f-4b59-956a-4894b17bfdb7", "entity_type": "ISSUE_ATTACHMENT" },
+        { "id": "7c554656-8d44-4a34-87b9-9255986f8575", "entity_type": "ISSUE_DESCRIPTION" }
+      ],
+      "cover_asset_id": "7c554656-8d44-4a34-87b9-9255986f8575",
+      "primary_action": {
+        "type": "attachment",
+        "label": "预览样例数据表",
+        "attachment_id": "64acb8ae-d14f-4b59-956a-4894b17bfdb7"
+      }
+    },
+    {
+      "key": "sop-work-instructions",
+      "title": "SOP 工艺流程与作业书",
+      "summary": "整理家居力量站工序资料、夹具 SOP 与作业书。",
+      "category": "生产与质量",
+      "kind": "文档成果",
+      "sources": ["9cf14ccc-ba09-4bb9-a54e-9f7c676da8e1"],
+      "assets": [
+        { "id": "a835a2b0-8130-4410-8353-c49a4bee8a84", "entity_type": "ISSUE_ATTACHMENT" },
+        { "id": "6e0782e4-f831-450a-bdb6-127071ecf2fd", "entity_type": "ISSUE_ATTACHMENT" },
+        { "id": "b5fb90c4-7f82-4929-b5ef-09b6ad8fcebd", "entity_type": "ISSUE_ATTACHMENT" }
+      ],
+      "primary_action": {
+        "type": "attachment",
+        "label": "预览作业资料",
+        "attachment_id": "a835a2b0-8130-4410-8353-c49a4bee8a84"
+      }
+    },
+    {
+      "key": "material-photo-archive",
+      "title": "物料照片多视角整理",
+      "summary": "拍摄、重命名并归档家居力量站物料照片，便于从多个视角查阅。",
+      "category": "生产与质量",
+      "kind": "图文资料",
+      "sources": ["40c51e9e-e855-4a7a-92c2-af884e14d7ee"],
+      "assets": [{ "id": "7722042f-1d97-48bc-a0f5-2f159bcd900e", "entity_type": "ISSUE_ATTACHMENT" }],
+      "primary_action": {
+        "type": "attachment",
+        "label": "下载照片整理表",
+        "attachment_id": "7722042f-1d97-48bc-a0f5-2f159bcd900e"
+      }
+    },
+    {
+      "key": "quality-report-plan",
+      "title": "品控报告自动化方案",
+      "summary": "梳理金工检验现状，形成品控报告自动化方案。",
+      "category": "生产与质量",
+      "kind": "阶段成果",
+      "sources": ["f6d79f52-23e2-47df-afe6-104ccc18e18d"],
+      "assets": [{ "id": "c0f02984-7a30-4019-9e45-f54dadfc789e", "entity_type": "ISSUE_ATTACHMENT" }],
+      "primary_action": {
+        "type": "attachment",
+        "label": "预览方案",
+        "attachment_id": "c0f02984-7a30-4019-9e45-f54dadfc789e"
+      }
+    },
+    {
+      "key": "supplier-policy-survey",
+      "title": "供应商管理制度调研问卷",
+      "summary": "为制定《供应商管理制度》收集供应商与内部员工反馈。",
+      "category": "采购与物料",
+      "kind": "文档成果",
+      "sources": ["ee00b4bd-740b-43d6-9cf4-b4e754331abc"],
+      "assets": [
+        { "id": "e1beacdc-8403-479f-b915-a74e94eec328", "entity_type": "ISSUE_ATTACHMENT" },
+        { "id": "7064b6e9-f86b-4823-8d87-1d9b878a6b3d", "entity_type": "ISSUE_ATTACHMENT" }
+      ],
+      "primary_action": {
+        "type": "attachment",
+        "label": "预览调研问卷",
+        "attachment_id": "e1beacdc-8403-479f-b915-a74e94eec328"
+      }
+    },
+    {
+      "key": "erp-arrivals-query",
+      "title": "金蝶应到未到物料查询工具",
+      "summary": "通过 API 查询金蝶系统中的应到未到物料，减少人工导出和筛选。",
+      "category": "采购与物料",
+      "kind": "桌面工具",
+      "sources": ["a6008c48-e3d4-4ae3-94df-87360449ce0a"],
+      "assets": [{ "id": "f87cce70-5286-45a9-8b8f-f5878f13c9e9", "entity_type": "ISSUE_ATTACHMENT" }],
+      "primary_action": {
+        "type": "attachment",
+        "label": "预览查询结果",
+        "attachment_id": "f87cce70-5286-45a9-8b8f-f5878f13c9e9"
+      }
+    },
+    {
+      "key": "procurement-spreadsheet-formatting",
+      "title": "采购表格自动整理",
+      "summary": "批量标准化采购表格格式，已有处理结果截图。",
+      "category": "采购与物料",
+      "kind": "图文成果",
+      "sources": ["76f5df6d-55d9-464c-888f-69be8dd89916"],
+      "assets": [{ "id": "b3eb5134-ac6f-4ca6-b1ac-7ed07ca57db1", "entity_type": "ISSUE_DESCRIPTION" }],
+      "cover_asset_id": "b3eb5134-ac6f-4ca6-b1ac-7ed07ca57db1",
+      "primary_action": {
+        "type": "attachment",
+        "label": "查看处理结果截图",
+        "attachment_id": "b3eb5134-ac6f-4ca6-b1ac-7ed07ca57db1"
+      }
+    }
+  ]
+}

@@ -37,9 +37,25 @@ from plane.app.views import (
     WorkspaceStickyViewSet,
     WorkspaceUserPreferenceViewSet,
 )
+from plane.app.views.gallery import GalleryAssetEndpoint, WorkspaceGalleryEndpoint
 
 
 urlpatterns = [
+    path(
+        "workspaces/<str:slug>/gallery/",
+        WorkspaceGalleryEndpoint.as_view(),
+        name="workspace-gallery",
+    ),
+    path(
+        "workspaces/<str:slug>/gallery/assets/<uuid:project_id>/<uuid:issue_id>/<uuid:pk>/",
+        GalleryAssetEndpoint.as_view(),
+        name="workspace-gallery-asset",
+    ),
+    path(
+        "workspaces/<str:slug>/gallery/assets/<uuid:project_id>/<uuid:issue_id>/<uuid:pk>/preview/<path:resource>",
+        GalleryAssetEndpoint.as_view(),
+        name="workspace-gallery-asset-preview",
+    ),
     path(
         "workspace-slug-check/",
         WorkSpaceAvailabilityCheckEndpoint.as_view(),

@@ -6,8 +6,10 @@
 
 import React, { useMemo } from "react";
 import { observer } from "mobx-react";
-import { Ellipsis } from "lucide-react";
+import { Ellipsis, GalleryVerticalEnd } from "lucide-react";
 import { Disclosure, Transition } from "@headlessui/react";
+import Link from "next/link";
+import { useParams, usePathname } from "next/navigation";
 // plane imports
 import {
   WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS,
@@ -22,6 +24,7 @@ import { cn } from "@plane/utils";
 import { SidebarNavItem } from "@/components/sidebar/sidebar-navigation";
 // store hooks
 import { useAppTheme } from "@/hooks/store/use-app-theme";
+import { useWorkspace } from "@/hooks/store/use-workspace";
 import useLocalStorage from "@/hooks/use-local-storage";
 import {
   usePersonalNavigationPreferences,
@@ -37,12 +40,17 @@ export const SidebarMenuItems = observer(function SidebarMenuItems() {
   );
 
   // store hooks
-  const { isExtendedSidebarOpened, toggleExtendedSidebar } = useAppTheme();
+  const { isExtendedSidebarOpened, toggleExtendedSidebar, toggleSidebar } = useAppTheme();
+  const { currentWorkspace } = useWorkspace();
+  const { workspaceSlug } = useParams();
+  const pathname = usePathname();
   // hooks
   const { preferences: personalPreferences } = usePersonalNavigationPreferences();
   const { preferences: workspacePreferences } = useWorkspaceNavigationPreferences();
   // translation
   const { t } = useTranslation();
+  const showGallery = currentWorkspace?.id === "bb96243d-e9cd-424e-8fb6-6117ae54f621";
+  const slug = workspaceSlug?.toString() || "";
 
   const toggleListDisclosure = (isOpen: boolean) => {
     toggleWorkspaceMenu(isOpen);
@@ -149,6 +157,21 @@ export const SidebarMenuItems = observer(function SidebarMenuItems() {
           {isWorkspaceMenuOpen && (
             <Disclosure.Panel as="div" className="flex flex-col gap-0.5" static>
               <>
+                {showGallery && (
+                  <SidebarNavItem isActive={pathname.includes("/gallery")}>
+                    <Link
+                      href={`/${slug}/gallery`}
+                      onClick={() => {
+                        if (window.innerWidth < 768) toggleSidebar();
+                        if (isExtendedSidebarOpened) toggleExtendedSidebar(false);
+                      }}
+                      className="flex w-full items-center gap-1.5 py-[1px]"
+                    >
+                      <GalleryVerticalEnd className="size-4 flex-shrink-0" />
+                      <span className="text-13 leading-5 font-medium">成果与应用</span>
+                    </Link>
+                  </SidebarNavItem>
+                )}
                 {WORKSPACE_SIDEBAR_STATIC_PINNED_NAVIGATION_ITEMS_LINKS.map((item, _index) => (
                   // oxlint-disable-next-line react/no-array-index-key
                   <SidebarItemBase key={`static_${_index}`} item={item} />
