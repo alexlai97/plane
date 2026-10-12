@@ -422,10 +422,17 @@ export default function GalleryPage() {
               </div>
             </Dialog.Panel>
           </div>
+          {previewAttachment?.can_preview && (
+            <AttachmentPreviewModal
+              fileName={previewAttachment.name}
+              fileURL={previewAttachment.file_url}
+              onClose={() => setPreviewAttachment(null)}
+            />
+          )}
         </Dialog>
       )}
 
-      {previewAttachment?.can_preview && (
+      {!selectedCard && previewAttachment?.can_preview && (
         <AttachmentPreviewModal
           fileName={previewAttachment.name}
           fileURL={previewAttachment.file_url}
