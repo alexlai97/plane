@@ -6,7 +6,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 from secrets import token_urlsafe
 
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import FileResponse, HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.utils.html import escape
 from rest_framework import status
@@ -171,9 +171,15 @@ class WorkspaceGalleryEndpoint(BaseAPIView):
 
             cover = None
             cover_asset = asset_by_id.get(configured_card.get("cover_asset_id", ""))
-            if cover_asset and cover_asset["can_preview"]:
+            if cover_asset and (
+                cover_asset["can_preview"] or (GALLERY_CONFIG.parent / "covers" / f"{cover_asset['id']}.png").is_file()
+            ):
                 cover = {
-                    "source_url": _asset_source_url(cover_asset["file_url"]),
+                    "source_url": (
+                        f"/api/workspaces/{slug}/gallery/covers/{cover_asset['id']}/"
+                        if (GALLERY_CONFIG.parent / "covers" / f"{cover_asset['id']}.png").is_file()
+                        else _asset_source_url(cover_asset["file_url"])
+                    ),
                     "file_url": cover_asset["file_url"],
                     "name": cover_asset["name"],
                 }
@@ -401,3 +407,22 @@ class GalleryAssetEndpoint(BaseAPIView):
             )
             return response
         return HttpResponse(status=404)
+
+
+class GalleryCoverEndpoint(WorkspaceGalleryEndpoint):
+    """Derived representative pages; access follows the live source attachment."""
+
+    def get(self, request, slug, pk):
+        gallery = super().get(request, slug=slug)
+        if gallery.status_code != 200:
+            return gallery
+        cover_url = f"/api/workspaces/{slug}/gallery/covers/{pk}/"
+        if not any(card.get("cover") and card["cover"]["source_url"] == cover_url for card in gallery.data["cards"]):
+            return HttpResponse(status=404)
+        path = GALLERY_CONFIG.parent / "covers" / f"{pk}.png"
+        if not path.is_file():
+            return HttpResponse(status=404)
+        response = FileResponse(path.open("rb"), content_type="image/png")
+        response["Cache-Control"] = "private, no-store"
+        response["X-Content-Type-Options"] = "nosniff"
+        return response

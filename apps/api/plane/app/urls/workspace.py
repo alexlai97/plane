@@ -37,7 +37,7 @@ from plane.app.views import (
     WorkspaceStickyViewSet,
     WorkspaceUserPreferenceViewSet,
 )
-from plane.app.views.gallery import GalleryAssetEndpoint, WorkspaceGalleryEndpoint
+from plane.app.views.gallery import GalleryAssetEndpoint, GalleryCoverEndpoint, WorkspaceGalleryEndpoint
 
 
 urlpatterns = [
@@ -45,6 +45,11 @@ urlpatterns = [
         "workspaces/<str:slug>/gallery/",
         WorkspaceGalleryEndpoint.as_view(),
         name="workspace-gallery",
+    ),
+    path(
+        "workspaces/<str:slug>/gallery/covers/<uuid:pk>/",
+        GalleryCoverEndpoint.as_view(),
+        name="workspace-gallery-cover",
     ),
     path(
         "workspaces/<str:slug>/gallery/assets/<uuid:project_id>/<uuid:issue_id>/<uuid:pk>/",

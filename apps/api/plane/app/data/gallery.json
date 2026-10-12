@@ -10,33 +10,105 @@
       "kind": "内网应用",
       "sources": ["2f249c41-6612-490f-9a12-e0b64c67f4dd"],
       "assets": [
-        { "id": "8f5b82e0-797d-48e5-83db-14fc648cdb54", "entity_type": "ISSUE_ATTACHMENT" },
-        { "id": "f14b5b4e-43ae-4dc3-8fd1-fa48605640a9", "entity_type": "ISSUE_DESCRIPTION" },
-        { "id": "72e9268e-1c91-4a83-8255-cda4f4091333", "entity_type": "COMMENT_DESCRIPTION" }
+        {
+          "id": "8f5b82e0-797d-48e5-83db-14fc648cdb54",
+          "entity_type": "ISSUE_ATTACHMENT"
+        },
+        {
+          "id": "f14b5b4e-43ae-4dc3-8fd1-fa48605640a9",
+          "entity_type": "ISSUE_DESCRIPTION"
+        },
+        {
+          "id": "72e9268e-1c91-4a83-8255-cda4f4091333",
+          "entity_type": "COMMENT_DESCRIPTION"
+        }
       ],
       "cover_asset_id": "f14b5b4e-43ae-4dc3-8fd1-fa48605640a9",
-      "links": [{ "title": "打开机型资料录入工具", "url": "http://172.16.8.31:5100/models", "kind": "application" }],
-      "primary_action": { "type": "link", "label": "打开应用", "url": "http://172.16.8.31:5100/models" }
-    },
-    {
-      "key": "bom-code-generator",
-      "title": "BOM 编码生成工具",
-      "summary": "根据编码规则，批量生成 BOM 物料编码。",
-      "category": "产品与研发",
-      "kind": "桌面工具",
-      "sources": ["24c011b5-67c9-48d0-bae2-f91c24d330f1"],
-      "assets": [],
       "links": [
         {
-          "title": "外部演示链接（权限待确认）",
-          "url": "https://my.feishu.cn/file/ZVzQbpw2pooMIYx9b0rcYRC0nGg",
-          "kind": "demo"
+          "title": "打开机型资料录入工具",
+          "url": "http://172.16.8.31:5100/models",
+          "kind": "application"
         }
       ],
       "primary_action": {
         "type": "link",
-        "label": "查看演示",
-        "url": "https://my.feishu.cn/file/ZVzQbpw2pooMIYx9b0rcYRC0nGg"
+        "label": "打开应用",
+        "url": "http://172.16.8.31:5100/models"
+      }
+    },
+    {
+      "key": "product-manuals",
+      "title": "产品说明书",
+      "summary": "50AP 升降款与 42AY 基础、升降款说明书，展示结构图、安装步骤及使用说明。",
+      "category": "产品与研发",
+      "kind": "文档成果",
+      "sources": [
+        "29b2df11-2ecd-43d0-9b09-aecb8f449a2f",
+        "8bd58f78-9af7-4371-a567-a4f667b8a836",
+        "66a1e43b-3d10-415f-98ac-914c46958e54"
+      ],
+      "assets": [
+        {
+          "id": "343f3800-7311-4ea4-9135-2ea5aee2950e",
+          "entity_type": "ISSUE_ATTACHMENT"
+        },
+        {
+          "id": "2aa3fa2d-793d-4339-9aee-c0abe59d62b9",
+          "entity_type": "ISSUE_ATTACHMENT"
+        },
+        {
+          "id": "d9b1d21b-e33e-4092-a226-b85a15bb99ee",
+          "entity_type": "ISSUE_ATTACHMENT"
+        }
+      ],
+      "cover_asset_id": "343f3800-7311-4ea4-9135-2ea5aee2950e",
+      "primary_action": {
+        "type": "attachment",
+        "label": "预览 50AP 说明书",
+        "attachment_id": "343f3800-7311-4ea4-9135-2ea5aee2950e"
+      }
+    },
+    {
+      "key": "packaging-and-labels",
+      "title": "产品包装设计",
+      "summary": "50AP 基础、升降款，42AY 基础、升降款与划船机的纸箱展开设计。",
+      "category": "产品与研发",
+      "kind": "设计作品",
+      "sources": [
+        "86e62c1e-e1d6-4223-912d-f70b9849b639",
+        "5d52cedd-3f60-40d6-ab94-397ca5e19788",
+        "52918220-1161-417f-9d36-131ee83d4a65",
+        "3d2d5735-ae10-4552-b997-8fe6e1356a7d",
+        "2481fa0f-c358-49f1-8450-9cf153c7aa29"
+      ],
+      "assets": [
+        {
+          "id": "a27c8dca-1650-4af7-978e-5d15cf39b59f",
+          "entity_type": "ISSUE_ATTACHMENT"
+        },
+        {
+          "id": "c067884f-d772-4ce9-a3b2-f401c8faceb1",
+          "entity_type": "ISSUE_ATTACHMENT"
+        },
+        {
+          "id": "7fc9b93e-597c-4a7d-953b-b0ade9dc4db0",
+          "entity_type": "ISSUE_ATTACHMENT"
+        },
+        {
+          "id": "1e296a02-3797-4489-a552-28f2110dd759",
+          "entity_type": "ISSUE_ATTACHMENT"
+        },
+        {
+          "id": "0eec3ea3-ddf0-4e90-9cdc-937cd5e9d798",
+          "entity_type": "ISSUE_ATTACHMENT"
+        }
+      ],
+      "cover_asset_id": "a27c8dca-1650-4af7-978e-5d15cf39b59f",
+      "primary_action": {
+        "type": "attachment",
+        "label": "预览包装设计",
+        "attachment_id": "a27c8dca-1650-4af7-978e-5d15cf39b59f"
       }
     },
     {
@@ -46,7 +118,12 @@
       "category": "产品与研发",
       "kind": "文档成果",
       "sources": ["70525526-893a-447b-8656-0e6ebb54d773"],
-      "assets": [{ "id": "dd314ef3-5f96-445c-b2b8-c95f42ed9b82", "entity_type": "ISSUE_ATTACHMENT" }],
+      "assets": [
+        {
+          "id": "dd314ef3-5f96-445c-b2b8-c95f42ed9b82",
+          "entity_type": "ISSUE_ATTACHMENT"
+        }
+      ],
       "primary_action": {
         "type": "attachment",
         "label": "预览规范文档",
@@ -55,14 +132,20 @@
     },
     {
       "key": "data-analysis-template",
-      "title": "数据分析与直方图模板",
-      "summary": "提供自动生成数据分析与直方图的模板，附数据表和结果截图。",
+      "title": "数据分析与直方图示例",
+      "summary": "以焊接高度测试数据展示分析与直方图结果，附含计算公式的样例数据表。",
       "category": "生产与质量",
-      "kind": "表格模板",
+      "kind": "分析示例",
       "sources": ["9817b035-9900-4da9-9304-a5aaa527e61a"],
       "assets": [
-        { "id": "64acb8ae-d14f-4b59-956a-4894b17bfdb7", "entity_type": "ISSUE_ATTACHMENT" },
-        { "id": "7c554656-8d44-4a34-87b9-9255986f8575", "entity_type": "ISSUE_DESCRIPTION" }
+        {
+          "id": "64acb8ae-d14f-4b59-956a-4894b17bfdb7",
+          "entity_type": "ISSUE_ATTACHMENT"
+        },
+        {
+          "id": "7c554656-8d44-4a34-87b9-9255986f8575",
+          "entity_type": "ISSUE_DESCRIPTION"
+        }
       ],
       "cover_asset_id": "7c554656-8d44-4a34-87b9-9255986f8575",
       "primary_action": {
@@ -79,9 +162,18 @@
       "kind": "文档成果",
       "sources": ["9cf14ccc-ba09-4bb9-a54e-9f7c676da8e1"],
       "assets": [
-        { "id": "a835a2b0-8130-4410-8353-c49a4bee8a84", "entity_type": "ISSUE_ATTACHMENT" },
-        { "id": "6e0782e4-f831-450a-bdb6-127071ecf2fd", "entity_type": "ISSUE_ATTACHMENT" },
-        { "id": "b5fb90c4-7f82-4929-b5ef-09b6ad8fcebd", "entity_type": "ISSUE_ATTACHMENT" }
+        {
+          "id": "a835a2b0-8130-4410-8353-c49a4bee8a84",
+          "entity_type": "ISSUE_ATTACHMENT"
+        },
+        {
+          "id": "6e0782e4-f831-450a-bdb6-127071ecf2fd",
+          "entity_type": "ISSUE_ATTACHMENT"
+        },
+        {
+          "id": "b5fb90c4-7f82-4929-b5ef-09b6ad8fcebd",
+          "entity_type": "ISSUE_ATTACHMENT"
+        }
       ],
       "primary_action": {
         "type": "attachment",
@@ -96,12 +188,18 @@
       "category": "生产与质量",
       "kind": "图文资料",
       "sources": ["40c51e9e-e855-4a7a-92c2-af884e14d7ee"],
-      "assets": [{ "id": "7722042f-1d97-48bc-a0f5-2f159bcd900e", "entity_type": "ISSUE_ATTACHMENT" }],
+      "assets": [
+        {
+          "id": "7722042f-1d97-48bc-a0f5-2f159bcd900e",
+          "entity_type": "ISSUE_ATTACHMENT"
+        }
+      ],
       "primary_action": {
         "type": "attachment",
         "label": "下载照片整理表",
         "attachment_id": "7722042f-1d97-48bc-a0f5-2f159bcd900e"
-      }
+      },
+      "cover_asset_id": "7722042f-1d97-48bc-a0f5-2f159bcd900e"
     },
     {
       "key": "quality-report-plan",
@@ -110,7 +208,12 @@
       "category": "生产与质量",
       "kind": "阶段成果",
       "sources": ["f6d79f52-23e2-47df-afe6-104ccc18e18d"],
-      "assets": [{ "id": "c0f02984-7a30-4019-9e45-f54dadfc789e", "entity_type": "ISSUE_ATTACHMENT" }],
+      "assets": [
+        {
+          "id": "c0f02984-7a30-4019-9e45-f54dadfc789e",
+          "entity_type": "ISSUE_ATTACHMENT"
+        }
+      ],
       "primary_action": {
         "type": "attachment",
         "label": "预览方案",
@@ -118,30 +221,18 @@
       }
     },
     {
-      "key": "supplier-policy-survey",
-      "title": "供应商管理制度调研问卷",
-      "summary": "为制定《供应商管理制度》收集供应商与内部员工反馈。",
-      "category": "采购与物料",
-      "kind": "文档成果",
-      "sources": ["ee00b4bd-740b-43d6-9cf4-b4e754331abc"],
-      "assets": [
-        { "id": "e1beacdc-8403-479f-b915-a74e94eec328", "entity_type": "ISSUE_ATTACHMENT" },
-        { "id": "7064b6e9-f86b-4823-8d87-1d9b878a6b3d", "entity_type": "ISSUE_ATTACHMENT" }
-      ],
-      "primary_action": {
-        "type": "attachment",
-        "label": "预览调研问卷",
-        "attachment_id": "e1beacdc-8403-479f-b915-a74e94eec328"
-      }
-    },
-    {
       "key": "erp-arrivals-query",
       "title": "金蝶应到未到物料查询工具",
-      "summary": "通过 API 查询金蝶系统中的应到未到物料，减少人工导出和筛选。",
+      "summary": "查询金蝶系统中的应到未到物料；当前展示查询结果表。",
       "category": "采购与物料",
       "kind": "桌面工具",
       "sources": ["a6008c48-e3d4-4ae3-94df-87360449ce0a"],
-      "assets": [{ "id": "f87cce70-5286-45a9-8b8f-f5878f13c9e9", "entity_type": "ISSUE_ATTACHMENT" }],
+      "assets": [
+        {
+          "id": "f87cce70-5286-45a9-8b8f-f5878f13c9e9",
+          "entity_type": "ISSUE_ATTACHMENT"
+        }
+      ],
       "primary_action": {
         "type": "attachment",
         "label": "预览查询结果",
@@ -155,7 +246,12 @@
       "category": "采购与物料",
       "kind": "图文成果",
       "sources": ["76f5df6d-55d9-464c-888f-69be8dd89916"],
-      "assets": [{ "id": "b3eb5134-ac6f-4ca6-b1ac-7ed07ca57db1", "entity_type": "ISSUE_DESCRIPTION" }],
+      "assets": [
+        {
+          "id": "b3eb5134-ac6f-4ca6-b1ac-7ed07ca57db1",
+          "entity_type": "ISSUE_DESCRIPTION"
+        }
+      ],
       "cover_asset_id": "b3eb5134-ac6f-4ca6-b1ac-7ed07ca57db1",
       "primary_action": {
         "type": "attachment",

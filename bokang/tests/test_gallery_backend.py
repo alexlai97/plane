@@ -477,3 +477,74 @@ def test_workspace_gallery_rejects_anonymous_client(api_client, gallery_graph):
         status.HTTP_401_UNAUTHORIZED,
         status.HTTP_403_FORBIDDEN,
     )
+
+
+@pytest.mark.django_db
+def test_derived_cover_requires_live_curated_asset_and_membership(
+    session_client, gallery_graph, create_user, monkeypatch, tmp_path
+):
+    from plane.app.views import gallery as gallery_views
+
+    config = gallery_config(gallery_graph)
+    asset = gallery_graph["attachment"]
+    asset.size = 31 * 1024 * 1024
+    asset.save(update_fields=["size"])
+    config["cards"][0]["cover_asset_id"] = str(asset.id)
+    monkeypatch.setattr(gallery_views, "load_gallery_config", lambda: config)
+    monkeypatch.setattr(gallery_views, "GALLERY_CONFIG", tmp_path / "gallery.json")
+    covers = tmp_path / "covers"
+    covers.mkdir()
+    cover_bytes = b"representative page bytes"
+    (covers / f"{asset.id}.png").write_bytes(cover_bytes)
+    path = (
+        f"/api/workspaces/{gallery_graph['workspace'].slug}/gallery/covers/{asset.id}/"
+    )
+    gallery = session_client.get(
+        f"/api/workspaces/{gallery_graph['workspace'].slug}/gallery/"
+    ).data
+    assert gallery["cards"][0]["cover"]["source_url"] == path
+    assert (
+        next(a for a in gallery["cards"][0]["attachments"] if a["id"] == str(asset.id))[
+            "can_preview"
+        ]
+        is False
+    )
+    response = session_client.get(path)
+    assert response.status_code == 200
+    assert b"".join(response.streaming_content) == cover_bytes
+    assert response["Cache-Control"] == "private, no-store"
+    assert (
+        session_client.get(path.replace(str(asset.id), str(uuid4()))).status_code == 404
+    )
+    asset.is_uploaded = False
+    asset.save(update_fields=["is_uploaded"])
+    assert session_client.get(path).status_code == 404
+    asset.is_uploaded = True
+    asset.save(update_fields=["is_uploaded"])
+    asset.is_deleted = True
+    asset.save(update_fields=["is_deleted"])
+    assert session_client.get(path).status_code == 404
+    asset.is_deleted = False
+    asset.save(update_fields=["is_deleted"])
+    second_workspace = Workspace.objects.create(
+        name="Other", owner=create_user, slug="other-cover-workspace"
+    )
+    WorkspaceMember.objects.create(
+        workspace=second_workspace, member=create_user, role=20, is_active=True
+    )
+    assert (
+        session_client.get(
+            path.replace(gallery_graph["workspace"].slug, second_workspace.slug)
+        ).status_code
+        == 404
+    )
+    ProjectMember.objects.filter(
+        project=gallery_graph["project"], member=create_user
+    ).update(is_active=False)
+    assert session_client.get(path).status_code == 404
+
+
+@pytest.mark.django_db
+def test_derived_cover_rejects_anonymous_client(api_client, gallery_graph):
+    path = f"/api/workspaces/{gallery_graph['workspace'].slug}/gallery/covers/{gallery_graph['attachment'].id}/"
+    assert api_client.get(path).status_code in (401, 403)

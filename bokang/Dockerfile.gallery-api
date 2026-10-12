@@ -2,3 +2,4 @@ FROM bokang/plane-backend:1.4.2-12c6988
 COPY apps/api/plane/app/views/gallery.py /code/plane/app/views/gallery.py
 COPY apps/api/plane/app/urls/workspace.py /code/plane/app/urls/workspace.py
 COPY apps/api/plane/app/data/gallery.json /code/plane/app/data/gallery.json
+COPY apps/api/plane/app/data/covers /code/plane/app/data/covers
