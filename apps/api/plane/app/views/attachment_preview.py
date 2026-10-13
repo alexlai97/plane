@@ -153,10 +153,12 @@ def preview_authorized_asset(request, asset, resource="onlinePreview"):
         resource = "css/loading.gif"
     name = asset.attributes.get("name", "附件")
     extension = name.rsplit(".", 1)[-1].lower()
-    if resource in ("source", "getCorsFile") and extension in PREVIEW_EXTENSIONS:
-        return source_response(asset, request)
     if extension not in PREVIEW_EXTENSIONS:
         return HttpResponse("此格式暂不支持在线预览，请使用下载按钮。", status=415)
+    if extension in OFFICE_PREVIEW_EXTENSIONS and int(asset.size or 0) > 30 * 1024 * 1024:
+        return HttpResponse("文件超过在线预览大小限制，请使用下载按钮。", status=413)
+    if resource in ("source", "getCorsFile") and extension in PREVIEW_EXTENSIONS:
+        return source_response(asset, request)
     if resource != "onlinePreview" and not allowed_preview_path(resource, asset.id):
         return HttpResponse(status=404)
     if resource == "favicon.ico":

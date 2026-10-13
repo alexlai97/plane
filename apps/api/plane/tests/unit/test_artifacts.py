@@ -348,6 +348,24 @@ class ArtifactLifecycleTests(TestCase):
         self.assertFalse(is_previewable_asset("manual.docx", 30 * 1024 * 1024 + 1))
         self.assertFalse(is_previewable_asset("archive.exe", 100))
 
+    def test_oversized_office_preview_route_rejects_before_converter_request(self):
+        from plane.app.views.gallery import ArtifactAssetEndpoint
+        created = self.request("post", self.owner, self.payload())
+        artifact_id = created.data["id"]
+        asset = FileAsset.objects.create(workspace=self.workspace, user=self.owner,
+                                         entity_type=FileAsset.EntityTypeContext.ARTIFACT_ATTACHMENT,
+                                         entity_identifier=artifact_id, is_uploaded=True, asset="oversize.docx",
+                                         attributes={"name": "oversize.docx", "size": 30 * 1024 * 1024 + 1, "type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"},
+                                         size=30 * 1024 * 1024 + 1)
+        self.request("patch", self.owner, self.payload(version=1, assets=[{"id": str(asset.id)}]), artifact_id)
+        request = APIRequestFactory().get(f"/api/workspaces/{self.workspace.slug}/artifacts/{artifact_id}/assets/{asset.id}/preview/onlinePreview?view=draft")
+        force_authenticate(request, user=self.owner)
+        with patch("plane.app.views.attachment_preview.requests.get") as converter:
+            response = ArtifactAssetEndpoint.as_view()(request, slug=self.workspace.slug, pk=artifact_id,
+                                                       asset_id=asset.id, resource="onlinePreview")
+        self.assertEqual(response.status_code, 413)
+        converter.assert_not_called()
+
 
 class ArtifactImportCommandTests(TestCase):
     @classmethod
