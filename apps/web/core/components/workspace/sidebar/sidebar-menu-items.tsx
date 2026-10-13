@@ -49,7 +49,7 @@ export const SidebarMenuItems = observer(function SidebarMenuItems() {
   const { preferences: workspacePreferences } = useWorkspaceNavigationPreferences();
   // translation
   const { t } = useTranslation();
-  const showGallery = currentWorkspace?.id === "bb96243d-e9cd-424e-8fb6-6117ae54f621";
+  const showGallery = !!currentWorkspace;
   const slug = workspaceSlug?.toString() || "";
 
   const toggleListDisclosure = (isOpen: boolean) => {

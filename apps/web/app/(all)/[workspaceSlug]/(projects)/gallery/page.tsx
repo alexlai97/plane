@@ -1,46 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Dialog } from "@headlessui/react";
-import {
-  ArrowDownToLine,
-  ArrowUpRight,
-  BriefcaseBusiness,
-  ExternalLink,
-  FileText,
-  Images,
-  Search,
-  X,
-} from "lucide-react";
-import { useParams } from "next/navigation";
+import { ArrowUpRight, BriefcaseBusiness, Images, Search } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
+import { artifactService } from "@/services/artifact.service";
 import { AttachmentPreviewModal } from "@/components/issues/attachment/attachment-preview-modal";
 import { PageHead } from "@/components/core/page-title";
 import {
   ALL_GALLERY_CATEGORY,
   filterGalleryCards,
   getGalleryCategoryCounts,
-  getGallerySourceHref,
-  isSafeHttpUrl,
   resolveGalleryAction,
 } from "../../../../../core/helpers/gallery";
 import type { GalleryAttachment, GalleryCard, GalleryResponse } from "../../../../../core/helpers/gallery";
 import { galleryService } from "@/services/gallery.service";
-import { useWorkspace } from "@/hooks/store/use-workspace";
 
-const bokangWorkspaceId = "bb96243d-e9cd-424e-8fb6-6117ae54f621";
 const emptyCards: GalleryCard[] = [];
 const emptyCategories: string[] = [];
-
-function formatDate(value: string): string {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? ""
-    : new Intl.DateTimeFormat("zh-CN", { year: "numeric", month: "long", day: "numeric" }).format(date);
-}
-
-function formatSize(size: number): string {
-  if (!Number.isFinite(size) || size <= 0) return "";
-  if (size < 1024 * 1024) return `${Math.max(1, Math.round(size / 1024))} KB`;
-  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 function isExternalDemoLink(card: GalleryCard): boolean {
   const action = card.primary_action;
@@ -67,53 +41,16 @@ function GalleryCover({ card }: { card: GalleryCard }) {
   );
 }
 
-function GalleryAttachmentButton({
-  attachment,
-  onPreview,
-}: {
-  attachment: GalleryAttachment;
-  onPreview: (attachment: GalleryAttachment) => void;
-}) {
-  if (attachment.can_preview) {
-    return (
-      <button
-        type="button"
-        onClick={() => onPreview(attachment)}
-        className="inline-flex min-w-0 items-center gap-2 rounded-md border border-subtle bg-surface-1 px-3 py-2 text-left text-13 text-secondary hover:bg-layer-1"
-      >
-        <FileText className="size-4 flex-shrink-0" />
-        <span className="truncate">{attachment.name}</span>
-        {formatSize(attachment.size) && (
-          <span className="flex-shrink-0 text-11 text-placeholder">{formatSize(attachment.size)}</span>
-        )}
-      </button>
-    );
-  }
-  return (
-    <a
-      href={attachment.file_url}
-      className="inline-flex min-w-0 items-center gap-2 rounded-md border border-subtle bg-surface-1 px-3 py-2 text-13 text-secondary hover:bg-layer-1"
-      download={attachment.name}
-    >
-      <ArrowDownToLine className="size-4 flex-shrink-0" />
-      <span className="truncate">{attachment.name}</span>
-      {formatSize(attachment.size) && (
-        <span className="flex-shrink-0 text-11 text-placeholder">{formatSize(attachment.size)}</span>
-      )}
-    </a>
-  );
-}
-
 export default function GalleryPage() {
   const { workspaceSlug } = useParams();
-  const { currentWorkspace } = useWorkspace();
+  const router = useRouter();
+  const [canCreate, setCanCreate] = useState(false);
   const slug = workspaceSlug?.toString() ?? "";
   const [data, setData] = useState<GalleryResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [category, setCategory] = useState(ALL_GALLERY_CATEGORY);
   const [query, setQuery] = useState("");
-  const [selectedCard, setSelectedCard] = useState<GalleryCard | null>(null);
   const [previewAttachment, setPreviewAttachment] = useState<GalleryAttachment | null>(null);
 
   const loadGallery = useCallback(async () => {
@@ -122,6 +59,8 @@ export default function GalleryPage() {
     try {
       const response = await galleryService.getGallery(slug);
       setData(response);
+      const permission = await artifactService.list(slug);
+      setCanCreate(permission.can_create);
     } catch {
       setError(true);
     } finally {
@@ -150,19 +89,13 @@ export default function GalleryPage() {
     } else if (action.type === "attachment") {
       openAttachment(action.attachment);
     } else {
-      setSelectedCard(card);
+      router.push(`/${slug}/gallery/${card.id}/`);
     }
   };
 
-  const closeDetail = () => setSelectedCard(null);
-
-  if (currentWorkspace && currentWorkspace.id !== bokangWorkspaceId) {
-    return <div className="p-10 text-center text-secondary">该工作区没有成果展厅。</div>;
-  }
-
   return (
     <div className="h-full min-h-0 overflow-y-auto bg-[#f5f8fc] text-[#19334d]">
-      <PageHead title="泊康 · 成果与应用" />
+      <PageHead title="成果与应用" />
       <header className="border-b border-[#dce5ef] bg-white px-6 py-5 md:px-10">
         <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -170,10 +103,20 @@ export default function GalleryPage() {
               <Images className="size-5" />
             </div>
             <div>
-              <p className="text-16 font-semibold">泊康 · 成果与应用</p>
+              <p className="text-16 font-semibold">成果与应用</p>
               <p className="text-12 text-[#718399]">可查看的应用、演示与交付资料</p>
             </div>
           </div>
+          {canCreate && (
+            <div className="flex flex-wrap gap-3 text-13">
+              <a href={`/${slug}/gallery/manage/`} className="rounded-md border border-[#d7e1ed] px-3 py-2">
+                管理成果
+              </a>
+              <a href={`/${slug}/gallery/new/`} className="rounded-md bg-[#2d628b] px-3 py-2 text-white">
+                新建成果
+              </a>
+            </div>
+          )}
         </div>
       </header>
 
@@ -302,7 +245,7 @@ export default function GalleryPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setSelectedCard(card)}
+                      onClick={() => router.push(`/${slug}/gallery/${card.id}/`)}
                       className="text-12 text-[#58758f] hover:text-[#244f73]"
                     >
                       查看详情
@@ -324,115 +267,11 @@ export default function GalleryPage() {
         )}
 
         <footer className="mt-8 border-t border-[#dce5ef] pt-4 text-11 text-[#8797a8]">
-          AI 战略部维护 · 数量按已收录的独立成果计算，业务归类为初版，可根据使用反馈调整。
+          成果内容由工作区成员维护；保存草稿后需发布才会更新展厅。
         </footer>
       </main>
 
-      {selectedCard && (
-        <Dialog
-          open
-          onClose={() => {
-            if (!previewAttachment) closeDetail();
-          }}
-          className="relative z-[80]"
-          data-bokang-gallery-detail
-        >
-          <div className="fixed inset-0 bg-[#16354a]/45" aria-hidden="true" />
-          <div className="fixed inset-0 flex items-center justify-center p-3 sm:p-6">
-            <Dialog.Panel className="shadow-2xl max-h-[92vh] w-full max-w-[820px] overflow-y-auto rounded-xl border border-[#dce5ef] bg-white">
-              <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[#dce5ef] bg-white/95 px-5 py-4 backdrop-blur">
-                <div className="flex flex-wrap gap-1.5 text-11">
-                  <span className="rounded bg-[#edf3f9] px-2 py-1 text-[#476c8e]">{selectedCard.category}</span>
-                  <span className="rounded bg-[#f1f4f7] px-2 py-1 text-[#728195]">{selectedCard.kind}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={closeDetail}
-                  aria-label="关闭成果详情"
-                  className="rounded-md p-2 text-[#60758c] hover:bg-[#edf3f9]"
-                >
-                  <X className="size-5" />
-                </button>
-              </div>
-              <div className="p-5 sm:p-7">
-                <Dialog.Title className="text-24 font-semibold">{selectedCard.title}</Dialog.Title>
-                <p className="mt-2 text-14 leading-7 text-[#60758c]">{selectedCard.summary}</p>
-                <p className="mt-2 text-11 text-[#8797a8]">更新于 {formatDate(selectedCard.updated_at)}</p>
-
-                {selectedCard.sources.length > 0 && (
-                  <section className="mt-7">
-                    <h3 className="text-15 mb-2 font-semibold">关联工作项</h3>
-                    <div className="divide-y divide-[#e6edf4] rounded-lg border border-[#dce5ef]">
-                      {selectedCard.sources.map((source) => (
-                        <a
-                          key={source.id}
-                          href={getGallerySourceHref(slug, source)}
-                          className="flex items-start justify-between gap-4 px-4 py-3 hover:bg-[#f5f8fc]"
-                        >
-                          <span className="min-w-0">
-                            <strong className="mr-2 text-12 text-[#58758f]">{source.identifier}</strong>
-                            <span className="text-13 font-medium text-[#19334d]">{source.name}</span>
-                            <span className="mt-1 block text-11 text-[#8190a1]">{source.project_name}</span>
-                          </span>
-                          <ExternalLink className="mt-1 size-4 flex-shrink-0 text-[#718399]" />
-                        </a>
-                      ))}
-                    </div>
-                  </section>
-                )}
-
-                {selectedCard.attachments.length > 0 && (
-                  <section className="mt-7">
-                    <h3 className="text-15 mb-2 font-semibold">交付材料</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedCard.attachments.map((attachment) => (
-                        <GalleryAttachmentButton
-                          key={attachment.id}
-                          attachment={attachment}
-                          onPreview={openAttachment}
-                        />
-                      ))}
-                    </div>
-                  </section>
-                )}
-
-                {selectedCard.links.some((link) => isSafeHttpUrl(link.url)) && (
-                  <section className="mt-7">
-                    <h3 className="text-15 mb-2 font-semibold">应用与演示</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedCard.links
-                        .filter((link) => isSafeHttpUrl(link.url))
-                        .map((link) => (
-                          <a
-                            key={`${link.kind}-${link.url}`}
-                            href={link.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            title={link.kind === "demo" ? "链接可能需要对应外部平台的访问权限" : undefined}
-                            className="inline-flex items-center gap-2 rounded-md border border-[#d7e1ed] px-3 py-2 text-13 text-[#49627b] hover:bg-[#edf3f9]"
-                          >
-                            {link.title}
-                            {link.kind === "demo" && <span className="text-11 text-[#8190a1]">· 外部演示</span>}
-                            <ExternalLink className="size-3.5" />
-                          </a>
-                        ))}
-                    </div>
-                  </section>
-                )}
-              </div>
-            </Dialog.Panel>
-          </div>
-          {previewAttachment?.can_preview && (
-            <AttachmentPreviewModal
-              fileName={previewAttachment.name}
-              fileURL={previewAttachment.file_url}
-              onClose={() => setPreviewAttachment(null)}
-            />
-          )}
-        </Dialog>
-      )}
-
-      {!selectedCard && previewAttachment?.can_preview && (
+      {previewAttachment?.can_preview && (
         <AttachmentPreviewModal
           fileName={previewAttachment.name}
           fileURL={previewAttachment.file_url}

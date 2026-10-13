@@ -64,6 +64,13 @@ export const coreRoutes: RouteConfigEntry[] = [
 
         // Bokang results gallery
         route(":workspaceSlug/gallery", "./(all)/[workspaceSlug]/(projects)/gallery/page.tsx"),
+        route(":workspaceSlug/gallery/manage", "./(all)/[workspaceSlug]/(projects)/gallery/manage/page.tsx"),
+        route(":workspaceSlug/gallery/new", "./(all)/[workspaceSlug]/(projects)/gallery/new/page.tsx"),
+        route(":workspaceSlug/gallery/:artifactId", "./(all)/[workspaceSlug]/(projects)/gallery/[artifactId]/page.tsx"),
+        route(
+          ":workspaceSlug/gallery/:artifactId/edit",
+          "./(all)/[workspaceSlug]/(projects)/gallery/[artifactId]/edit/page.tsx"
+        ),
 
         // Active Cycles
         layout("./(all)/[workspaceSlug]/(projects)/active-cycles/layout.tsx", [

@@ -108,3 +108,10 @@ export function getGallerySourceHref(workspaceSlug: string, source: GallerySourc
   if (source.url.startsWith("/")) return source.url;
   return `/${workspaceSlug}/browse/${encodeURIComponent(source.identifier)}`;
 }
+
+/** Append the viewer path without dropping artifact view/revision authorization parameters. */
+export function getAttachmentPreviewUrl(fileUrl: string): string {
+  const url = new URL(fileUrl, "http://attachment.local");
+  url.pathname = `${url.pathname.replace(/\/$/, "")}/preview/onlinePreview`;
+  return fileUrl.startsWith("/") ? `${url.pathname}${url.search}${url.hash}` : url.toString();
+}

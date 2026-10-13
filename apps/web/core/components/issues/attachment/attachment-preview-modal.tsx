@@ -1,6 +1,7 @@
 /* oxlint-disable react/iframe-missing-sandbox -- The generated viewer requires scripts and same-origin authenticated resource requests. This sandbox limits navigation; it is not an isolation boundary for arbitrary HTML. HTML/SVG attachments are excluded from preview. */
 import { useEffect, useRef, useState } from "react";
 import { Dialog } from "@headlessui/react";
+import { getAttachmentPreviewUrl } from "../../../helpers/gallery";
 import { Download, ExternalLink, RefreshCw, X } from "lucide-react";
 
 export function AttachmentPreviewModal({
@@ -27,7 +28,7 @@ export function AttachmentPreviewModal({
   }, [onClose]);
   const [attempt, setAttempt] = useState(0);
   const [loaded, setLoaded] = useState(false);
-  const previewURL = `${fileURL.replace(/\/$/, "")}/preview/onlinePreview`;
+  const previewURL = getAttachmentPreviewUrl(fileURL);
   const actionClass =
     "flex items-center gap-1.5 rounded-md border border-subtle px-3 py-2 text-13 text-secondary hover:bg-layer-1";
   return (
