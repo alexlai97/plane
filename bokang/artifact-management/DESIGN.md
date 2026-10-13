@@ -65,3 +65,5 @@ POST 创建草稿；/<id>/ GET query view=draft|published（默认 published）�
 6. 人的协作裁定：旧14项若全部导入到单一 owner，其他成员不能维护，违背本次目标。Artifact 增加明确 access=private/workspace；初始私有，首次发布转工作区协作。撤下不撤销编辑权；访客始终只读已发布版本。访问仍受全部来源项目限制，不能因工作区成员角色泄露私有来源。owner 是只读归属，不是共享成果的唯一编辑者。
 
 Implementation rulings: PATCH omits preserve fields; explicit empty/null clears. Preview conversion uses server-configured internal API origin (default Docker api), permitting isolated verification without reading production DB. Legacy JSON runtime tests/build recipe removed; canonical lifecycle tests replace them.
+
+Source scope integrity: ArtifactSource retains exact project UUID independently of nullable Issue FK; validated writes refresh this authorization cache from a live Issue. Removing an Issue never borrows permissions from a different publication. Unknown legacy orphan scope denies access; exact known scope permits authorized repair. Restore preserves current publication/withdrawn status; only publish affects the displayed revision. Draft asset view uses path-scoped resources so iframe child requests keep draft authorization.
