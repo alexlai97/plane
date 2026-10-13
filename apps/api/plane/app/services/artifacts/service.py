@@ -238,7 +238,9 @@ def published_snapshot(artifact, user):
     snap = dict(revision.snapshot)
     snap["published_version"] = revision.number
     snap["status"] = artifact.status
-    snap["category"] = snap.get("category")
+    category_id = snap.get("category_id")
+    current_category = ArtifactCategory.objects.filter(id=category_id, workspace=artifact.workspace, deleted_at__isnull=True).first() if category_id else None
+    snap["category"] = current_category.name if current_category else None
     # Report broken references explicitly; a missing private source denies the whole result.
     referenced_assets = [m.get("asset_id") for m in snap.get("materials", []) if m.get("asset_id")]
     if (snap.get("cover") or {}).get("asset_id"):

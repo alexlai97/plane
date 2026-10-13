@@ -14,6 +14,7 @@ from rest_framework.test import APIClient, APIRequestFactory, force_authenticate
 
 from plane.app.views.artifact import ArtifactEndpoint
 from plane.app.views.artifact import ArtifactUploadEndpoint
+from plane.app.views.gallery import WorkspaceGalleryEndpoint
 from plane.app.views.attachment_preview import ArtifactPreviewSourceEndpoint, ARTIFACT_SOURCE_SALT, is_previewable_asset
 from plane.db.models import (
     Artifact, ArtifactCategory, ArtifactRevision, FileAsset, Issue, Project,
@@ -176,6 +177,27 @@ class ArtifactLifecycleTests(TestCase):
         from plane.app.views.artifact import ArtifactCategoryEndpoint
         response = ArtifactCategoryEndpoint.as_view()(req, slug=self.workspace.slug, pk=category.id)
         self.assertEqual(response.status_code, 409)
+
+    def test_category_rename_updates_published_projection_without_content_change(self):
+        category = ArtifactCategory.objects.create(workspace=self.workspace, name="旧分类")
+        created = self.request("post", self.owner, self.payload(category_id=str(category.id)))
+        artifact_id = created.data["id"]
+        published = self.request("post", self.owner, {"version": 1}, artifact_id, "publish")
+        self.assertEqual(published.status_code, 200, published.data)
+        rename = APIRequestFactory().patch("/categories/", {"version": 1, "name": "新分类"}, format="json")
+        force_authenticate(rename, user=self.owner)
+        from plane.app.views.artifact import ArtifactCategoryEndpoint
+        renamed = ArtifactCategoryEndpoint.as_view()(rename, slug=self.workspace.slug, pk=category.id)
+        self.assertEqual(renamed.status_code, 200)
+        detail = self.request("get", self.owner, pk=artifact_id)
+        self.assertEqual(detail.data["category"], "新分类")
+        self.assertFalse(detail.data["has_unpublished_changes"])
+        gallery_request = APIRequestFactory().get(f"/api/workspaces/{self.workspace.slug}/gallery/")
+        force_authenticate(gallery_request, user=self.owner)
+        gallery = WorkspaceGalleryEndpoint.as_view()(gallery_request, slug=self.workspace.slug)
+        card = next(item for item in gallery.data["cards"] if item["id"] == artifact_id)
+        self.assertEqual(card["category"], "新分类")
+        self.assertFalse(card["has_unpublished_changes"])
 
     def test_deleted_source_and_material_are_reported_and_owner_can_repair(self):
         shared = FileAsset.objects.create(workspace=self.workspace, user=self.owner, issue=self.issue, project=self.project,
