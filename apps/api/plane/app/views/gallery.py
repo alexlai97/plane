@@ -1,428 +1,119 @@
-"""Workspace-scoped curated gallery backed by live Plane work items and assets."""
-
-import json
-import mimetypes
+"""Published artifact gallery; presentation data is database-backed only."""
 from pathlib import Path
-from urllib.parse import urlparse
-from secrets import token_urlsafe
 
 from django.http import FileResponse, HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.utils.html import escape
-from rest_framework import status
 from rest_framework.response import Response
 
-from plane.app.permissions import ROLE, allow_permission
-from plane.app.views.attachment_preview import CLOSE_BRIDGE, source_response
+from plane.app.services.artifacts import can_edit, published_snapshot, render_authorized_asset, snapshot
 from plane.app.views.base import BaseAPIView
-from plane.db.models import FileAsset, Issue, IssueLink, ProjectMember, Workspace, WorkspaceMember
+from plane.app.permissions import ROLE, allow_permission
+from rest_framework.exceptions import NotFound, PermissionDenied
+from plane.db.models import Artifact, ArtifactRevision, FileAsset, Workspace
 from plane.settings.storage import S3Storage
 
 
-GALLERY_CONFIG = Path(__file__).resolve().parent.parent / "data" / "gallery.json"
-IMAGE_EXTENSIONS = frozenset({"png", "gif"})
-MAX_PREVIEW_SIZE = 30 * 1024 * 1024
-OFFICE_EXTENSIONS = frozenset({"pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "odt", "ods", "odp", "rtf"})
-
-
-def load_gallery_config():
-    with GALLERY_CONFIG.open(encoding="utf-8") as config_file:
-        return json.load(config_file)
-
-
-def _safe_url(value):
-    parsed = urlparse(value or "")
-    return value if parsed.scheme in {"http", "https"} and parsed.netloc else None
-
-
-def _asset_extension(asset):
-    return str(asset.attributes.get("name", "")).rsplit(".", 1)[-1].lower()
-
-
-def _asset_file_url(slug, project_id, issue_id, asset):
-    if asset.entity_type == FileAsset.EntityTypeContext.ISSUE_ATTACHMENT:
-        return asset.asset_url
-    return f"/api/workspaces/{slug}/gallery/assets/{project_id}/{issue_id}/{asset.id}/"
-
-
-def _asset_preview_url(file_url):
-    return f"{file_url.rstrip('/')}/preview/onlinePreview"
-
-
-def _asset_source_url(file_url):
-    return f"{file_url.rstrip('/')}/preview/source"
-
-
-def _curated_asset_map(config):
-    assets = {}
-    for card in config["cards"]:
-        for source_id in card["sources"]:
-            for asset in card.get("assets", []):
-                # Only expose image assets embedded in descriptions/comments.
-                # ISSUE_ATTACHMENT resources keep using Plane's established endpoint.
-                if asset["entity_type"] in {
-                    FileAsset.EntityTypeContext.ISSUE_DESCRIPTION,
-                    FileAsset.EntityTypeContext.COMMENT_DESCRIPTION,
-                }:
-                    assets[(source_id, asset["id"])] = asset["entity_type"]
-    return assets
+COVER_DIR = Path(__file__).resolve().parent.parent / "data" / "covers"
 
 
 class WorkspaceGalleryEndpoint(BaseAPIView):
-    """Return curated records only when their project is visible to this member."""
-
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
     def get(self, request, slug):
-        config = load_gallery_config()
-        workspace = get_object_or_404(Workspace, slug=slug, id=config["workspace_id"], deleted_at__isnull=True)
-
-        accessible_project_ids = set(
-            ProjectMember.objects.filter(
-                workspace=workspace,
-                member=request.user,
-                is_active=True,
-                deleted_at__isnull=True,
-            ).values_list("project_id", flat=True)
-        )
-        configured_issue_ids = {issue_id for card in config["cards"] for issue_id in card.get("sources", [])}
-        issues = {
-            str(issue.id): issue
-            for issue in Issue.issue_objects.filter(
-                id__in=configured_issue_ids,
-                workspace=workspace,
-                project_id__in=accessible_project_ids,
-                deleted_at__isnull=True,
-            ).select_related("project")
-        }
-
-        asset_ids = {asset_config["id"] for card in config["cards"] for asset_config in card.get("assets", [])}
-        live_assets = {
-            str(asset.id): asset
-            for asset in FileAsset.objects.filter(
-                id__in=asset_ids,
-                workspace=workspace,
-                project_id__in=accessible_project_ids,
-                is_uploaded=True,
-                is_deleted=False,
-                deleted_at__isnull=True,
-            ).select_related("project", "issue", "comment__issue")
-        }
-
+        workspace = get_object_or_404(Workspace, slug=slug, deleted_at__isnull=True)
+        rows = Artifact.objects.filter(workspace=workspace, status=Artifact.Status.PUBLISHED,
+                                       deleted_at__isnull=True).select_related("published_revision")
         cards = []
-        for configured_card in config["cards"]:
-            source_issues = [issues.get(source_id) for source_id in configured_card.get("sources", [])]
-            source_issues = [issue for issue in source_issues if issue]
-            if not source_issues:
+        for artifact in rows:
+            try:
+                snap = published_snapshot(artifact, request.user)
+            except (NotFound, PermissionDenied):
                 continue
-
-            card_assets = []
-            asset_by_id = {}
-            for source_issue in source_issues:
-                for asset_config in configured_card.get("assets", []):
-                    asset = live_assets.get(asset_config["id"])
-                    if not asset or asset.entity_type != asset_config["entity_type"]:
-                        continue
-                    if not _asset_belongs_to_issue(asset, source_issue):
-                        continue
-
-                    file_url = _asset_file_url(slug, source_issue.project_id, source_issue.id, asset)
-                    can_preview = _is_previewable(asset)
-                    asset_name = asset.attributes.get("name", "")
-                    attachment = {
-                        "id": str(asset.id),
-                        "name": asset_name or "附件",
-                        "size": int(asset.attributes.get("size", asset.size or 0)),
-                        "mime": asset.attributes.get("type")
-                        or mimetypes.guess_type(asset_name)[0]
-                        or "application/octet-stream",
-                        "issue_id": str(source_issue.id),
-                        "file_url": file_url,
-                        "source_url": _asset_source_url(file_url),
-                        "can_preview": can_preview,
-                    }
-                    card_assets.append(attachment)
-                    asset_by_id[str(asset.id)] = attachment
-
-            sources = [
-                {
-                    "id": str(issue.id),
-                    "sequence_id": issue.sequence_id,
-                    "name": issue.name,
-                    "project_id": str(issue.project_id),
-                    "project_name": issue.project.name,
-                    "identifier": f"{issue.project.identifier}-{issue.sequence_id}",
-                    "url": f"/{slug}/browse/{issue.project.identifier}-{issue.sequence_id}/",
-                }
-                for issue in source_issues
-            ]
-            live_source_urls = _issue_source_urls(source_issues)
-            links = []
-            for configured_link in configured_card.get("links", []):
-                url = _safe_url(configured_link.get("url"))
-                if url and url in live_source_urls:
-                    links.append(
-                        {
-                            "title": configured_link["title"],
-                            "url": url,
-                            "kind": configured_link.get("kind", "reference"),
-                            "issue_id": str(source_issues[0].id),
-                        }
-                    )
-
-            cover = None
-            cover_asset = asset_by_id.get(configured_card.get("cover_asset_id", ""))
-            if cover_asset and (
-                cover_asset["can_preview"] or (GALLERY_CONFIG.parent / "covers" / f"{cover_asset['id']}.png").is_file()
-            ):
-                cover = {
-                    "source_url": (
-                        f"/api/workspaces/{slug}/gallery/covers/{cover_asset['id']}/"
-                        if (GALLERY_CONFIG.parent / "covers" / f"{cover_asset['id']}.png").is_file()
-                        else _asset_source_url(cover_asset["file_url"])
-                    ),
-                    "file_url": cover_asset["file_url"],
-                    "name": cover_asset["name"],
-                }
-
-            primary = configured_card.get("primary_action", {"type": "detail", "label": "查看详情"})
-            if primary.get("type") == "attachment":
-                selected_asset = asset_by_id.get(primary.get("attachment_id", ""))
-                primary_action = (
-                    {"type": "attachment", "label": primary["label"], "attachment_id": selected_asset["id"]}
-                    if selected_asset
-                    else {"type": "detail", "label": "查看详情"}
-                )
-            elif primary.get("type") == "link":
-                url = _safe_url(primary.get("url"))
-                is_verified_link = url and any(link["url"] == url for link in links)
-                primary_action = (
-                    {"type": "link", "label": primary["label"], "url": url}
-                    if is_verified_link
-                    else {
-                        "type": "detail",
-                        "label": "查看详情",
-                    }
-                )
-            else:
-                primary_action = {"type": "detail", "label": primary.get("label", "查看详情")}
-
-            cards.append(
-                {
-                    "id": configured_card["key"],
-                    "title": configured_card["title"],
-                    "summary": configured_card["summary"],
-                    "category": configured_card["category"],
-                    "kind": configured_card["kind"],
-                    "updated_at": max(issue.updated_at for issue in source_issues).isoformat(),
-                    "sources": sources,
-                    "attachments": card_assets,
-                    "links": links,
-                    "cover": cover,
-                    "primary_action": primary_action,
-                }
-            )
-
-        categories = [
-            category for category in config["categories"] if any(card["category"] == category for card in cards)
-        ]
-        cards_with_demo = {
-            card["id"]
-            for card in cards
-            if any(link["kind"] == "demo" for link in card["links"])
-            or any(attachment["mime"].startswith("video/") for attachment in card["attachments"])
-        }
-        return Response(
-            {
-                "categories": categories,
-                "stats": {"total": len(cards), "with_demo": len(cards_with_demo)},
-                "cards": cards,
-            },
-            status=status.HTTP_200_OK,
-        )
+            attachments, links = [], []
+            for material in snap.get("materials", []):
+                if material.get("asset_id"):
+                    asset_id = material["asset_id"]
+                    file_url = f"/api/workspaces/{slug}/artifacts/{artifact.id}/assets/{asset_id}/"
+                    attachments.append({"id": asset_id, "name": material.get("name", material["title"]), "size": material.get("size", 0), "mime": material.get("mime", "application/octet-stream"), "file_url": file_url, "source_url": file_url + "source/", "can_preview": True})
+                elif material.get("url"):
+                    links.append({"title": material["title"], "url": material["url"], "kind": material.get("kind", "reference")})
+            cover = snap.get("cover")
+            if cover:
+                cover_url = f"/api/workspaces/{slug}/artifacts/{artifact.id}/covers/{cover['asset_id']}/"
+                cover["file_url"] = cover_url
+                cover["source_url"] = cover_url
+            draft = snapshot(artifact, slug)
+            compare_keys = ("title", "summary", "category_id", "kind", "source_issue_ids", "assets", "links", "primary_action", "cover")
+            editable = can_edit(request.user, artifact)
+            changed = bool(editable and any(draft.get(key) != snap.get(key) for key in compare_keys))
+            cards.append({"id": snap["id"], "title": snap["title"], "summary": snap["summary"], "category": snap.get("category"),
+                          "kind": snap["kind"], "updated_at": snap.get("updated_at"), "sources": snap.get("sources", []),
+                          "attachments": attachments, "links": links, "cover": cover,
+                          "primary_action": snap.get("primary_action", {"type": "detail", "label": "查看详情"}),
+                          "category_id": snap.get("category_id"), "owner_id": str(artifact.owner_id), "status": artifact.status,
+                          "version": artifact.version, "published_version": artifact.published_revision.number if artifact.published_revision else None,
+                          "has_unpublished_changes": changed, "unavailable_reference_count": snap.get("unavailable_reference_count", 0), "can_edit": editable})
+        categories = list(dict.fromkeys(c["category"] for c in cards if c.get("category")))
+        demos = {c["id"] for c in cards if any(l.get("kind") == "demo" for l in c["links"]) or any(a.get("mime", "").startswith("video/") for a in c["attachments"])}
+        return Response({"categories": categories, "stats": {"total": len(cards), "with_demo": len(demos)}, "cards": cards})
 
 
-def _asset_belongs_to_issue(asset, issue):
-    if asset.project_id != issue.project_id or asset.workspace_id != issue.workspace_id:
-        return False
-    if asset.entity_type == FileAsset.EntityTypeContext.ISSUE_ATTACHMENT:
-        return asset.issue_id == issue.id
-    if asset.entity_type == FileAsset.EntityTypeContext.ISSUE_DESCRIPTION:
-        return asset.issue_id == issue.id
-    if asset.entity_type == FileAsset.EntityTypeContext.COMMENT_DESCRIPTION:
-        return asset.comment is not None and asset.comment.deleted_at is None and asset.comment.issue_id == issue.id
-    return False
-
-
-def _is_previewable(asset):
-    extension = _asset_extension(asset)
-    supported = extension in {
-        "md",
-        "markdown",
-        "txt",
-        "log",
-        "csv",
-        "json",
-        "xml",
-        "pdf",
-        "doc",
-        "docx",
-        "xls",
-        "xlsx",
-        "ppt",
-        "pptx",
-        "odt",
-        "ods",
-        "odp",
-        "rtf",
-        "jpg",
-        "jpeg",
-        "png",
-        "gif",
-        "webp",
-        "bmp",
-        "tif",
-        "tiff",
-        "mp3",
-        "wav",
-        "ogg",
-        "m4a",
-        "aac",
-        "flac",
-        "mp4",
-        "webm",
-        "mov",
-        "avi",
-        "mkv",
-    }
-    return supported and (extension not in OFFICE_EXTENSIONS or asset.size <= MAX_PREVIEW_SIZE)
-
-
-def _issue_source_urls(issues):
-    issue_ids = [issue.id for issue in issues]
-    urls = set(IssueLink.objects.filter(issue_id__in=issue_ids, deleted_at__isnull=True).values_list("url", flat=True))
-    for issue in issues:
-        urls.update(_anchor_urls(issue.description_html))
-    from plane.db.models import IssueComment
-
-    for comment_html in IssueComment.objects.filter(issue_id__in=issue_ids, deleted_at__isnull=True).values_list(
-        "comment_html", flat=True
-    ):
-        urls.update(_anchor_urls(comment_html))
-    return {_safe_url(url) for url in urls if _safe_url(url)}
-
-
-def _anchor_urls(html):
-    from html.parser import HTMLParser
-
-    class AnchorURLParser(HTMLParser):
-        def __init__(self):
-            super().__init__(convert_charrefs=True)
-            self.urls = set()
-
-        def handle_starttag(self, tag, attrs):
-            if tag.lower() == "a":
-                href = dict(attrs).get("href")
-                if href:
-                    self.urls.add(href.strip())
-
-    parser = AnchorURLParser()
-    parser.feed(html or "")
-    return parser.urls
-
-
-class GalleryAssetEndpoint(BaseAPIView):
-    """Read-only PNG/GIF preview for explicitly curated issue/comment media."""
-
-    def finalize_response(self, request, response, *args, **kwargs):
-        response = super().finalize_response(request, response, *args, **kwargs)
-        response["X-Frame-Options"] = "SAMEORIGIN"
-        response["Cache-Control"] = "private, no-store"
-        response["Referrer-Policy"] = "no-referrer"
-        response["X-Content-Type-Options"] = "nosniff"
-        return response
-
-    @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST])
-    def get(self, request, slug, project_id, issue_id, pk, resource=""):
-        config = load_gallery_config()
-        workspace = get_object_or_404(Workspace, slug=slug, id=config["workspace_id"], deleted_at__isnull=True)
-        if not WorkspaceMember.objects.filter(
-            workspace=workspace, member=request.user, is_active=True, deleted_at__isnull=True
-        ).exists():
-            return HttpResponse(status=404)
-        allowed_assets = _curated_asset_map(config)
-        expected_type = allowed_assets.get((str(issue_id), str(pk)))
-        if expected_type not in {
-            FileAsset.EntityTypeContext.ISSUE_DESCRIPTION,
-            FileAsset.EntityTypeContext.COMMENT_DESCRIPTION,
-        }:
-            return HttpResponse(status=404)
-
-        issue = get_object_or_404(Issue.issue_objects, id=issue_id, workspace=workspace, project_id=project_id)
-        asset = get_object_or_404(
-            FileAsset.objects.select_related("comment"),
-            id=pk,
-            workspace=workspace,
-            project_id=project_id,
-            is_uploaded=True,
-            is_deleted=False,
-            deleted_at__isnull=True,
-            entity_type=expected_type,
-        )
-        if not _asset_belongs_to_issue(asset, issue) or _asset_extension(asset) not in IMAGE_EXTENSIONS:
-            return HttpResponse(status=404)
-
+class ArtifactAssetEndpoint(BaseAPIView):
+    def get(self, request, slug, pk, asset_id, resource=""):
+        workspace = get_object_or_404(Workspace, slug=slug, deleted_at__isnull=True)
+        artifact = get_object_or_404(Artifact, id=pk, workspace=workspace, deleted_at__isnull=True)
+        if request.query_params.get("view") == "draft":
+            from rest_framework.exceptions import NotFound
+            if not can_edit(request.user, artifact):
+                raise NotFound()
+            from types import SimpleNamespace
+            revision = SimpleNamespace(snapshot=snapshot(artifact, slug), id=None)
+            request.artifact_preview_claim = {"artifact": str(artifact.id), "revision": None, "draft_version": artifact.version,
+                                              "user": str(request.user.id)}
+        else:
+            revision = artifact.published_revision
+            if not revision or artifact.status != Artifact.Status.PUBLISHED:
+                from rest_framework.exceptions import NotFound
+                raise NotFound()
+            request.artifact_preview_claim = {"artifact": str(artifact.id), "revision": str(revision.id), "user": str(request.user.id)}
+        asset = render_authorized_asset(request.user, artifact, revision, asset_id)
         if not resource:
             storage = S3Storage(request=request)
-            return HttpResponseRedirect(
-                storage.generate_presigned_url(
-                    object_name=asset.asset.name,
-                    disposition="attachment",
-                    filename=asset.attributes.get("name", "image"),
-                )
-            )
+            return HttpResponseRedirect(storage.generate_presigned_url(object_name=asset.asset.name, disposition="attachment", filename=asset.attributes.get("name", "attachment")))
         if resource == "source":
+            from plane.app.views.attachment_preview import source_response
             return source_response(asset, request)
-        if resource == "onlinePreview":
-            source_url = request.build_absolute_uri(request.path.rsplit("/preview/", 1)[0] + "/preview/source")
-            image = (
-                f'<img src="{escape(source_url)}" '
-                f'alt="{escape(asset.attributes.get("name", "成果图片"))}" '
-                'style="max-width:100%;max-height:100vh;object-fit:contain">'
-            )
-            nonce = token_urlsafe(16)
-            close_bridge = CLOSE_BRIDGE.replace("<script>", f'<script nonce="{escape(nonce)}">', 1)
-            response = HttpResponse(
-                (
-                    '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">'
-                    '<meta name="viewport" content="width=device-width,initial-scale=1">'
-                    "<title>成果预览</title><style>html,body{margin:0;min-height:100%;"
-                    "background:#f5f8fc}body{display:grid;place-items:center}</style></head>"
-                    f"<body>{image}{close_bridge}</body></html>"
-                ),
-                content_type="text/html; charset=utf-8",
-            )
-            response["Content-Security-Policy"] = (
-                f"frame-ancestors 'self'; default-src 'none'; img-src 'self' data:; "
-                f"style-src 'unsafe-inline'; script-src 'nonce-{nonce}'"
-            )
+        from plane.app.views.attachment_preview import preview_authorized_asset
+        return preview_authorized_asset(request, asset, resource)
+
+
+class ArtifactCoverEndpoint(ArtifactAssetEndpoint):
+    def get(self, request, slug, pk, asset_id):
+        from django.http import FileResponse
+        workspace = get_object_or_404(Workspace, slug=slug, deleted_at__isnull=True)
+        artifact = get_object_or_404(Artifact, id=pk, workspace=workspace, status=Artifact.Status.PUBLISHED, deleted_at__isnull=True)
+        revision = artifact.published_revision
+        if not revision:
+            from rest_framework.exceptions import NotFound
+            raise NotFound()
+        render_authorized_asset(request.user, artifact, revision, asset_id)
+        path = COVER_DIR / f"{asset_id}.png"
+        if path.is_file():
+            response = FileResponse(path.open("rb"), content_type="image/png")
+            response["Cache-Control"] = "private, no-store"
+            response["X-Content-Type-Options"] = "nosniff"
             return response
-        return HttpResponse(status=404)
+        return super().get(request, slug, pk, asset_id, "source")
 
 
-class GalleryCoverEndpoint(WorkspaceGalleryEndpoint):
-    """Derived representative pages; access follows the live source attachment."""
+class GalleryAssetEndpoint(ArtifactAssetEndpoint):
+    def get(self, request, slug, project_id=None, issue_id=None, pk=None, resource=""):
+        # Compatibility route is intentionally closed unless the same live artifact authorization applies.
+        from rest_framework.exceptions import NotFound
+        raise NotFound()
 
+
+class GalleryCoverEndpoint(ArtifactAssetEndpoint):
     def get(self, request, slug, pk):
-        gallery = super().get(request, slug=slug)
-        if gallery.status_code != 200:
-            return gallery
-        cover_url = f"/api/workspaces/{slug}/gallery/covers/{pk}/"
-        if not any(card.get("cover") and card["cover"]["source_url"] == cover_url for card in gallery.data["cards"]):
-            return HttpResponse(status=404)
-        path = GALLERY_CONFIG.parent / "covers" / f"{pk}.png"
-        if not path.is_file():
-            return HttpResponse(status=404)
-        response = FileResponse(path.open("rb"), content_type="image/png")
-        response["Cache-Control"] = "private, no-store"
-        response["X-Content-Type-Options"] = "nosniff"
-        return response
+        from rest_framework.exceptions import NotFound
+        raise NotFound()
