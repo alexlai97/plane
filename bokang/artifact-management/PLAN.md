@@ -10,7 +10,7 @@ Review focus: 跨工作区管理员与私有项目来源；草稿污染发布版
 
 ## Task 1 后端与迁移
 
-Owned: apps/api/plane/db/models/artifact.py、db/migrations/0124_artifact_management.py、db/management/commands/import_artifacts.py、app/services/artifacts/*、app/views/artifact.py、api/views/artifact.py、app/views/gallery.py、app/views/attachment_preview.py（公共预览提取）、models/asset.py、相关 urls/model 导出、API 单元测试、archive 历史清单。
+Owned: apps/api/plane/db/models/artifact.py、db/migrations/0124_artifact_management.py、db/management/commands/import_artifacts.py、app/services/artifacts/\*、app/views/artifact.py、api/views/artifact.py、app/views/gallery.py、app/views/attachment_preview.py（公共预览提取）、models/asset.py、相关 urls/model 导出、API 单元测试、archive 历史清单。
 
 - [ ] 先写服务/接口行为测试，包含 DESIGN 必须证明属性。
 - [ ] 实现规范化模型、权限、typed 输入校验、版本锁与发布快照、CRUD、分类、选择器、上传。
@@ -22,7 +22,7 @@ Produces: DESIGN API 契约，接口 schema 示例与可复用业务服务。Con
 
 ## Task 2 人的 UI
 
-Owned: apps/web/core/components/artifacts/*、services/artifact.service.ts、helpers/artifact.ts、gallery 页面拆分与稳定详情/管理路由、UI 测试。
+Owned: apps/web/core/components/artifacts/\*、services/artifact.service.ts、helpers/artifact.ts、gallery 页面拆分与稳定详情/管理路由、UI 测试。
 
 - [ ] 写条件/版本/主操作 helper 测试。
 - [ ] 展厅新增维护入口和详情编辑入口；管理页列表、表单、任务/材料选择、上传、分类管理、版本恢复。
@@ -40,3 +40,5 @@ Owner: root; docs/scripts/QA 部署与回读。
 - [ ] 清理自身临时成果/会话/测试 DB/容器；正式文档与源码提交推送；记录剩余边界，不声称实现代码运行环境。
 
 Ruling: 用户已明确要求按讨论方向开发且直接修正不合理实现；不再重复请求设计/执行许可。独立 worktree，任务顺序执行，专属文件所有权避免冲突。
+
+Spec review 2026-10-13: 五项权限/版本/导入裁定写入 DESIGN.md；已告知 Task 1，属于授权范围内的规则澄清。无需增加外部依赖或审批流。

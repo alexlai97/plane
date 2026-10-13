@@ -4,13 +4,13 @@
 
 ## 已实现且复用
 
-| 现有能力 | 来源 | 处理 |
-| --- | --- | --- |
-| 工作区、项目、任务与成员 | db/models/workspace.py、project.py、issue.py | 不改业务字段，来源任务多对多引用 |
-| 文件及 S3 存储 | db/models/asset.py、settings/storage.py | 复用 FileAsset，增加成果附件实体类型 |
-| 文档、图片、音视频预览 | app/views/attachment_preview.py | 提取接受已授权 asset 的公共预览函数；所有调用先执行自身权限 |
-| 展厅与材料详情 | web gallery/page.tsx | 保留入口与风格，新增人的维护流程 |
-| 会话及 API Key 认证 | app/views/base.py、api/views/base.py | 两种入口调用同一业务服务 |
+| 现有能力                 | 来源                                         | 处理                                                        |
+| ------------------------ | -------------------------------------------- | ----------------------------------------------------------- |
+| 工作区、项目、任务与成员 | db/models/workspace.py、project.py、issue.py | 不改业务字段，来源任务多对多引用                            |
+| 文件及 S3 存储           | db/models/asset.py、settings/storage.py      | 复用 FileAsset，增加成果附件实体类型                        |
+| 文档、图片、音视频预览   | app/views/attachment_preview.py              | 提取接受已授权 asset 的公共预览函数；所有调用先执行自身权限 |
+| 展厅与材料详情           | web gallery/page.tsx                         | 保留入口与风格，新增人的维护流程                            |
+| 会话及 API Key 认证      | app/views/base.py、api/views/base.py         | 两种入口调用同一业务服务                                    |
 
 机械盘点见 inventory.json：343 路由、86 表、59 页面。现有 gallery 路由、页面和 FileAsset 修改；其他既有登录、任务、模板、视图、通知等入口不更改业务行为。新增成果、分类、来源、材料、修订表及管理路由。回归覆盖任务跳转、材料预览、原展厅 14 项与权限拒绝。
 
@@ -36,7 +36,7 @@ ArtifactSource：Artifact / Issue FK，唯一关联；ArtifactMaterial：Artifac
 
 会话前缀 /api/workspaces/<slug>/artifacts/，API Key 前缀 /api/v1/workspaces/<slug>/artifacts/。GET 列表 query scope=published|manage（默认 published），search；返回 {results, count, can_create}。结果保持 GalleryCard 的 sources/attachments/links/cover/primary_action，增加 category_id/owner_id/status/version/published_version/has_unpublished_changes/can_edit。category 为名称；id 统一 UUID。
 
-POST 创建草稿；/<id>/ GET query view=draft|published（默认 published）、PATCH、DELETE。write body 为 {title,summary,kind,category_id,owner_id?,source_issue_ids,assets:[{id}],links:[{title,url,kind}],cover_asset_id,primary_action:{type:detail|attachment|link,label,attachment_id?,url?},version?}。服务推导 entity_type，不相信客户端。
+POST 创建草稿；/<id>/ GET query view=draft|published（默认 published）、PATCH、DELETE。write body 为 {title,summary,kind,category_id,source_issue_ids,assets:[{id}],links:[{title,url,kind}],cover_asset_id,primary_action:{type:detail|attachment|link,label,attachment_id?,url?},version（创建时省略，其余写必填）}。服务推导 entity_type，不相信客户端。
 
 /<id>/publish/ POST {version}；withdraw/ POST {version}；revisions/ GET；revisions/<revision_id>/restore/ POST {version}。类别 /artifact-categories/ GET {results,can_manage}、POST；/<id>/ PATCH/DELETE，返回 id/name/usage_count/version；写要求 version。
 
@@ -53,3 +53,11 @@ POST 创建草稿；/<id>/ GET query view=draft|published（默认 published）�
 两个 workspace 的管理员跨租户 ID 拒绝；同租户私有项目/素材拒绝；所有者写与普通成员读的允许/拒绝配对；草稿不进展厅、保存不改发布版；版本冲突；恢复修订仍需发布；共享文件删除不跟随成果；来源/资产软删除失效；无材料发布拒绝；安全 URL；上传大小/存储失败与绑定；原14项迁移无重复且任务数据指纹不变。
 
 生产前隔离数据库测模型/服务/接口和迁移；真正浏览器执行新建→编辑→材料选择→保存→预览→发布→刷新→撤下→恢复→删除及分类改名。真实截图查看效果。生产迁移前 pg_dump、配置/清单备份；同一次发布先迁移数据再切换读取；保留旧镜像和数据库回滚路径。
+
+## 评审裁定
+
+1. 仅创建可不传 version；所有已有对象写（含删除/发布/撤下/恢复/分类修改）要求 version，事务锁内检查并推进。
+2. owner 默认创建者且只读，不在首版做转交权限。
+3. 新成果上传的预览和转换 source token 绑定 actor、artifact/revision、asset；读取时重新校验，不能只凭 asset UUID，仍复用公共渲染。
+4. 快照冻结内容与引用选择，材料可用性和项目权限实时校验。失效引用返回 unavailable_reference_count，不静默忽略；所有者/admin 可修复自己的草稿，不能读取无权限素材或发布无效引用；恢复遇失效引用明确拒绝。
+5. 导入 ID=UUID5(workspace UUID, 历史 card key)，同一输入重复跳过；不同输入或已有人工改动拒绝，禁止覆盖。没有运行时 legacy key/fallback。
