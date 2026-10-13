@@ -392,6 +392,10 @@ class ArtifactImportCommandTests(TestCase):
         cls.workspace = Workspace.objects.create(name="Import QA", slug="artifact-import-qa", owner=cls.owner)
         WorkspaceMember.objects.create(workspace=cls.workspace, member=cls.owner, role=20)
 
+    def test_default_input_path_resolves_archived_manifest(self):
+        with self.assertRaisesRegex(CommandError, "Input workspace_id does not match --workspace"):
+            call_command("import_artifacts", workspace=self.workspace.slug, owner=self.owner.email)
+
     def test_dry_run_apply_idempotence_and_conflicting_existing_row(self):
         manifest = {"workspace_id": str(self.workspace.id), "categories": [], "cards": [{
             "key": "one", "title": "Imported", "summary": "original", "kind": "system", "category": None,

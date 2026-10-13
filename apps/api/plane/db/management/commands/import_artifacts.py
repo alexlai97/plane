@@ -16,7 +16,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--workspace", required=True)
         parser.add_argument("--owner", required=True, help="Artifact attribution owner by UUID or active user email")
-        parser.add_argument("--input", default=str(Path(__file__).resolve().parents[2] / "app" / "data" / "archive" / "gallery.json"))
+        parser.add_argument("--input", default=str(Path(__file__).resolve().parents[3] / "app" / "data" / "archive" / "gallery.json"))
         parser.add_argument("--apply", action="store_true", help="Write validated imports (default is dry-run).")
 
     def handle(self, *args, **options):
