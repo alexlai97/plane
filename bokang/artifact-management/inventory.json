@@ -1,0 +1,2396 @@
+{
+  "routes": [
+    {
+      "file": "apps/api/plane/app/urls/external.py",
+      "route": "unsplash/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/external.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/ai-assistant/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/external.py",
+      "route": "workspaces/<str:slug>/ai-assistant/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/page.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/pages-summary/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/page.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/pages/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/page.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/page.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/favorite-pages/<uuid:page_id>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/page.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/archive/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/page.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/lock/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/page.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/access/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/page.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/description/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/page.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/versions/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/page.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/versions/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/page.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/duplicate/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "attachment-preview-source/<str:token>/<str:filename>",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "assets/v2/workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/attachments/<uuid:pk>/preview/<path:resource>",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/issues/list/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/issues/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/issues-detail/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/v2/issues/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/issue-labels/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/issue-labels/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/bulk-create-labels/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/bulk-delete-issues/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/bulk-archive-issues/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/sub-issues/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/issue-links/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/issue-links/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/issue-attachments/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/issue-attachments/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "assets/v2/workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/attachments/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "assets/v2/workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/attachments/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/history/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/comments/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/comments/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/issue-subscribers/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/issue-subscribers/<uuid:subscriber_id>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/subscribe/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/reactions/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/reactions/<str:reaction_code>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/comments/<uuid:comment_id>/reactions/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/comments/<uuid:comment_id>/reactions/<str:reaction_code>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/user-properties/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/archived-issues/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:pk>/archive/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/issue-relation/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/remove-relation/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/deleted-issues/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/issue-dates/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/versions/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/versions/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:work_item_id>/description-versions/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:work_item_id>/description-versions/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/meta/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/issue.py",
+      "route": "workspaces/<str:slug>/work-items/<str:project_identifier>-<str:issue_identifier>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/project.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/work-item-templates/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/project.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/work-item-templates/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/project.py",
+      "route": "workspaces/<str:slug>/projects/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/project.py",
+      "route": "workspaces/<str:slug>/projects/details/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/project.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/project.py",
+      "route": "workspaces/<str:slug>/project-identifiers/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/project.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/invitations/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/project.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/invitations/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/project.py",
+      "route": "users/me/workspaces/<str:slug>/projects/invitations/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/project.py",
+      "route": "users/me/workspaces/<str:slug>/project-roles/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/project.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/join/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/project.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/members/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/project.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/members/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/project.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/members/leave/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/project.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/project-views/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/project.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/project-members/me/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/project.py",
+      "route": "workspaces/<str:slug>/user-favorite-projects/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/project.py",
+      "route": "workspaces/<str:slug>/user-favorite-projects/<uuid:project_id>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/project.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/project-deploy-boards/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/project.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/project-deploy-boards/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/project.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/archive/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/project.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/preferences/member/<uuid:member_id>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/timezone.py",
+      "route": "timezones/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/<str:slug>/gallery/",
+      "outcome": "Modified"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/<str:slug>/gallery/covers/<uuid:pk>/",
+      "outcome": "Modified"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/<str:slug>/gallery/assets/<uuid:project_id>/<uuid:issue_id>/<uuid:pk>/",
+      "outcome": "Modified"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/<str:slug>/gallery/assets/<uuid:project_id>/<uuid:issue_id>/<uuid:pk>/preview/<path:resource>",
+      "outcome": "Modified"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspace-slug-check/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/<str:slug>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/<str:slug>/invitations/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/<str:slug>/invitations/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "users/me/workspaces/invitations/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/<str:slug>/invitations/<uuid:pk>/join/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/<str:slug>/members/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/<str:slug>/project-members/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/<str:slug>/members/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/<str:slug>/members/leave/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "users/last-visited-workspace/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/<str:slug>/workspace-members/me/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/<str:slug>/workspace-views/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/<str:slug>/workspace-themes/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/<str:slug>/workspace-themes/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/<str:slug>/user-stats/<uuid:user_id>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/<str:slug>/user-activity/<uuid:user_id>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/<str:slug>/user-activity/<uuid:user_id>/export/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/<str:slug>/user-profile/<uuid:user_id>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/<str:slug>/user-issues/<uuid:user_id>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/<str:slug>/labels/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/<str:slug>/user-properties/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/<str:slug>/states/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/<str:slug>/estimates/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/<str:slug>/modules/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/<str:slug>/cycles/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/<str:slug>/user-favorites/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/<str:slug>/user-favorites/<uuid:favorite_id>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/<str:slug>/user-favorites/<uuid:favorite_id>/group/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/<str:slug>/draft-issues/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/<str:slug>/draft-issues/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/<str:slug>/draft-to-issue/<uuid:draft_id>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/<str:slug>/quick-links/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/<str:slug>/quick-links/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/<str:slug>/home-preferences/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/<str:slug>/home-preferences/<str:key>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/<str:slug>/recent-visits/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/<str:slug>/stickies/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/<str:slug>/stickies/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/workspace.py",
+      "route": "workspaces/<str:slug>/sidebar-preferences/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/cycle.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/cycles/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/cycle.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/cycles/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/cycle.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/cycles/<uuid:cycle_id>/cycle-issues/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/cycle.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/cycles/<uuid:cycle_id>/cycle-issues/<uuid:issue_id>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/cycle.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/cycles/date-check/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/cycle.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/user-favorite-cycles/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/cycle.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/user-favorite-cycles/<uuid:cycle_id>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/cycle.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/cycles/<uuid:cycle_id>/transfer-issues/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/cycle.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/cycles/<uuid:cycle_id>/user-properties/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/cycle.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/cycles/<uuid:cycle_id>/archive/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/cycle.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/archived-cycles/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/cycle.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/archived-cycles/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/cycle.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/cycles/<uuid:cycle_id>/progress/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/cycle.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/cycles/<uuid:cycle_id>/analytics/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/exporter.py",
+      "route": "workspaces/<str:slug>/export-issues/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/webhook.py",
+      "route": "workspaces/<str:slug>/webhooks/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/webhook.py",
+      "route": "workspaces/<str:slug>/webhooks/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/webhook.py",
+      "route": "workspaces/<str:slug>/webhooks/<uuid:pk>/regenerate/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/webhook.py",
+      "route": "workspaces/<str:slug>/webhook-logs/<uuid:webhook_id>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/asset.py",
+      "route": "workspaces/<str:slug>/file-assets/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/asset.py",
+      "route": "workspaces/file-assets/<uuid:workspace_id>/<str:asset_key>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/asset.py",
+      "route": "users/file-assets/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/asset.py",
+      "route": "users/file-assets/<str:asset_key>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/asset.py",
+      "route": "workspaces/file-assets/<uuid:workspace_id>/<str:asset_key>/restore/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/asset.py",
+      "route": "assets/v2/workspaces/<str:slug>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/asset.py",
+      "route": "assets/v2/workspaces/<str:slug>/<uuid:asset_id>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/asset.py",
+      "route": "assets/v2/user-assets/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/asset.py",
+      "route": "assets/v2/user-assets/<uuid:asset_id>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/asset.py",
+      "route": "assets/v2/workspaces/<str:slug>/restore/<uuid:asset_id>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/asset.py",
+      "route": "assets/v2/static/<uuid:asset_id>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/asset.py",
+      "route": "assets/v2/workspaces/<str:slug>/projects/<uuid:project_id>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/asset.py",
+      "route": "assets/v2/workspaces/<str:slug>/projects/<uuid:project_id>/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/asset.py",
+      "route": "assets/v2/workspaces/<str:slug>/projects/<uuid:project_id>/<uuid:entity_id>/bulk/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/asset.py",
+      "route": "assets/v2/workspaces/<str:slug>/check/<uuid:asset_id>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/asset.py",
+      "route": "assets/v2/workspaces/<str:slug>/duplicate-assets/<uuid:asset_id>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/asset.py",
+      "route": "assets/v2/workspaces/<str:slug>/download/<uuid:asset_id>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/asset.py",
+      "route": "assets/v2/workspaces/<str:slug>/projects/<uuid:project_id>/download/<uuid:asset_id>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/views.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/views/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/views.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/views/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/views.py",
+      "route": "workspaces/<str:slug>/views/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/views.py",
+      "route": "workspaces/<str:slug>/views/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/views.py",
+      "route": "workspaces/<str:slug>/issues/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/views.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/user-favorite-views/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/views.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/user-favorite-views/<uuid:view_id>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/user.py",
+      "route": "users/me/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/user.py",
+      "route": "users/session/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/user.py",
+      "route": "users/me/settings/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/user.py",
+      "route": "users/me/email/generate-code/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/user.py",
+      "route": "users/me/email/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/user.py",
+      "route": "users/me/profile/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/user.py",
+      "route": "users/me/accounts/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/user.py",
+      "route": "users/me/accounts/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/user.py",
+      "route": "users/me/instance-admin/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/user.py",
+      "route": "users/me/onboard/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/user.py",
+      "route": "users/me/tour-completed/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/user.py",
+      "route": "users/me/activities/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/user.py",
+      "route": "users/me/workspaces/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/user.py",
+      "route": "users/me/workspaces/<str:slug>/activity-graph/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/user.py",
+      "route": "users/me/workspaces/<str:slug>/issues-completed-graph/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/user.py",
+      "route": "users/me/workspaces/<str:slug>/dashboard/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/intake.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/intakes/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/intake.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/intakes/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/intake.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/intake-issues/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/intake.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/intake-issues/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/intake.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/inboxes/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/intake.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/inboxes/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/intake.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/inbox-issues/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/intake.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/inbox-issues/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/intake.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/intake-work-items/<uuid:work_item_id>/description-versions/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/intake.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/intake-work-items/<uuid:work_item_id>/description-versions/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/estimate.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/project-estimates/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/estimate.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/estimates/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/estimate.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/estimates/<uuid:estimate_id>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/estimate.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/estimates/<uuid:estimate_id>/estimate-points/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/estimate.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/estimates/<uuid:estimate_id>/estimate-points/<estimate_point_id>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/state.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/states/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/state.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/states/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/state.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/intake-state/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/state.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/states/<uuid:pk>/mark-default/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/api.py",
+      "route": "users/api-tokens/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/api.py",
+      "route": "users/api-tokens/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/notification.py",
+      "route": "workspaces/<str:slug>/users/notifications/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/notification.py",
+      "route": "workspaces/<str:slug>/users/notifications/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/notification.py",
+      "route": "workspaces/<str:slug>/users/notifications/<uuid:pk>/read/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/notification.py",
+      "route": "workspaces/<str:slug>/users/notifications/<uuid:pk>/archive/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/notification.py",
+      "route": "workspaces/<str:slug>/users/notifications/unread/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/notification.py",
+      "route": "workspaces/<str:slug>/users/notifications/mark-all-read/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/notification.py",
+      "route": "users/me/notification-preferences/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/module.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/modules/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/module.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/modules/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/module.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/modules/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/module.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/modules/<uuid:module_id>/issues/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/module.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/modules/<uuid:module_id>/issues/<uuid:issue_id>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/module.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/modules/<uuid:module_id>/module-links/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/module.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/modules/<uuid:module_id>/module-links/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/module.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/user-favorite-modules/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/module.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/user-favorite-modules/<uuid:module_id>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/module.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/modules/<uuid:module_id>/user-properties/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/module.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/modules/<uuid:module_id>/archive/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/module.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/archived-modules/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/module.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/archived-modules/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/search.py",
+      "route": "workspaces/<str:slug>/search/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/search.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/search-issues/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/search.py",
+      "route": "workspaces/<str:slug>/entity-search/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/analytic.py",
+      "route": "workspaces/<str:slug>/analytics/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/analytic.py",
+      "route": "workspaces/<str:slug>/analytic-view/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/analytic.py",
+      "route": "workspaces/<str:slug>/analytic-view/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/analytic.py",
+      "route": "workspaces/<str:slug>/saved-analytic-view/<uuid:analytic_id>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/analytic.py",
+      "route": "workspaces/<str:slug>/export-analytics/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/analytic.py",
+      "route": "workspaces/<str:slug>/default-analytics/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/analytic.py",
+      "route": "workspaces/<str:slug>/project-stats/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/analytic.py",
+      "route": "workspaces/<str:slug>/advance-analytics/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/analytic.py",
+      "route": "workspaces/<str:slug>/advance-analytics-stats/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/analytic.py",
+      "route": "workspaces/<str:slug>/advance-analytics-charts/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/analytic.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/advance-analytics/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/analytic.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/advance-analytics-stats/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/app/urls/analytic.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/advance-analytics-charts/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/work_item.py",
+      "route": "workspaces/<str:slug>/issues/search/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/work_item.py",
+      "route": "workspaces/<str:slug>/issues/<str:project_identifier>-<str:issue_identifier>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/work_item.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/issues/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/work_item.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/work_item.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/links/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/work_item.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/links/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/work_item.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/comments/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/work_item.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/comments/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/work_item.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/activities/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/work_item.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/activities/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/work_item.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/issue-attachments/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/work_item.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/issue-attachments/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/work_item.py",
+      "route": "workspaces/<str:slug>/work-items/search/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/work_item.py",
+      "route": "workspaces/<str:slug>/work-items/<str:project_identifier>-<str:issue_identifier>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/work_item.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/work-items/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/work_item.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/work_item.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:issue_id>/links/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/work_item.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:issue_id>/links/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/work_item.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:issue_id>/comments/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/work_item.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:issue_id>/comments/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/work_item.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:issue_id>/activities/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/work_item.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:issue_id>/activities/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/work_item.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:issue_id>/attachments/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/work_item.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:issue_id>/attachments/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/work_item.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:issue_id>/relations/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/schema.py",
+      "route": "schema/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/schema.py",
+      "route": "schema/swagger-ui/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/schema.py",
+      "route": "schema/redoc/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/label.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/labels/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/label.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/labels/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/project.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/work-item-templates/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/project.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/work-item-templates/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/project.py",
+      "route": "workspaces/<str:slug>/projects/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/project.py",
+      "route": "workspaces/<str:slug>/projects-lite/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/project.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/project.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/archive/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/project.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/summary/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/sticky.py",
+      "route": "workspaces/<str:slug>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/cycle.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/cycles/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/cycle.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/cycles-lite/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/cycle.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/cycles/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/cycle.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/cycles/<uuid:cycle_id>/cycle-issues/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/cycle.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/cycles/<uuid:cycle_id>/cycle-issues/<uuid:issue_id>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/cycle.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/cycles/<uuid:cycle_id>/transfer-issues/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/cycle.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/cycles/<uuid:cycle_id>/archive/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/cycle.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/archived-cycles/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/cycle.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/archived-cycles/<uuid:cycle_id>/unarchive/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/asset.py",
+      "route": "assets/user-assets/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/asset.py",
+      "route": "assets/user-assets/<uuid:asset_id>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/asset.py",
+      "route": "assets/user-assets/server/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/asset.py",
+      "route": "assets/user-assets/<uuid:asset_id>/server/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/asset.py",
+      "route": "workspaces/<str:slug>/assets/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/asset.py",
+      "route": "workspaces/<str:slug>/assets/<uuid:asset_id>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/invite.py",
+      "route": "workspaces/<str:slug>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/user.py",
+      "route": "users/me/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/intake.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/intake-issues/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/intake.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/intake-issues/<uuid:issue_id>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/estimate.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/estimates/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/estimate.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/estimates/<uuid:estimate_id>/estimate-points/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/estimate.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/estimates/<uuid:estimate_id>/estimate-points/<uuid:estimate_point_id>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/member.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/members/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/member.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/members/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/member.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/project-members/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/member.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/project-members-lite/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/member.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/project-members/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/member.py",
+      "route": "workspaces/<str:slug>/members/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/member.py",
+      "route": "workspaces/<str:slug>/members-lite/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/state.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/states/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/state.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/states/<uuid:state_id>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/module.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/modules/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/module.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/modules-lite/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/module.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/modules/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/module.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/modules/<uuid:module_id>/module-issues/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/module.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/modules/<uuid:module_id>/module-issues/<uuid:issue_id>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/module.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/modules/<uuid:pk>/archive/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/module.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/archived-modules/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/api/urls/module.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/archived-modules/<uuid:pk>/unarchive/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/space/urls/issue.py",
+      "route": "anchor/<str:anchor>/issues/<uuid:issue_id>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/space/urls/issue.py",
+      "route": "anchor/<str:anchor>/issues/<uuid:issue_id>/comments/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/space/urls/issue.py",
+      "route": "anchor/<str:anchor>/issues/<uuid:issue_id>/comments/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/space/urls/issue.py",
+      "route": "anchor/<str:anchor>/issues/<uuid:issue_id>/reactions/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/space/urls/issue.py",
+      "route": "anchor/<str:anchor>/issues/<uuid:issue_id>/reactions/<str:reaction_code>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/space/urls/issue.py",
+      "route": "anchor/<str:anchor>/comments/<uuid:comment_id>/reactions/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/space/urls/issue.py",
+      "route": "anchor/<str:anchor>/comments/<uuid:comment_id>/reactions/<str:reaction_code>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/space/urls/issue.py",
+      "route": "anchor/<str:anchor>/issues/<uuid:issue_id>/votes/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/space/urls/project.py",
+      "route": "anchor/<str:anchor>/meta/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/space/urls/project.py",
+      "route": "anchor/<str:anchor>/settings/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/space/urls/project.py",
+      "route": "anchor/<str:anchor>/issues/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/space/urls/project.py",
+      "route": "workspaces/<str:slug>/projects/<uuid:project_id>/anchor/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/space/urls/project.py",
+      "route": "anchor/<str:anchor>/cycles/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/space/urls/project.py",
+      "route": "anchor/<str:anchor>/modules/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/space/urls/project.py",
+      "route": "anchor/<str:anchor>/states/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/space/urls/project.py",
+      "route": "anchor/<str:anchor>/labels/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/space/urls/project.py",
+      "route": "anchor/<str:anchor>/members/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/space/urls/asset.py",
+      "route": "assets/v2/anchor/<str:anchor>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/space/urls/asset.py",
+      "route": "assets/v2/anchor/<str:anchor>/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/space/urls/asset.py",
+      "route": "assets/v2/anchor/<str:anchor>/restore/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/space/urls/asset.py",
+      "route": "assets/v2/anchor/<str:anchor>/<uuid:entity_id>/bulk/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/space/urls/intake.py",
+      "route": "anchor/<str:anchor>/intakes/<uuid:intake_id>/intake-issues/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/space/urls/intake.py",
+      "route": "anchor/<str:anchor>/intakes/<uuid:intake_id>/inbox-issues/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/space/urls/intake.py",
+      "route": "anchor/<str:anchor>/intakes/<uuid:intake_id>/intake-issues/<uuid:pk>/",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/space/urls/intake.py",
+      "route": "workspaces/<str:slug>/project-boards/",
+      "outcome": "Unchanged"
+    }
+  ],
+  "tables": [
+    {
+      "file": "apps/api/plane/db/models/importer.py",
+      "table": "importers",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/page.py",
+      "table": "pages",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/page.py",
+      "table": "page_logs",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/page.py",
+      "table": "page_labels",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/page.py",
+      "table": "project_pages",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/page.py",
+      "table": "page_versions",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/label.py",
+      "table": "labels",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/issue.py",
+      "table": "issues",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/issue.py",
+      "table": "issue_blockers",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/issue.py",
+      "table": "issue_relations",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/issue.py",
+      "table": "issue_mentions",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/issue.py",
+      "table": "issue_assignees",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/issue.py",
+      "table": "issue_links",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/issue.py",
+      "table": "issue_attachments",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/issue.py",
+      "table": "issue_activities",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/issue.py",
+      "table": "issue_comments",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/issue.py",
+      "table": "issue_labels",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/issue.py",
+      "table": "issue_sequences",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/issue.py",
+      "table": "issue_subscribers",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/issue.py",
+      "table": "issue_reactions",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/issue.py",
+      "table": "comment_reactions",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/issue.py",
+      "table": "issue_votes",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/issue.py",
+      "table": "issue_versions",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/issue.py",
+      "table": "issue_description_versions",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/project.py",
+      "table": "projects",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/project.py",
+      "table": "project_member_invites",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/project.py",
+      "table": "project_members",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/project.py",
+      "table": "project_identifiers",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/project.py",
+      "table": "project_deploy_boards",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/project.py",
+      "table": "project_public_members",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/project.py",
+      "table": "project_user_properties",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/deploy_board.py",
+      "table": "deploy_boards",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/sticky.py",
+      "table": "stickies",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/workspace.py",
+      "table": "workspaces",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/workspace.py",
+      "table": "workspace_members",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/workspace.py",
+      "table": "workspace_member_invites",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/workspace.py",
+      "table": "teams",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/workspace.py",
+      "table": "workspace_themes",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/workspace.py",
+      "table": "workspace_user_properties",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/workspace.py",
+      "table": "workspace_user_links",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/workspace.py",
+      "table": "workspace_home_preferences",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/workspace.py",
+      "table": "workspace_user_preferences",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/view.py",
+      "table": "issue_views",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/issue_type.py",
+      "table": "issue_types",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/issue_type.py",
+      "table": "project_issue_types",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/description.py",
+      "table": "descriptions",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/description.py",
+      "table": "description_versions",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/cycle.py",
+      "table": "cycles",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/cycle.py",
+      "table": "cycle_issues",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/cycle.py",
+      "table": "cycle_user_properties",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/exporter.py",
+      "table": "exporters",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/recent_visit.py",
+      "table": "user_recent_visits",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/work_item_template.py",
+      "table": "work_item_templates",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/device.py",
+      "table": "devices",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/device.py",
+      "table": "device_sessions",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/webhook.py",
+      "table": "webhooks",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/webhook.py",
+      "table": "webhook_logs",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/webhook.py",
+      "table": "project_webhooks",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/asset.py",
+      "table": "file_assets",
+      "outcome": "Modified"
+    },
+    {
+      "file": "apps/api/plane/db/models/user.py",
+      "table": "users",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/user.py",
+      "table": "profiles",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/user.py",
+      "table": "accounts",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/intake.py",
+      "table": "intakes",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/intake.py",
+      "table": "intake_issues",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/session.py",
+      "table": "sessions",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/estimate.py",
+      "table": "estimates",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/estimate.py",
+      "table": "estimate_points",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/state.py",
+      "table": "states",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/api.py",
+      "table": "api_tokens",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/api.py",
+      "table": "api_activity_logs",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/notification.py",
+      "table": "notifications",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/notification.py",
+      "table": "user_notification_preferences",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/notification.py",
+      "table": "email_notification_logs",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/draft.py",
+      "table": "draft_issues",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/draft.py",
+      "table": "draft_issue_assignees",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/draft.py",
+      "table": "draft_issue_labels",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/draft.py",
+      "table": "draft_issue_modules",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/draft.py",
+      "table": "draft_issue_cycles",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/favorite.py",
+      "table": "user_favorites",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/module.py",
+      "table": "modules",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/module.py",
+      "table": "module_members",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/module.py",
+      "table": "module_issues",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/module.py",
+      "table": "module_links",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/module.py",
+      "table": "module_user_properties",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/social_connection.py",
+      "table": "social_login_connections",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/api/plane/db/models/analytic.py",
+      "table": "analytic_views",
+      "outcome": "Unchanged"
+    }
+  ],
+  "pages": [
+    {
+      "file": "apps/web/app/(home)/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/invitations/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/onboarding/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/workspace-invitations/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/sign-up/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/create-workspace/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/accounts/reset-password/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/accounts/set-password/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/accounts/forgot-password/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/settings/profile/[profileTabId]/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(projects)/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(projects)/notifications/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(projects)/gallery/page.tsx",
+      "outcome": "Modified"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(projects)/stickies/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(projects)/drafts/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(projects)/active-cycles/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(projects)/workspace-views/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(projects)/analytics/[tabId]/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(projects)/browse/[workItem]/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(projects)/projects/(list)/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(projects)/projects/(detail)/archives/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/intake/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/pages/(list)/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/pages/(detail)/[pageId]/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/issues/(list)/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/issues/(detail)/[issueId]/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/cycles/(list)/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/cycles/(detail)/[cycleId]/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/archives/cycles/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/archives/modules/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/archives/issues/(list)/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/archives/issues/(detail)/[archivedIssueId]/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/views/(list)/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/views/(detail)/[viewId]/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/modules/(list)/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/modules/(detail)/[moduleId]/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(projects)/workspace-views/[globalViewId]/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(projects)/profile/[userId]/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(projects)/profile/[userId]/[profileViewId]/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(projects)/profile/[userId]/activity/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(settings)/settings/(workspace)/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(settings)/settings/projects/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(settings)/settings/(workspace)/members/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(settings)/settings/(workspace)/integrations/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(settings)/settings/(workspace)/billing/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(settings)/settings/(workspace)/exports/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(settings)/settings/(workspace)/webhooks/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(settings)/settings/(workspace)/webhooks/[webhookId]/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/members/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/automations/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/estimates/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/states/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/labels/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/features/pages/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/features/cycles/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/features/views/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/features/modules/page.tsx",
+      "outcome": "Unchanged"
+    },
+    {
+      "file": "apps/web/app/(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/features/intake/page.tsx",
+      "outcome": "Unchanged"
+    }
+  ],
+  "specs": [
+    "bokang/FILTER-FOUNDATION.md",
+    "bokang/NAVIGATION-AUDIT-20261009.md",
+    "bokang/FILTERED-HIERARCHY-20261010.md",
+    "bokang/GALLERY.md",
+    "bokang/README.md"
+  ]
+}
