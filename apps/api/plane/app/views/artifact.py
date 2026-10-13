@@ -98,10 +98,16 @@ class ArtifactRevisionEndpoint(ArtifactEndpoint):
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied()
         revisions = obj.revisions.select_related("actor").all()
+        def actor_name(actor):
+            if actor is None:
+                return "已删除成员"
+            return actor.display_name or actor.full_name or "已删除成员"
         if revision_id:
             revision = get_object_or_404(revisions, id=revision_id)
-            return Response({"id": str(revision.id), "version": revision.number, "snapshot": revision.snapshot, "actor": str(revision.actor_id) if revision.actor_id else None, "created_at": revision.created_at})
-        return Response({"results": [{"id": str(r.id), "version": r.number, "actor": str(r.actor_id) if r.actor_id else None, "created_at": r.created_at} for r in revisions]})
+            return Response({"id": str(revision.id), "version": revision.number, "snapshot": revision.snapshot, "actor": str(revision.actor_id) if revision.actor_id else None,
+                             "actor_name": actor_name(revision.actor), "created_at": revision.created_at})
+        return Response({"results": [{"id": str(r.id), "version": r.number, "actor": str(r.actor_id) if r.actor_id else None,
+                                      "actor_name": actor_name(r.actor), "created_at": r.created_at} for r in revisions]})
 
 
 class ArtifactCategoryEndpoint(BaseAPIView):

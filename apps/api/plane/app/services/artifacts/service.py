@@ -320,6 +320,7 @@ def serialize_artifact(artifact, user, view="published"):
     changed = bool(can_edit(user, artifact) and published and any(draft_snap.get(key) != published.get(key) for key in compare_keys))
     snap.update({"owner_id": str(artifact.owner_id) if artifact.owner_id else None, "status": artifact.status, "version": artifact.version,
                  "access": artifact.access,
+                 "published_version": artifact.published_revision.number if artifact.published_revision else None,
                  "has_unpublished_changes": changed,
                  "can_edit": can_edit(user, artifact)})
     # Stable GalleryCard projection is shared by the gallery, editor preview, and detail route.

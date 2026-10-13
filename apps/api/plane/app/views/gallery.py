@@ -6,8 +6,7 @@ from django.shortcuts import get_object_or_404
 from django.utils.html import escape
 from rest_framework.response import Response
 
-from plane.app.services.artifacts import can_edit, published_snapshot, render_authorized_asset, snapshot
-from plane.app.views.attachment_preview import is_previewable_asset
+from plane.app.services.artifacts import can_edit, render_authorized_asset, serialize_artifact, snapshot
 from plane.app.views.base import BaseAPIView
 from plane.app.permissions import ROLE, allow_permission
 from rest_framework.exceptions import NotFound, PermissionDenied
@@ -27,33 +26,11 @@ class WorkspaceGalleryEndpoint(BaseAPIView):
         cards = []
         for artifact in rows:
             try:
-                snap = published_snapshot(artifact, request.user)
+                card = serialize_artifact(artifact, request.user, "published")
             except (NotFound, PermissionDenied):
                 continue
-            attachments, links = [], []
-            for material in snap.get("materials", []):
-                if material.get("asset_id"):
-                    asset_id = material["asset_id"]
-                    file_url = f"/api/workspaces/{slug}/artifacts/{artifact.id}/assets/{asset_id}/"
-                    attachments.append({"id": asset_id, "name": material.get("name", material["title"]), "size": material.get("size", 0), "mime": material.get("mime", "application/octet-stream"), "file_url": file_url, "source_url": file_url + "source/", "can_preview": is_previewable_asset(material.get("name", material["title"]), material.get("size", 0))})
-                elif material.get("url"):
-                    links.append({"title": material["title"], "url": material["url"], "kind": material.get("kind", "reference")})
-            cover = snap.get("cover")
-            if cover:
-                cover_url = f"/api/workspaces/{slug}/artifacts/{artifact.id}/covers/{cover['asset_id']}/"
-                cover["file_url"] = cover_url
-                cover["source_url"] = cover_url
-            draft = snapshot(artifact, slug)
-            compare_keys = ("title", "summary", "category_id", "kind", "source_issue_ids", "assets", "links", "primary_action", "cover")
-            editable = can_edit(request.user, artifact)
-            changed = bool(editable and any(draft.get(key) != snap.get(key) for key in compare_keys))
-            cards.append({"id": snap["id"], "title": snap["title"], "summary": snap["summary"], "category": snap.get("category"),
-                          "kind": snap["kind"], "updated_at": snap.get("updated_at"), "sources": snap.get("sources", []),
-                          "attachments": attachments, "links": links, "cover": cover,
-                          "primary_action": snap.get("primary_action", {"type": "detail", "label": "查看详情"}),
-                          "category_id": snap.get("category_id"), "owner_id": str(artifact.owner_id), "status": artifact.status,
-                          "version": artifact.version, "published_version": artifact.published_revision.number if artifact.published_revision else None,
-                          "has_unpublished_changes": changed, "unavailable_reference_count": snap.get("unavailable_reference_count", 0), "can_edit": editable})
+            card["published_version"] = artifact.published_revision.number if artifact.published_revision else None
+            cards.append(card)
         categories = list(dict.fromkeys(c["category"] for c in cards if c.get("category")))
         demos = {c["id"] for c in cards if any(l.get("kind") == "demo" for l in c["links"]) or any(a.get("mime", "").startswith("video/") for a in c["attachments"])}
         return Response({"categories": categories, "stats": {"total": len(cards), "with_demo": len(demos)}, "cards": cards})
