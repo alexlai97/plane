@@ -25,6 +25,7 @@ import { ArtifactShell, buttonClass, Field, inputClass, Message, primaryClass, S
 
 export default function ArtifactEditorPage() {
   const uploadInput = useRef<HTMLInputElement>(null);
+  const appliedArtifactRoute = useRef<string | undefined>(undefined);
   const params = useParams();
   const router = useRouter();
   const slug = params.workspaceSlug?.toString() ?? "";
@@ -48,16 +49,20 @@ export default function ArtifactEditorPage() {
   const [message, setMessage] = useState("");
   const [conflict, setConflict] = useState(false);
   const [latest, setLatest] = useState<Artifact>();
-  const apply = useCallback((item: Artifact) => {
-    setArtifact(item);
-    setForm(artifactToWrite(item));
-    setBaseline(artifactToWrite(item));
-    setMergeChoices({});
-    setAssets(item.assets);
-    setSources(item.sources);
-    setConflict(false);
-    setLatest(undefined);
-  }, []);
+  const apply = useCallback(
+    (item: Artifact) => {
+      appliedArtifactRoute.current = `${slug}/${item.id}`;
+      setArtifact(item);
+      setForm(artifactToWrite(item));
+      setBaseline(artifactToWrite(item));
+      setMergeChoices({});
+      setAssets(item.assets);
+      setSources(item.sources);
+      setConflict(false);
+      setLatest(undefined);
+    },
+    [slug]
+  );
   useEffect(() => {
     let active = true;
     const load = async () => {
@@ -66,8 +71,12 @@ export default function ArtifactEditorPage() {
         if (!active) return;
         setCategories(cats.results);
         if (routeId) {
-          const item = await artifactService.detail(slug, routeId, "draft");
-          if (active) apply(item);
+          // Initial save already applied this response before replacing /new with /edit.
+          // Reloading it could overwrite files or edits made while navigation settles.
+          if (appliedArtifactRoute.current !== `${slug}/${routeId}`) {
+            const item = await artifactService.detail(slug, routeId, "draft");
+            if (active) apply(item);
+          }
         } else {
           const list = await artifactService.list(slug);
           if (active) setCanCreate(list.can_create);
