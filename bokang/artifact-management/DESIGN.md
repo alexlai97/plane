@@ -16,13 +16,13 @@
 
 ## 模型与生命周期
 
-Artifact：UUID、workspace、owner、title、summary、kind（自由短文本）、category（可空 FK）、cover_asset（可空 FK）、primary action、version（乐观并发）、published_revision（可空 FK）、status=draft/published/withdrawn、created/updated/deleted。业务分类为数据库数据，不做枚举、不固定部门。
+Artifact：UUID、workspace、owner、title、summary、kind（自由短文本）、category（可空 FK）、cover_asset（可空 FK）、primary action、version（乐观并发）、published_revision（可空 FK）、access=private/workspace（默认 private）、status=draft/published/withdrawn、created/updated/deleted。业务分类为数据库数据，不做枚举、不固定部门。
 
 ArtifactSource：Artifact / Issue FK，唯一关联；ArtifactMaterial：Artifact / FileAsset 可空 FK、URL、title、link kind、排序。一个成果可有多材料、多任务。ArtifactRevision：Artifact、递增版本、不可变内容快照、actor、created。快照固定展示修订和引用，不承诺冻结外部网站或文件字节。
 
 保存仅改草稿。发布经材料、来源、封面、主操作校验后生成快照；后续草稿改动不影响已发布内容。撤下停止展厅展示。恢复修订仅恢复草稿，必须再发布。删除软删除成果，保留审计/修订，绝不级联删除共享文件或任务。需要 version 的改写缺失返回 400，过期返回 409。
 
-权限：活动工作区 ADMIN/MEMBER 可创建，所有者或 ADMIN 可改/发布/撤下/删除；GUEST 只能读已发布成果。分类活动 MEMBER/ADMIN 可维护，已被成果或修订使用时禁止删除。任务来源与素材始终检查同一 workspace 和所有来源项目访问；API Key 不越过角色/项目范围。未授权来源成果整体不可见，不泄露标题摘要。独立成果可无来源任务，但必须有可用材料或链接才可发布。成果自己上传的文件须绑定成果实体；同 workspace 的其他人不可借资产 ID 使用不属于自己的私有草稿文件。
+权限：活动工作区 ADMIN/MEMBER 可创建，私有草稿仅所有者或 ADMIN 可改；已发布后 access 明确转 workspace，活动 MEMBER/ADMIN 可协作改/发布/撤下/删除；撤下不改变 access；GUEST 只能读已发布成果。分类活动 MEMBER/ADMIN 可维护，已被成果或修订使用时禁止删除。任务来源与素材始终检查同一 workspace 和所有来源项目访问；API Key 不越过角色/项目范围。未授权来源成果整体不可见，不泄露标题摘要。独立成果可无来源任务，但必须有可用材料或链接才可发布。成果自己上传的文件须绑定成果实体；同 workspace 的其他人不可借资产 ID 使用不属于自己的私有草稿文件。
 
 ## 人的体验
 
@@ -61,3 +61,7 @@ POST 创建草稿；/<id>/ GET query view=draft|published（默认 published）�
 3. 新成果上传的预览和转换 source token 绑定 actor、artifact/revision、asset；读取时重新校验，不能只凭 asset UUID，仍复用公共渲染。
 4. 快照冻结内容与引用选择，材料可用性和项目权限实时校验。失效引用返回 unavailable_reference_count，不静默忽略；所有者/admin 可修复自己的草稿，不能读取无权限素材或发布无效引用；恢复遇失效引用明确拒绝。
 5. 导入 ID=UUID5(workspace UUID, 历史 card key)，同一输入重复跳过；不同输入或已有人工改动拒绝，禁止覆盖。没有运行时 legacy key/fallback。
+
+6. 人的协作裁定：旧14项若全部导入到单一 owner，其他成员不能维护，违背本次目标。Artifact 增加明确 access=private/workspace；初始私有，首次发布转工作区协作。撤下不撤销编辑权；访客始终只读已发布版本。访问仍受全部来源项目限制，不能因工作区成员角色泄露私有来源。owner 是只读归属，不是共享成果的唯一编辑者。
+
+Implementation rulings: PATCH omits preserve fields; explicit empty/null clears. Preview conversion uses server-configured internal API origin (default Docker api), permitting isolated verification without reading production DB. Legacy JSON runtime tests/build recipe removed; canonical lifecycle tests replace them.

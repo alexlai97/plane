@@ -1,0 +1,5 @@
+ARG BASE_IMAGE=makeplane/plane-backend:v1.4.2
+FROM ${BASE_IMAGE}
+COPY apps/api/plane/ /code/plane/
+# Historical content is explicit import input, never a runtime fallback.
+RUN rm -f /code/plane/app/data/gallery.json

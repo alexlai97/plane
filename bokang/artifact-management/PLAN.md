@@ -12,11 +12,11 @@ Review focus: 跨工作区管理员与私有项目来源；草稿污染发布版
 
 Owned: apps/api/plane/db/models/artifact.py、db/migrations/0124_artifact_management.py、db/management/commands/import_artifacts.py、app/services/artifacts/\*、app/views/artifact.py、api/views/artifact.py、app/views/gallery.py、app/views/attachment_preview.py（公共预览提取）、models/asset.py、相关 urls/model 导出、API 单元测试、archive 历史清单。
 
-- [ ] 先写服务/接口行为测试，包含 DESIGN 必须证明属性。
-- [ ] 实现规范化模型、权限、typed 输入校验、版本锁与发布快照、CRUD、分类、选择器、上传。
-- [ ] 改展厅只读数据来源为 DB；删除运行时清单；历史导入 dryrun/apply/idempotence。
-- [ ] 隔离数据库跑 migrations 与测试，记录精确输出。
-- [ ] 独立代码评审，修完严重问题，再进入 UI。
+- [x] 先写服务/接口行为测试，包含 DESIGN 必须证明属性。
+- [x] 实现规范化模型、权限、typed 输入校验、版本锁与发布快照、CRUD、分类、选择器、上传。
+- [x] 改展厅只读数据来源为 DB；删除运行时清单；历史导入 dryrun/apply/idempotence。
+- [x] 隔离数据库跑 migrations 与测试，记录精确输出。
+- [x] 独立代码评审，修完严重问题，再进入 UI。
 
 Produces: DESIGN API 契约，接口 schema 示例与可复用业务服务。Consumes: 现有 FileAsset、Issue、成员、S3、公共预览。
 
