@@ -189,6 +189,45 @@ class ArtifactLifecycleTests(TestCase):
         self.assertEqual(self.request("patch", self.owner, self.payload(version=3), artifact_id).status_code, 403)
         self.assertEqual(Artifact.objects.get(id=artifact_id).version, 3)
 
+    def test_null_draft_source_retains_its_own_scope_independent_of_publication(self):
+        from plane.db.models import ArtifactSource
+        created = self.request("post", self.owner, self.payload(source_issue_ids=[str(self.issue.id)]))
+        artifact_id = created.data["id"]
+        self.request("post", self.owner, {"version": 1}, artifact_id, "publish")
+        private = Issue.objects.create(project=self.private_project, name="unpublished private source")
+        self.assertEqual(self.request("patch", self.owner, self.payload(version=2, source_issue_ids=[str(private.id)]), artifact_id).status_code, 200)
+        source = ArtifactSource.objects.get(artifact_id=artifact_id)
+        self.assertEqual(source.project_id, self.private_project.id)
+        Issue.all_objects.filter(id=private.id).delete()
+        source.refresh_from_db()
+        self.assertIsNone(source.issue_id)
+        self.assertEqual(source.project_id, self.private_project.id)
+        for user in (self.member, self.unassigned_admin):
+            self.assertEqual(self.request("get", user, pk=artifact_id, query="view=draft").status_code, 404)
+            public = self.request("get", user, pk=artifact_id)
+            if user == self.member:
+                self.assertEqual(public.status_code, 200)
+                self.assertFalse(public.data["can_edit"])
+            for method, body, action in [
+                ("patch", self.payload(version=3), None),
+                ("post", {"version": 3}, "withdraw"),
+                ("delete", {"version": 3}, None),
+            ]:
+                self.assertEqual(self.request(method, user, body, artifact_id, action).status_code, 403)
+                artifact = Artifact.objects.get(id=artifact_id)
+                self.assertEqual(artifact.version, 3)
+                self.assertEqual(artifact.status, Artifact.Status.PUBLISHED)
+                self.assertIsNone(artifact.deleted_at)
+                self.assertEqual(artifact.sources.count(), 1)
+                self.assertEqual(artifact.sources.get().project_id, self.private_project.id)
+        self.assertEqual(self.request("get", self.owner, pk=artifact_id, query="view=draft").data["unavailable_reference_count"], 1)
+        self.assertEqual(self.request("patch", self.owner, self.payload(version=3), artifact_id).status_code, 200)
+        # An unidentified legacy orphan denies even an owner; never borrow publication A's scope.
+        ArtifactSource.objects.create(artifact_id=artifact_id, issue=None, project_id=None)
+        self.assertEqual(self.request("get", self.owner, pk=artifact_id, query="view=draft").status_code, 404)
+        self.assertEqual(self.request("patch", self.owner, self.payload(version=4), artifact_id).status_code, 403)
+        self.assertEqual(Artifact.objects.get(id=artifact_id).version, 4)
+
     def test_restore_published_changes_only_draft_and_preserves_served_revision(self):
         created = self.request("post", self.owner, self.payload(summary="first"))
         artifact_id = created.data["id"]

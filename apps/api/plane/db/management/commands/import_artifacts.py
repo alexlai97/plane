@@ -124,7 +124,7 @@ class Command(BaseCommand):
                 artifact = Artifact(id=artifact_id, workspace=workspace, owner=owner, access=Artifact.Access.WORKSPACE, title=card["title"], summary=card.get("summary", ""), kind=card["kind"], category=category, cover_asset=cover,
                                     primary_action=card.get("primary_action", {"type": "detail", "label": "查看详情"}), status=Artifact.Status.PUBLISHED)
                 artifact.save(force_insert=True)
-                ArtifactSource.objects.bulk_create([ArtifactSource(artifact=artifact, issue=issue) for issue in issues])
+                ArtifactSource.objects.bulk_create([ArtifactSource(artifact=artifact, issue=issue, project_id=issue.project_id) for issue in issues])
                 links = card.get("links", [])
                 ArtifactMaterial.objects.bulk_create(
                     [ArtifactMaterial(artifact=artifact, asset=asset, title=asset.attributes.get("name", "附件"), kind="attachment", position=i) for i, asset in enumerate(assets)] +

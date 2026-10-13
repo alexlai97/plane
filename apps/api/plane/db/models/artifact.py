@@ -55,6 +55,7 @@ class ArtifactSource(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     artifact = models.ForeignKey(Artifact, on_delete=models.CASCADE, related_name="sources")
     issue = models.ForeignKey("db.Issue", null=True, blank=True, on_delete=models.SET_NULL, related_name="artifact_sources")
+    project_id = models.UUIDField(null=True, editable=False)
 
     class Meta:
         db_table = "artifact_sources"

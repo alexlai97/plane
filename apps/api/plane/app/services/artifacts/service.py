@@ -61,9 +61,9 @@ def authorize_existing_sources(user, artifact):
     for row in artifact.sources.select_related("issue"):
         if row.issue is not None:
             authorize_snapshot_sources(user, artifact.workspace, {"sources": [{"id": str(row.issue_id)}]})
-        elif not artifact.published_revision or not artifact.published_revision.snapshot.get("sources"):
-            # A SET_NULL reference has no project identity unless the publication retained it.
-            raise NotFound()
+        else:
+            # Scope belongs to this exact reference, never to a different published source.
+            authorize_snapshot_sources(user, artifact.workspace, {"sources": [{"project_id": str(row.project_id) if row.project_id else None}]})
 
 
 def require_artifact_write(user, artifact):
@@ -306,7 +306,7 @@ def _apply_body(artifact, user, data, create=False):
     artifact.save(update_fields=["title", "summary", "kind", "category", "cover_asset", "primary_action", "updated_at"])
     if sources_changed:
         artifact.sources.all().delete()
-        ArtifactSource.objects.bulk_create([ArtifactSource(artifact=artifact, issue=i) for i in issues])
+        ArtifactSource.objects.bulk_create([ArtifactSource(artifact=artifact, issue=i, project_id=i.project_id) for i in issues])
     if assets_changed or links_changed:
         material_rows = []
         if assets_changed:

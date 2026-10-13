@@ -35,7 +35,7 @@ def restore_revision(user, artifact, revision_id, version):
     artifact.version += 1
     artifact.save()
     artifact.sources.all().delete()
-    ArtifactSource.objects.bulk_create([ArtifactSource(artifact=artifact, issue=issue) for issue in issues])
+    ArtifactSource.objects.bulk_create([ArtifactSource(artifact=artifact, issue=issue, project_id=issue.project_id) for issue in issues])
     artifact.materials.all().delete()
     rows = []
     for index, material in enumerate(snap.get("materials", [])):
