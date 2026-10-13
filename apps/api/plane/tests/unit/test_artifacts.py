@@ -257,6 +257,29 @@ class ArtifactLifecycleTests(TestCase):
             self.assertIsNone(artifact.deleted_at)
         self.assertEqual(self.request("get", self.owner, pk=artifact_id, query="view=draft").status_code, 200)
 
+    def test_gallery_order_stays_stable_after_edit_and_management_uses_latest_update(self):
+        first = self.request("post", self.owner, self.payload(title="first")).data["id"]
+        second = self.request("post", self.owner, self.payload(title="second")).data["id"]
+        for artifact_id in (first, second):
+            self.assertEqual(self.request("post", self.owner, {"version": 1}, artifact_id, "publish").status_code, 200)
+
+        def gallery_ids():
+            request = APIRequestFactory().get("/gallery/")
+            force_authenticate(request, user=self.owner)
+            response = WorkspaceGalleryEndpoint.as_view()(request, slug=self.workspace.slug)
+            self.assertEqual(response.status_code, 200)
+            return [row["id"] for row in response.data["cards"]]
+
+        self.assertEqual(gallery_ids(), [first, second])
+        self.assertEqual([row["id"] for row in self.request("get", self.owner).data["results"]], [first, second])
+        self.assertEqual(self.request("patch", self.owner, {"version": 2, "summary": "new draft"}, first).status_code, 200)
+        self.assertEqual(gallery_ids(), [first, second])
+        self.assertEqual([row["id"] for row in self.request("get", self.owner).data["results"]], [first, second])
+        self.assertEqual([row["id"] for row in self.request("get", self.owner, query="scope=manage").data["results"]], [first, second])
+        from django.utils import timezone
+        Artifact.objects.filter(id__in=[first, second]).update(updated_at=timezone.now())
+        self.assertEqual([row["id"] for row in self.request("get", self.owner, query="scope=manage").data["results"]], sorted([first, second]))
+
     def test_restore_published_changes_only_draft_and_preserves_served_revision(self):
         created = self.request("post", self.owner, self.payload(summary="first"))
         artifact_id = created.data["id"]

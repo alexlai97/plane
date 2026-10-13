@@ -23,7 +23,7 @@ class WorkspaceGalleryEndpoint(BaseAPIView):
     def get(self, request, slug):
         workspace = get_object_or_404(Workspace, slug=slug, deleted_at__isnull=True)
         rows = Artifact.objects.filter(workspace=workspace, status=Artifact.Status.PUBLISHED,
-                                       deleted_at__isnull=True).select_related("published_revision")
+                                       deleted_at__isnull=True).select_related("published_revision").order_by("created_at", "id")
         cards = []
         for artifact in rows:
             try:

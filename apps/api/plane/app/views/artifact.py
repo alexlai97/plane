@@ -42,6 +42,7 @@ class ArtifactEndpoint(BaseAPIView):
                 qs = qs.filter(Q(access=Artifact.Access.WORKSPACE) | Q(owner=request.user))
         else:
             qs = qs.filter(status=Artifact.Status.PUBLISHED)
+        qs = qs.order_by("-updated_at", "id") if manage else qs.order_by("created_at", "id")
         term = request.query_params.get("search", "").strip()
         if term:
             qs = qs.filter(title__icontains=term) | qs.filter(summary__icontains=term)
@@ -132,7 +133,7 @@ class ArtifactCategoryEndpoint(BaseAPIView):
         if pk:
             category = get_object_or_404(ArtifactCategory, id=pk, workspace=ws, deleted_at__isnull=True)
             return Response(self._serialize(category))
-        return Response({"results": [self._serialize(c) for c in ArtifactCategory.objects.filter(workspace=ws, deleted_at__isnull=True)], "can_manage": member_role(request.user, ws) in (ROLE.ADMIN.value, ROLE.MEMBER.value)})
+        return Response({"results": [self._serialize(c) for c in ArtifactCategory.objects.filter(workspace=ws, deleted_at__isnull=True).order_by("name", "id")], "can_manage": member_role(request.user, ws) in (ROLE.ADMIN.value, ROLE.MEMBER.value)})
 
     def _serialize(self, category):
         from plane.db.models import ArtifactRevision
