@@ -13,9 +13,9 @@ import type {
   TFilterValue,
 } from "@plane/types";
 // local imports
-import { createAndGroupNode } from "../../factories/nodes/core";
+import { createAndGroupNode, createNotGroupNode, createOrGroupNode } from "../../factories/nodes/core";
 import { getGroupChildren } from "../../types";
-import { isAndGroupNode, isConditionNode, isGroupNode } from "../../types/core";
+import { isAndGroupNode, isConditionNode, isGroupNode, isUnsupportedNode } from "../../types/core";
 import { shouldUnwrapGroup } from "../../validators/shared";
 import { transformExpressionTree } from "../transformation/core";
 
@@ -34,7 +34,7 @@ export const addAndCondition = <P extends TFilterProperty>(
     return condition;
   }
   // if the expression is a condition, convert it to an AND group
-  if (isConditionNode(expression)) {
+  if (isConditionNode(expression) || isUnsupportedNode(expression)) {
     return createAndGroupNode([expression, condition]);
   }
   // if the expression is a group, and the group is an AND group, add the new condition to the group
@@ -48,6 +48,137 @@ export const addAndCondition = <P extends TFilterProperty>(
   }
   // Throw error for unexpected expression type
   console.error("Invalid expression type", expression);
+  return expression;
+};
+
+export const addOrCondition = <P extends TFilterProperty>(
+  expression: TFilterExpression<P> | null,
+  condition: TFilterExpression<P>
+): TFilterExpression<P> => {
+  if (!expression) return condition;
+  if (isGroupNode(expression) && expression.logicalOperator === "or") {
+    expression.children.push(condition);
+    return expression;
+  }
+  return createOrGroupNode([expression, condition]);
+};
+
+export const addConditionToGroup = <P extends TFilterProperty>(
+  expression: TFilterExpression<P> | null,
+  parentGroupId: string | null,
+  logicalOperator: "and" | "or",
+  condition: TFilterExpression<P>
+): TFilterExpression<P> | null => {
+  if (!parentGroupId)
+    return logicalOperator === "or" ? addOrCondition(expression, condition) : addAndCondition(expression, condition);
+  if (!expression) return null;
+  const addToTarget = (node: TFilterExpression<P>): boolean => {
+    if (!isGroupNode(node)) return false;
+    if (node.id === parentGroupId) {
+      if (node.logicalOperator === "not") return false;
+      if (node.logicalOperator === logicalOperator) node.children.push(condition);
+      else {
+        const replacement = logicalOperator === "or" ? createOrGroupNode([condition]) : createAndGroupNode([condition]);
+        node.children.push(replacement);
+      }
+      return true;
+    }
+    return getGroupChildren(node).some((child) => addToTarget(child));
+  };
+  addToTarget(expression);
+  return expression;
+};
+
+export const addGroupToExpression = <P extends TFilterProperty>(
+  expression: TFilterExpression<P> | null,
+  parentGroupId: string | null,
+  logicalOperator: "and" | "or",
+  groupId?: string
+): TFilterExpression<P> => {
+  const group = logicalOperator === "or" ? createOrGroupNode<P>([]) : createAndGroupNode<P>([]);
+  if (groupId) group.id = groupId;
+  if (!parentGroupId) {
+    if (!expression) return group;
+    if (isGroupNode(expression) && expression.logicalOperator !== "not") {
+      expression.children.push(group);
+      return expression;
+    }
+    return createAndGroupNode([expression, group]);
+  }
+  if (!expression) return group;
+  const append = (node: TFilterExpression<P>): boolean => {
+    if (!isGroupNode(node)) return false;
+    if (node.id === parentGroupId && node.logicalOperator !== "not") {
+      node.children.push(group);
+      return true;
+    }
+    return getGroupChildren(node).some((child) => append(child));
+  };
+  append(expression);
+  return expression;
+};
+
+export const setRootGroupOperator = <P extends TFilterProperty>(
+  expression: TFilterExpression<P> | null,
+  logicalOperator: "and" | "or"
+): TFilterExpression<P> | null => {
+  if (!expression) return null;
+  if (isGroupNode(expression) && expression.logicalOperator !== "not") {
+    expression.logicalOperator = logicalOperator;
+    return expression;
+  }
+  const group = logicalOperator === "or" ? createOrGroupNode([expression]) : createAndGroupNode([expression]);
+  return group;
+};
+
+export const updateGroupOperator = <P extends TFilterProperty>(
+  expression: TFilterExpression<P> | null,
+  groupId: string,
+  logicalOperator: "and" | "or"
+): TFilterExpression<P> | null => {
+  if (!expression || !isGroupNode(expression)) return expression;
+  if (expression.id === groupId) {
+    if (expression.logicalOperator !== "not") expression.logicalOperator = logicalOperator;
+    return expression;
+  }
+  for (const child of getGroupChildren(expression)) {
+    if (isGroupNode(child) && findGroupById(child, groupId)) {
+      updateGroupOperator(child, groupId, logicalOperator);
+      break;
+    }
+  }
+  return expression;
+};
+
+const findGroupById = <P extends TFilterProperty>(node: TFilterExpression<P>, groupId: string): boolean => {
+  if (!isGroupNode(node)) return false;
+  return node.id === groupId || getGroupChildren(node).some((child) => findGroupById(child, groupId));
+};
+
+export const setConditionNegation = <P extends TFilterProperty>(
+  expression: TFilterExpression<P> | null,
+  conditionId: string,
+  shouldNegate: boolean
+): TFilterExpression<P> | null => {
+  if (!expression) return expression;
+  if (isConditionNode(expression)) {
+    return expression.id === conditionId && shouldNegate ? createNotGroupNode(expression) : expression;
+  }
+  if (!isGroupNode(expression)) return expression;
+  if (
+    expression.logicalOperator === "not" &&
+    isConditionNode(expression.children[0]) &&
+    expression.children[0].id === conditionId
+  ) {
+    return shouldNegate ? expression : expression.children[0];
+  }
+  expression.children = getGroupChildren(expression).map((child) => {
+    if (isConditionNode(child) && child.id === conditionId) {
+      return shouldNegate ? createNotGroupNode(child) : child;
+    }
+    if (isGroupNode(child)) return setConditionNegation(child, conditionId, shouldNegate) ?? child;
+    return child;
+  });
   return expression;
 };
 

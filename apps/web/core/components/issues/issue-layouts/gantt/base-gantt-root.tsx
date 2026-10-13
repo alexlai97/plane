@@ -11,7 +11,7 @@ import { useParams } from "next/navigation";
 import { ALL_ISSUES, EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { EIssuesStoreType, IBlockUpdateData, TIssue } from "@plane/types";
+import type { EIssuesStoreType, IBlockUpdateData, TGroupedIssues, TIssue, IGanttIssueGroup } from "@plane/types";
 import { EIssueLayoutTypes, GANTT_TIMELINE_TYPE } from "@plane/types";
 import { renderFormattedPayloadDate } from "@plane/utils";
 // components
@@ -27,6 +27,9 @@ import { useIssueStoreType } from "@/hooks/use-issue-layout-store";
 import { useIssuesActions } from "@/hooks/use-issues-actions";
 import { useTimeLineChart } from "@/hooks/use-timeline-chart";
 import { useBulkOperationStatus } from "@/hooks/use-bulk-operation-status";
+import { getGroupByColumns, isWorkspaceLevel } from "../utils";
+import type { GroupByColumnTypes } from "@plane/types";
+import { uniq } from "lodash-es";
 // local imports
 import { IssueLayoutHOC } from "../issue-layout-HOC";
 import { GanttQuickAddIssueButton, QuickAddIssueRoot } from "../quick-add";
@@ -68,21 +71,53 @@ export const BaseGanttRoot = observer(function BaseGanttRoot(props: IBaseGanttRo
   targetDate.setDate(targetDate.getDate() + 1);
 
   useEffect(() => {
-    fetchIssues("init-loader", { canGroup: false, perPageCount: 100 }, viewId);
-  }, [fetchIssues, storeType, viewId]);
+    const groupBy = appliedDisplayFilters?.layout === EIssueLayoutTypes.GANTT ? appliedDisplayFilters.group_by : null;
+    fetchIssues("init-loader", { canGroup: !!groupBy, perPageCount: 100 }, viewId);
+  }, [fetchIssues, storeType, viewId, appliedDisplayFilters?.group_by, appliedDisplayFilters?.layout]);
 
   useEffect(() => {
     initGantt();
   }, []);
 
-  const issuesIds = (issues.groupedIssueIds?.[ALL_ISSUES] as string[]) ?? [];
-  const nextPageResults = issues.getPaginationData(undefined, undefined)?.nextPageResults;
+  const groupBy = appliedDisplayFilters?.layout === EIssueLayoutTypes.GANTT ? appliedDisplayFilters.group_by : null;
+  const groupedIssueIds = issues.groupedIssueIds as TGroupedIssues | undefined;
+  const groupColumns = groupBy
+    ? (getGroupByColumns({
+        groupBy: groupBy as GroupByColumnTypes,
+        includeNone: true,
+        isWorkspaceLevel: isWorkspaceLevel(storeType),
+        isEpic,
+      }) ?? [])
+    : [];
+  const groupedRows: IGanttIssueGroup[] = groupColumns
+    .filter((group) => appliedDisplayFilters?.show_empty_groups || groupedIssueIds?.[group.id] !== undefined)
+    .map((group) => ({ id: group.id, name: group.name, issueIds: groupedIssueIds?.[group.id] ?? [] }));
+  const issuesIds = groupBy
+    ? uniq(groupedRows.flatMap((group) => group.issueIds))
+    : ((groupedIssueIds?.[ALL_ISSUES] as string[]) ?? []);
+  const nextPageResults = groupBy
+    ? groupedRows.some((group) => {
+        const loaded = group.issueIds.length;
+        const total = issues.getGroupIssueCount(group.id, undefined, false) ?? loaded;
+        return !!issues.getPaginationData(group.id, undefined)?.nextPageResults || loaded < total;
+      })
+    : issues.getPaginationData(undefined, undefined)?.nextPageResults;
 
   const { enableIssueCreation } = issues?.viewFlags || {};
 
   const loadMoreIssues = useCallback(() => {
-    fetchNextIssues();
-  }, [fetchNextIssues]);
+    if (!groupBy) {
+      fetchNextIssues();
+      return;
+    }
+    groupedRows.forEach((group) => {
+      if (issues.getIssueLoader(group.id)) return;
+      const total = issues.getGroupIssueCount(group.id, undefined, false) ?? group.issueIds.length;
+      if (issues.getPaginationData(group.id, undefined)?.nextPageResults || group.issueIds.length < total) {
+        fetchNextIssues(group.id);
+      }
+    });
+  }, [fetchNextIssues, groupBy, groupedRows, issues]);
 
   const updateIssueBlockStructure = async (issue: TIssue, data: IBlockUpdateData) => {
     if (!workspaceSlug) return;
@@ -159,6 +194,7 @@ export const BaseGanttRoot = observer(function BaseGanttRoot(props: IBaseGanttRo
               title={isEpic ? t("epic.label", { count: 2 }) : t("issue.label", { count: 2 })}
               loaderTitle={isEpic ? t("epic.label", { count: 2 }) : t("issue.label", { count: 2 })}
               blockIds={issuesIds}
+              groups={groupedRows}
               blockUpdateHandler={updateIssueBlockStructure}
               blockToRender={(data: TIssue) => <IssueGanttBlock issueId={data.id} isEpic={isEpic} />}
               sidebarToRender={(props) => <IssueGanttSidebar {...props} showAllBlocks isEpic={isEpic} />}

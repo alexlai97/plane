@@ -15,11 +15,12 @@ import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import type { TSelectionHelper } from "@/hooks/use-multiple-select";
 import { useTimeLineChartStore } from "@/hooks/use-timeline-chart";
 //
-import { BLOCK_HEIGHT, SIDEBAR_WIDTH } from "../constants";
+import { BLOCK_HEIGHT, getGanttBlockElementId, SIDEBAR_WIDTH } from "../constants";
 import { ChartAddBlock } from "../helpers";
 
 type Props = {
   blockId: string;
+  groupId?: string;
   showAllBlocks: boolean;
   blockUpdateHandler: (block: any, payload: IBlockUpdateData) => void;
   handleScrollToBlock: (block: IGanttBlock) => void;
@@ -29,7 +30,8 @@ type Props = {
 };
 
 export const BlockRow = observer(function BlockRow(props: Props) {
-  const { blockId, showAllBlocks, blockUpdateHandler, handleScrollToBlock, enableAddBlock, selectionHelpers } = props;
+  const { blockId, groupId, showAllBlocks, blockUpdateHandler, handleScrollToBlock, enableAddBlock, selectionHelpers } =
+    props;
   // states
   const [isHidden, setIsHidden] = useState(false);
   const [isBlockHiddenOnLeft, setIsBlockHiddenOnLeft] = useState(false);
@@ -41,7 +43,7 @@ export const BlockRow = observer(function BlockRow(props: Props) {
 
   useEffect(() => {
     const intersectionRoot = document.querySelector("#gantt-container") as HTMLDivElement;
-    const timelineBlock = document.getElementById(`gantt-block-${block?.id}`);
+    const timelineBlock = document.getElementById(getGanttBlockElementId(block?.id ?? blockId, groupId));
     if (!timelineBlock || !intersectionRoot) return;
 
     setIsBlockHiddenOnLeft(
@@ -69,7 +71,7 @@ export const BlockRow = observer(function BlockRow(props: Props) {
     return () => {
       observer.unobserve(timelineBlock);
     };
-  }, [block]);
+  }, [block, blockId, groupId]);
 
   // hide the block if it doesn't have start and target dates and showAllBlocks is false
   if (!block || !block.data || (!showAllBlocks && !(block.start_date && block.target_date))) return null;

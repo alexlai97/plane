@@ -5,6 +5,7 @@
  */
 
 import type { TAllAvailableOperatorsForDisplay, TSupportedOperators } from "@plane/types";
+import { CORE_NEGATED_OPERATOR } from "@plane/types";
 
 /**
  * Result type for operator conversion
@@ -20,8 +21,18 @@ export type TOperatorForPayload = {
  * @returns Object with supported operator and negation flag
  */
 export const getOperatorForPayload = (displayOperator: TAllAvailableOperatorsForDisplay): TOperatorForPayload => {
-  const isNegation = false;
-  const operator = displayOperator;
+  const negatedOperatorMap: Partial<Record<TAllAvailableOperatorsForDisplay, TSupportedOperators>> = {
+    [CORE_NEGATED_OPERATOR.NOT_EXACT]: "exact",
+    [CORE_NEGATED_OPERATOR.NOT_IN]: "in",
+    [CORE_NEGATED_OPERATOR.NOT_IS_NULL]: "isnull",
+    [CORE_NEGATED_OPERATOR.NOT_RANGE]: "range",
+    [CORE_NEGATED_OPERATOR.NOT_LESS_THAN]: "lt",
+    [CORE_NEGATED_OPERATOR.NOT_LESS_THAN_OR_EQUAL]: "lte",
+    [CORE_NEGATED_OPERATOR.NOT_GREATER_THAN]: "gt",
+    [CORE_NEGATED_OPERATOR.NOT_GREATER_THAN_OR_EQUAL]: "gte",
+  };
+  const operator = negatedOperatorMap[displayOperator] ?? (displayOperator as TSupportedOperators);
+  const isNegation = displayOperator in negatedOperatorMap;
 
   return {
     operator,

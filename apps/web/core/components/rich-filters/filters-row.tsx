@@ -16,7 +16,7 @@ import { cn, EHeaderVariant, Header, Loader } from "@plane/ui";
 // local imports
 import type { TAddFilterButtonProps } from "./add-filters/button";
 import { AddFilterButton } from "./add-filters/button";
-import { FilterItem } from "./filter-item/root";
+import { FilterExpressionEditor } from "./filter-expression-editor";
 
 export type TFiltersRowProps<K extends TFilterProperty, E extends TExternalFilter> = {
   buttonConfig?: TAddFilterButtonProps<K, E>["buttonConfig"];
@@ -45,15 +45,18 @@ export const FiltersRow = observer(function FiltersRow<K extends TFilterProperty
   // derived values
   const disabledAllOperations = disabledAllOperationsProp || !filter.configManager.areConfigsReady;
   const hasAnyConditions = filter.allConditionsForDisplay.length > 0;
+  const rootGroup = filter.expression?.type === "group" ? filter.expression : undefined;
   const hasAvailableOperations =
     !disabledAllOperations && (filter.canClearFilters || filter.canSaveView || filter.canUpdateView);
+  const saveViewLabel =
+    filter.saveViewOptions?.label === "Save as" ? "另存为视图" : (filter.saveViewOptions?.label ?? "另存为视图");
 
   const headerButtonConfig: Partial<TAddFilterButtonProps<K, E>["buttonConfig"]> = {
     label: null,
   };
 
   const modalButtonConfig: Partial<TAddFilterButtonProps<K, E>["buttonConfig"]> = {
-    label: !hasAnyConditions ? "Filters" : null,
+    label: !hasAnyConditions ? "添加筛选条件" : null,
   };
 
   const handleUpdate = useCallback(async () => {
@@ -67,23 +70,25 @@ export const FiltersRow = observer(function FiltersRow<K extends TFilterProperty
 
   const leftContent = (
     <>
-      {filter.allConditionsForDisplay.map((condition) => (
-        <FilterItem key={condition.id} filter={filter} condition={condition} isDisabled={disabledAllOperations} />
-      ))}
-      <AddFilterButton
-        filter={filter}
-        buttonConfig={{
-          label: null,
-          ...(variant === "modal" ? modalButtonConfig : headerButtonConfig),
-          size: "lg",
-          iconConfig: {
-            shouldShowIcon: true,
-            iconComponent: ListFilterPlus,
-          },
-          ...buttonConfig,
-          isDisabled: disabledAllOperations,
-        }}
-      />
+      {filter.expression && (
+        <FilterExpressionEditor filter={filter} node={filter.expression} isRoot isDisabled={disabledAllOperations} />
+      )}
+      {(!filter.expression || !rootGroup || rootGroup.logicalOperator === "not") && (
+        <AddFilterButton
+          filter={filter}
+          buttonConfig={{
+            label: null,
+            ...(variant === "modal" ? modalButtonConfig : headerButtonConfig),
+            size: "lg",
+            iconConfig: {
+              shouldShowIcon: true,
+              iconComponent: ListFilterPlus,
+            },
+            ...buttonConfig,
+            isDisabled: disabledAllOperations,
+          }}
+        />
+      )}
     </>
   );
 
@@ -106,7 +111,7 @@ export const FiltersRow = observer(function FiltersRow<K extends TFilterProperty
           onClick={filter.saveView}
           data-ph-element={trackerElements?.saveView}
         >
-          {filter.saveViewOptions?.label ?? "保存视图"}
+          {saveViewLabel}
         </Button>
       </ElementTransition>
       <ElementTransition show={filter.canUpdateView}>
@@ -118,20 +123,36 @@ export const FiltersRow = observer(function FiltersRow<K extends TFilterProperty
           disabled={isUpdating}
           data-ph-element={trackerElements?.updateView}
         >
-          {isUpdating ? "Confirming" : (filter.updateViewOptions?.label ?? "更新视图")}
+          {isUpdating ? "正在保存…" : (filter.updateViewOptions?.label ?? "更新当前视图")}
         </Button>
       </ElementTransition>
     </>
   );
 
   const mainContent = (
-    <div className="flex w-full items-start gap-2 rounded-lg bg-layer-1 px-4 py-2">
-      <div className="flex w-full flex-wrap items-center gap-2">{leftContent}</div>
+    <div className="flex w-full flex-col items-stretch gap-2 rounded-lg bg-layer-1 px-4 py-2 xl:flex-row xl:items-center">
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 xl:w-auto">{leftContent}</div>
       <div
-        className={cn("flex items-center gap-2 border-l border-subtle pl-4", {
-          "border-l-transparent pl-0": !hasAvailableOperations,
-        })}
+        className={cn(
+          "flex w-full flex-wrap items-center gap-2 border-t border-subtle pt-2 xl:w-auto xl:flex-nowrap xl:border-t-0 xl:border-l xl:pt-0 xl:pl-4",
+          {
+            "border-subtle/0 xl:pl-0": !hasAvailableOperations,
+          }
+        )}
       >
+        {filter.canUpdateView && (
+          <span className="text-11 whitespace-nowrap text-tertiary" title="此更改尚未写入当前视图">
+            尚未保存到当前视图
+          </span>
+        )}
+        {filter.canSaveView && !filter.canUpdateView && filter.hasChanges && (
+          <span
+            className="text-11 whitespace-nowrap text-tertiary"
+            title="筛选仅在当前页面预览，另存为视图后可重复使用"
+          >
+            当前页面预览
+          </span>
+        )}
         {rightContent}
       </div>
     </div>

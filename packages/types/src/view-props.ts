@@ -119,12 +119,26 @@ export type TWorkItemFilterConditionData = Partial<{
 }>;
 
 export type TWorkItemFilterAndGroup = {
-  [LOGICAL_OPERATOR.AND]: TWorkItemFilterConditionData[];
+  [LOGICAL_OPERATOR.AND]: TWorkItemFilterExpressionData[];
 };
 
-export type TWorkItemFilterGroup = TWorkItemFilterAndGroup;
+export type TWorkItemFilterOrGroup = {
+  [LOGICAL_OPERATOR.OR]: TWorkItemFilterExpressionData[];
+};
 
-export type TWorkItemFilterExpressionData = TWorkItemFilterConditionData | TWorkItemFilterGroup;
+export type TWorkItemFilterNotGroup = {
+  [LOGICAL_OPERATOR.NOT]: TWorkItemFilterExpressionData;
+};
+
+export type TWorkItemFilterGroup = TWorkItemFilterAndGroup | TWorkItemFilterOrGroup | TWorkItemFilterNotGroup;
+
+/** Unknown historical/future saved nodes remain representable for safe roundtripping. */
+export type TWorkItemFilterUnsupportedData = Record<string, unknown>;
+
+export type TWorkItemFilterExpressionData =
+  | TWorkItemFilterConditionData
+  | TWorkItemFilterGroup
+  | TWorkItemFilterUnsupportedData;
 
 export type TWorkItemFilterExpression = CompleteOrEmpty<TWorkItemFilterExpressionData>;
 
@@ -155,6 +169,8 @@ export interface IIssueDisplayFilterOptions {
   sub_group_by?: TIssueGroupByOptions;
   layout?: any; // TODO: Need to fix this and set it to enum EIssueLayoutTypes
   order_by?: TIssueOrderByOptions;
+  /** Ordered sort criteria. `order_by` remains as a backward-compatible single-sort field. */
+  order_by_fields?: TIssueOrderByOptions[];
   show_empty_groups?: boolean;
   sub_issue?: boolean;
 }

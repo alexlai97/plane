@@ -7,7 +7,7 @@
 import { useEffect } from "react";
 import { observer } from "mobx-react";
 // components
-import type { IBlockUpdateData, IBlockUpdateDependencyData } from "@plane/types";
+import type { IBlockUpdateData, IBlockUpdateDependencyData, IGanttIssueGroup } from "@plane/types";
 // hooks
 import { useTimeLineChartStore } from "@/hooks/use-timeline-chart";
 import { ChartViewRoot } from "./chart/root";
@@ -17,6 +17,7 @@ type GanttChartRootProps = {
   title: string;
   loaderTitle: string;
   blockIds: string[];
+  groups?: IGanttIssueGroup[];
   blockUpdateHandler: (block: any, payload: IBlockUpdateData) => void;
   blockToRender: (data: any) => React.ReactNode;
   sidebarToRender: (props: any) => React.ReactNode;
@@ -42,6 +43,7 @@ export const GanttChartRoot = observer(function GanttChartRoot(props: GanttChart
     border = true,
     title,
     blockIds,
+    groups,
     loaderTitle = "blocks",
     blockUpdateHandler,
     sidebarToRender,
@@ -75,6 +77,7 @@ export const GanttChartRoot = observer(function GanttChartRoot(props: GanttChart
       border={border}
       title={title}
       blockIds={blockIds}
+      groups={groups}
       loadMoreBlocks={loadMoreBlocks}
       canLoadMoreBlocks={canLoadMoreBlocks}
       loaderTitle={loaderTitle}

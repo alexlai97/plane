@@ -4,12 +4,19 @@
  * See the LICENSE file for details.
  */
 
-import type { MutableRefObject } from "react";
+import { Fragment, type MutableRefObject } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
+import { ChevronRight } from "lucide-react";
 // plane imports
-import type { IIssueDisplayFilterOptions, IIssueDisplayProperties, TIssue } from "@plane/types";
+import type {
+  IIssueDisplayFilterOptions,
+  IIssueDisplayProperties,
+  TIssue,
+  IGroupByColumn,
+  TGroupedIssues,
+} from "@plane/types";
 // components
 import { SpreadsheetIssueRowLoader } from "@/components/ui/loader/layouts/spreadsheet-layout-loader";
 // hooks
@@ -29,6 +36,8 @@ type Props = {
   displayFilters: IIssueDisplayFilterOptions;
   handleDisplayFilterUpdate: (data: Partial<IIssueDisplayFilterOptions>) => void;
   issueIds: string[];
+  groups?: IGroupByColumn[];
+  groupedIssueIds?: TGroupedIssues;
   isEstimateEnabled: boolean;
   quickActions: TRenderQuickActions;
   updateIssue: ((projectId: string | null, issueId: string, data: Partial<TIssue>) => Promise<void>) | undefined;
@@ -36,7 +45,7 @@ type Props = {
   portalElement: React.MutableRefObject<HTMLDivElement | null>;
   containerRef: MutableRefObject<HTMLTableElement | null>;
   canLoadMoreIssues: boolean;
-  loadMoreIssues: () => void;
+  loadMoreIssues: (groupId?: string) => void;
   spreadsheetColumnsList: (keyof IIssueDisplayProperties)[];
   selectionHelpers: TSelectionHelper;
   isEpic?: boolean;
@@ -48,6 +57,8 @@ export const SpreadsheetTable = observer(function SpreadsheetTable(props: Props)
     displayFilters,
     handleDisplayFilterUpdate,
     issueIds,
+    groups,
+    groupedIssueIds,
     isEstimateEnabled,
     portalElement,
     quickActions,
@@ -60,10 +71,13 @@ export const SpreadsheetTable = observer(function SpreadsheetTable(props: Props)
     selectionHelpers,
     isEpic = false,
   } = props;
+  const groupIds = groups?.map((group) => group.id) ?? [];
+  const isGrouped = groupIds.length > 0;
 
   // states
   const isScrolled = useRef(false);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const onExpansionChange = useCallback((id: string, expanded: boolean) => {
     setExpandedIds((current) => {
       if (current.has(id) === expanded) return current;
@@ -77,7 +91,7 @@ export const SpreadsheetTable = observer(function SpreadsheetTable(props: Props)
   const [intersectionElement, setIntersectionElement] = useState<HTMLTableSectionElement | null>(null);
 
   const {
-    issues: { getIssueLoader },
+    issues: { getIssueLoader, getGroupIssueCount, getPaginationData },
     issuesFilter,
   } = useIssuesStore();
 
@@ -123,7 +137,12 @@ export const SpreadsheetTable = observer(function SpreadsheetTable(props: Props)
 
   const isPaginating = !!getIssueLoader();
 
-  useIntersectionObserver(containerRef, isPaginating ? null : intersectionElement, loadMoreIssues, `100% 0% 100% 0%`);
+  useIntersectionObserver(
+    containerRef,
+    isGrouped || isPaginating ? null : intersectionElement,
+    loadMoreIssues,
+    `100% 0% 100% 0%`
+  );
 
   const handleKeyBoardNavigation = useTableKeyboardNavigation();
 
@@ -153,24 +172,91 @@ export const SpreadsheetTable = observer(function SpreadsheetTable(props: Props)
           isEpic={isEpic}
         />
         <tbody>
-          {issueIds.map((id) => (
-            <SpreadsheetIssueRow
-              key={id}
-              issueId={id}
-              displayProperties={displayProperties}
-              quickActions={quickActions}
-              canEditProperties={canEditProperties}
-              nestingLevel={0}
-              isEstimateEnabled={isEstimateEnabled}
-              updateIssue={updateIssue}
-              portalElement={portalElement}
-              containerRef={containerRef}
-              isScrolled={isScrolled}
-              spreadsheetColumnsList={spreadsheetColumnsList}
-              selectionHelpers={selectionHelpers}
-              isEpic={isEpic}
-            />
-          ))}
+          {isGrouped
+            ? groups?.map((group) => {
+                const ids = groupedIssueIds?.[group.id] ?? [];
+                const total = getGroupIssueCount(group.id, undefined, false) ?? ids.length;
+                const collapsed = collapsedGroups.has(group.id);
+                return (
+                  <Fragment key={group.id}>
+                    <tr className="border-b border-subtle bg-layer-1">
+                      <td
+                        colSpan={spreadsheetColumnsList.length + 1}
+                        className="sticky left-0 z-[2] bg-layer-1 px-4 py-2"
+                      >
+                        <button
+                          type="button"
+                          className="flex items-center gap-2 text-12 font-medium text-primary"
+                          aria-expanded={!collapsed}
+                          onClick={() =>
+                            setCollapsedGroups((current) => {
+                              const next = new Set(current);
+                              if (next.has(group.id)) next.delete(group.id);
+                              else next.add(group.id);
+                              return next;
+                            })
+                          }
+                        >
+                          <ChevronRight className={`size-3.5 transition-transform ${collapsed ? "" : "rotate-90"}`} />
+                          {group.icon}
+                          <span>{group.name}</span>
+                          <span className="text-tertiary">{total}</span>
+                        </button>
+                      </td>
+                    </tr>
+                    {!collapsed &&
+                      ids.map((id) => (
+                        <SpreadsheetIssueRow
+                          key={id}
+                          issueId={id}
+                          displayProperties={displayProperties}
+                          quickActions={quickActions}
+                          canEditProperties={canEditProperties}
+                          nestingLevel={0}
+                          isEstimateEnabled={isEstimateEnabled}
+                          updateIssue={updateIssue}
+                          portalElement={portalElement}
+                          containerRef={containerRef}
+                          isScrolled={isScrolled}
+                          spreadsheetColumnsList={spreadsheetColumnsList}
+                          selectionHelpers={selectionHelpers}
+                          isEpic={isEpic}
+                        />
+                      ))}
+                    {!collapsed && (getPaginationData(group.id, undefined)?.nextPageResults || ids.length < total) && (
+                      <tr>
+                        <td colSpan={spreadsheetColumnsList.length + 1} className="px-4 py-2">
+                          <button
+                            type="button"
+                            className="text-12 text-accent-primary hover:underline"
+                            onClick={() => loadMoreIssues(group.id)}
+                          >
+                            加载更多
+                          </button>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })
+            : issueIds.map((id) => (
+                <SpreadsheetIssueRow
+                  key={id}
+                  issueId={id}
+                  displayProperties={displayProperties}
+                  quickActions={quickActions}
+                  canEditProperties={canEditProperties}
+                  nestingLevel={0}
+                  isEstimateEnabled={isEstimateEnabled}
+                  updateIssue={updateIssue}
+                  portalElement={portalElement}
+                  containerRef={containerRef}
+                  isScrolled={isScrolled}
+                  spreadsheetColumnsList={spreadsheetColumnsList}
+                  selectionHelpers={selectionHelpers}
+                  isEpic={isEpic}
+                />
+              ))}
         </tbody>
         {canLoadMoreIssues && (
           <tfoot ref={setIntersectionElement}>

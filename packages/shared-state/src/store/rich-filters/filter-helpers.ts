@@ -21,7 +21,16 @@ import type {
   TFilterConditionPayload,
 } from "@plane/types";
 import { LOGICAL_OPERATOR } from "@plane/types";
-import { addAndCondition, createConditionNode, updateNodeInExpression } from "@plane/utils";
+import {
+  addAndCondition,
+  addConditionToGroup,
+  addGroupToExpression,
+  addOrCondition,
+  createConditionNode,
+  createNotGroupNode,
+  setConditionNegation,
+  updateNodeInExpression,
+} from "@plane/utils";
 // local imports
 import type { IFilterInstance } from "./filter";
 
@@ -50,6 +59,19 @@ export interface IFilterInstanceHelper<P extends TFilterProperty, E extends TExt
     groupOperator: TLogicalOperator,
     condition: TFilterConditionPayload<P, V>,
     isNegation: boolean
+  ) => TFilterExpression<P> | null;
+  addConditionToGroup: <V extends TFilterValue>(
+    expression: TFilterExpression<P> | null,
+    parentGroupId: string | null,
+    logicalOperator: "and" | "or",
+    condition: TFilterConditionPayload<P, V>,
+    isNegation: boolean
+  ) => TFilterExpression<P> | null;
+  addGroup: (
+    expression: TFilterExpression<P> | null,
+    parentGroupId: string | null,
+    logicalOperator: "and" | "or",
+    groupId: string
   ) => TFilterExpression<P> | null;
   handleConditionPropertyUpdate: (
     expression: TFilterExpression<P>,
@@ -195,7 +217,7 @@ export class FilterInstanceHelper<
     operator,
     isNegation
   ) => {
-    const payload = { property, operator, value: undefined };
+    const payload = { property, operator, value: operator === "isnull" ? true : undefined };
 
     return this._updateCondition(expression, conditionId, payload, isNegation);
   };
@@ -218,7 +240,9 @@ export class FilterInstanceHelper<
     isNegation,
     shouldResetValue
   ) => {
-    const payload = shouldResetValue ? { operator: newOperator, value: undefined } : { operator: newOperator };
+    const payload = shouldResetValue
+      ? { operator: newOperator, value: newOperator === "isnull" ? true : undefined }
+      : { operator: newOperator };
 
     return this._updateCondition(expression, conditionId, payload, isNegation);
   };
@@ -233,11 +257,13 @@ export class FilterInstanceHelper<
    */
   private _getConditionPayloadToAdd = (
     condition: TFilterConditionPayload<P, TFilterValue>,
-    _isNegation: boolean
+    isNegation: boolean
   ): TFilterExpression<P> => {
-    const conditionNode = createConditionNode(condition);
-
-    return conditionNode;
+    const conditionNode = createConditionNode({
+      ...condition,
+      value: condition.operator === "isnull" ? true : condition.value,
+    });
+    return isNegation ? createNotGroupNode(conditionNode) : conditionNode;
   };
 
   /**
@@ -255,6 +281,8 @@ export class FilterInstanceHelper<
     switch (groupOperator) {
       case LOGICAL_OPERATOR.AND:
         return addAndCondition(expression, conditionToAdd);
+      case LOGICAL_OPERATOR.OR:
+        return addOrCondition(expression, conditionToAdd);
       default:
         console.warn(`Unsupported logical operator: ${groupOperator}`);
         return expression;
@@ -273,11 +301,28 @@ export class FilterInstanceHelper<
     expression: TFilterExpression<P>,
     conditionId: string,
     payload: Partial<TFilterConditionNode<P, TFilterValue>>,
-    _isNegation: boolean
+    isNegation: boolean
   ): TFilterExpression<P> | null => {
     // Update the condition with the payload
     updateNodeInExpression(expression, conditionId, payload);
-
-    return expression;
+    return setConditionNegation(expression, conditionId, isNegation);
   };
+
+  addConditionToGroup = <V extends TFilterValue>(
+    expression: TFilterExpression<P> | null,
+    parentGroupId: string | null,
+    logicalOperator: "and" | "or",
+    condition: TFilterConditionPayload<P, V>,
+    isNegation: boolean
+  ): TFilterExpression<P> | null => {
+    const node = this._getConditionPayloadToAdd(condition, isNegation);
+    return addConditionToGroup(expression, parentGroupId, logicalOperator, node);
+  };
+
+  addGroup = (
+    expression: TFilterExpression<P> | null,
+    parentGroupId: string | null,
+    logicalOperator: "and" | "or",
+    groupId: string
+  ): TFilterExpression<P> | null => addGroupToExpression(expression, parentGroupId, logicalOperator, groupId);
 }

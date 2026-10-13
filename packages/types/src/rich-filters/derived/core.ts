@@ -5,6 +5,7 @@
  */
 
 import type { TFilterValue } from "../expression";
+import type { TCoreNegatedOperators } from "../operators/core";
 import type {
   TDateFilterFieldConfig,
   TDateRangeFilterFieldConfig,
@@ -46,7 +47,8 @@ export type TCoreSupportedDateFilterOperators<V extends TFilterValue = TFilterVa
   | TCoreSupportedRangeDateFilterOperators<V>;
 
 export type TCoreAllAvailableDateFilterOperatorsForDisplay<V extends TFilterValue = TFilterValue> =
-  TCoreSupportedDateFilterOperators<V>;
+  | TCoreSupportedDateFilterOperators<V>
+  | Extract<TCoreNegatedOperators, "not_exact" | "not_range" | "not_lt" | "not_lte" | "not_gt" | "not_gte">;
 
 // -------- SELECT FILTER OPERATORS --------
 

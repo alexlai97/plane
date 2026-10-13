@@ -9,7 +9,7 @@ import { useState } from "react";
 import { observer } from "mobx-react";
 // ui
 import { GANTT_TIMELINE_TYPE } from "@plane/types";
-import type { IBlockUpdateData } from "@plane/types";
+import type { IBlockUpdateData, IGanttIssueGroup } from "@plane/types";
 import { Loader } from "@plane/ui";
 // components
 import RenderIfVisible from "@/components/core/render-if-visible-HOC";
@@ -30,6 +30,7 @@ type Props = {
   loadMoreBlocks?: () => void;
   ganttContainerRef: RefObject<HTMLDivElement>;
   blockIds: string[];
+  groups?: IGanttIssueGroup[];
   enableReorder: boolean;
   enableSelection: boolean;
   showAllBlocks?: boolean;
@@ -41,6 +42,7 @@ export const IssueGanttSidebar = observer(function IssueGanttSidebar(props: Prop
   const {
     blockUpdateHandler,
     blockIds,
+    groups,
     enableReorder,
     enableSelection,
     loadMoreBlocks,
@@ -80,41 +82,86 @@ export const IssueGanttSidebar = observer(function IssueGanttSidebar(props: Prop
     <div>
       {blockIds ? (
         <>
-          {blockIds.map((blockId, index) => {
-            const block = getBlockById(blockId);
-            const isBlockVisibleOnSidebar = block?.start_date && block?.target_date;
+          {groups?.length
+            ? groups.map((group) => (
+                <div key={group.id}>
+                  <div
+                    className="flex items-center border-b border-subtle bg-layer-1 px-3 text-12 font-medium text-secondary"
+                    style={{ height: "44px" }}
+                  >
+                    {group.name}
+                    <span className="ml-2 text-tertiary">{group.issueIds.length}</span>
+                  </div>
+                  {group.issueIds.map((blockId, index) => {
+                    const block = getBlockById(blockId);
+                    const isBlockVisibleOnSidebar = block?.start_date && block?.target_date;
+                    if (!block || (!showAllBlocks && !isBlockVisibleOnSidebar)) return null;
+                    return (
+                      <RenderIfVisible
+                        key={block.id}
+                        root={ganttContainerRef}
+                        horizontalOffset={100}
+                        verticalOffset={200}
+                        shouldRecordHeights={false}
+                        placeholderChildren={<GanttLayoutListItemLoader />}
+                      >
+                        <GanttDnDHOC
+                          id={block.id}
+                          groupId={group.id}
+                          isLastChild={index === group.issueIds.length - 1}
+                          isDragEnabled={false}
+                          onDrop={handleOnDrop}
+                        >
+                          {(isDragging: boolean) => (
+                            <IssuesSidebarBlock
+                              block={block}
+                              enableSelection={enableSelection}
+                              isDragging={isDragging}
+                              selectionHelpers={selectionHelpers}
+                              isEpic={isEpic}
+                            />
+                          )}
+                        </GanttDnDHOC>
+                      </RenderIfVisible>
+                    );
+                  })}
+                </div>
+              ))
+            : blockIds.map((blockId, index) => {
+                const block = getBlockById(blockId);
+                const isBlockVisibleOnSidebar = block?.start_date && block?.target_date;
 
-            // hide the block if it doesn't have start and target dates and showAllBlocks is false
-            if (!block || (!showAllBlocks && !isBlockVisibleOnSidebar)) return;
+                // hide the block if it doesn't have start and target dates and showAllBlocks is false
+                if (!block || (!showAllBlocks && !isBlockVisibleOnSidebar)) return;
 
-            return (
-              <RenderIfVisible
-                key={block.id}
-                root={ganttContainerRef}
-                horizontalOffset={100}
-                verticalOffset={200}
-                shouldRecordHeights={false}
-                placeholderChildren={<GanttLayoutListItemLoader />}
-              >
-                <GanttDnDHOC
-                  id={block.id}
-                  isLastChild={index === blockIds.length - 1}
-                  isDragEnabled={enableReorder}
-                  onDrop={handleOnDrop}
-                >
-                  {(isDragging: boolean) => (
-                    <IssuesSidebarBlock
-                      block={block}
-                      enableSelection={enableSelection}
-                      isDragging={isDragging}
-                      selectionHelpers={selectionHelpers}
-                      isEpic={isEpic}
-                    />
-                  )}
-                </GanttDnDHOC>
-              </RenderIfVisible>
-            );
-          })}
+                return (
+                  <RenderIfVisible
+                    key={block.id}
+                    root={ganttContainerRef}
+                    horizontalOffset={100}
+                    verticalOffset={200}
+                    shouldRecordHeights={false}
+                    placeholderChildren={<GanttLayoutListItemLoader />}
+                  >
+                    <GanttDnDHOC
+                      id={block.id}
+                      isLastChild={index === blockIds.length - 1}
+                      isDragEnabled={enableReorder}
+                      onDrop={handleOnDrop}
+                    >
+                      {(isDragging: boolean) => (
+                        <IssuesSidebarBlock
+                          block={block}
+                          enableSelection={enableSelection}
+                          isDragging={isDragging}
+                          selectionHelpers={selectionHelpers}
+                          isEpic={isEpic}
+                        />
+                      )}
+                    </GanttDnDHOC>
+                  </RenderIfVisible>
+                );
+              })}
           {canLoadMoreBlocks && (
             <div ref={setIntersectionElement} className="p-2">
               <div className="flex h-10 w-full animate-pulse items-center justify-between gap-1.5 rounded-sm bg-layer-1 px-4 py-1.5 md:h-8 md:px-1" />

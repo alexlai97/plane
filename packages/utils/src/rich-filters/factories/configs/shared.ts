@@ -9,6 +9,7 @@ import type {
   TBaseFilterFieldConfig,
   TDateFilterFieldConfig,
   TDateRangeFilterFieldConfig,
+  TEmptyFilterFieldConfig,
   TFilterConfig,
   TFilterProperty,
   TFilterFieldType,
@@ -19,6 +20,8 @@ import type {
   TSupportedOperators,
   TOperatorSpecificConfigs,
 } from "@plane/types";
+import { EQUALITY_OPERATOR } from "@plane/types";
+import { getEmptyFilterConfig } from "./core";
 
 /**
  * Helper to create a type-safe filter config
@@ -79,6 +82,9 @@ export const createOperatorConfigEntry = <
   configFn({ isOperatorEnabled: createParams.allowedOperators.has(operator), ...createParams }),
 ];
 
+export const createEmptyOperatorConfigEntry = <P extends TCreateFilterConfigParams>(params: P) =>
+  createOperatorConfigEntry(EQUALITY_OPERATOR.IS_NULL, params, (updatedParams) => getEmptyFilterConfig(updatedParams));
+
 /**
  * Factory function signature for creating filter configurations.
  */
@@ -98,5 +104,7 @@ export const createFilterFieldConfig = <T extends TFilterFieldType, V extends TF
         ? TDateFilterFieldConfig<V>
         : T extends typeof FILTER_FIELD_TYPE.DATE_RANGE
           ? TDateRangeFilterFieldConfig<V>
-          : never
+          : T extends typeof FILTER_FIELD_TYPE.EMPTY
+            ? TEmptyFilterFieldConfig
+            : never
 ): TSupportedFilterFieldConfigs<V> => config as TSupportedFilterFieldConfigs<V>;

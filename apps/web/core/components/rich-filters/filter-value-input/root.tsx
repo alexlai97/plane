@@ -67,6 +67,9 @@ export const FilterValueInput = observer(function FilterValueInput<P extends TFi
     );
   }
 
+  // Empty operators such as is-empty/is-not-empty deliberately take no value.
+  if (filterFieldConfig?.type === FILTER_FIELD_TYPE.EMPTY) return null;
+
   // Date range filter input
   if (filterFieldConfig?.type === FILTER_FIELD_TYPE.DATE_RANGE) {
     return (
@@ -88,8 +91,8 @@ export const AdditionalFilterValueInput = observer(function AdditionalFilterValu
 >(_props: TFilterValueInputProps<P, V>) {
   return (
     // Fallback
-    <div className="flex h-full cursor-not-allowed items-center px-4 text-11 text-placeholder transition-opacity duration-200">
-      Filter type not supported
+    <div className="flex h-full cursor-not-allowed items-center px-3 text-11 text-placeholder transition-opacity duration-200">
+      此条件暂不支持编辑，请核对后保留或移除
     </div>
   );
 });

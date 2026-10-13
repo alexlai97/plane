@@ -17,8 +17,19 @@ import type {
   TWorkItemFilterExpressionData,
   TWorkItemFilterProperty,
 } from "@plane/types";
-import { LOGICAL_OPERATOR, MULTI_VALUE_OPERATORS, WORK_ITEM_FILTER_PROPERTY_KEYS } from "@plane/types";
-import { createConditionNode, createAndGroupNode, isAndGroupNode, isConditionNode } from "@plane/utils";
+import { CORE_OPERATORS, LOGICAL_OPERATOR, MULTI_VALUE_OPERATORS, WORK_ITEM_FILTER_PROPERTY_KEYS } from "@plane/types";
+import {
+  createConditionNode,
+  createAndGroupNode,
+  createNotGroupNode,
+  createOrGroupNode,
+  isAndGroupNode,
+  isConditionNode,
+  isNotGroupNode,
+  isOrGroupNode,
+  isUnsupportedNode,
+  createUnsupportedNode,
+} from "@plane/utils";
 // local imports
 import { FilterAdapter } from "../rich-filters/adapter";
 
@@ -35,7 +46,10 @@ class WorkItemFiltersAdapter extends FilterAdapter<TWorkItemFilterProperty, TWor
       return this._convertExpressionToInternal(externalFilter);
     } catch (error) {
       console.error("Failed to convert external filter to internal:", error);
-      return null;
+      return createUnsupportedNode<TWorkItemFilterProperty>(
+        externalFilter,
+        "无法识别已保存的筛选规则，原始规则已保留。"
+      );
     }
   }
 
@@ -48,40 +62,54 @@ class WorkItemFiltersAdapter extends FilterAdapter<TWorkItemFilterProperty, TWor
     expression: TWorkItemFilterExpressionData
   ): TFilterExpression<TWorkItemFilterProperty> {
     if (!expression || isEmpty(expression)) {
-      throw new Error("Invalid expression: empty or null data");
+      return createUnsupportedNode(expression, "筛选规则为空或格式无效。");
     }
 
     // Check if it's a simple condition (has field property)
     if (this._isWorkItemFilterConditionData(expression)) {
-      const conditionResult = this._extractWorkItemFilterConditionData(expression);
-      if (!conditionResult) {
-        throw new Error("Failed to extract condition data");
-      }
+      const conditions = Object.entries(expression).map(([key, value]) => {
+        const conditionResult = this._extractWorkItemFilterConditionData({ [key]: value });
+        if (!conditionResult)
+          return createUnsupportedNode<TWorkItemFilterProperty>({ [key]: value }, "无法识别此筛选条件。");
 
-      const [property, operator, value] = conditionResult;
-      return createConditionNode({
-        property,
-        operator,
-        value,
+        const [property, operator, conditionValue] = conditionResult;
+        const conditionNode = createConditionNode({
+          property,
+          operator,
+          value: operator === "isnull" ? true : conditionValue,
+        });
+        return operator === "isnull" && conditionValue === false ? createNotGroupNode(conditionNode) : conditionNode;
       });
+      return conditions.length === 1 ? conditions[0] : createAndGroupNode(conditions);
     }
 
-    // It's a logical group - check which type
+    // It's a logical group - check which type. Keep NOT as a real unary node so
+    // older saved filters such as `{ not: { label_id__in: "..." } }` roundtrip.
     const expressionKeys = Object.keys(expression);
 
     if (LOGICAL_OPERATOR.AND in expression) {
       const andExpression = expression as { [LOGICAL_OPERATOR.AND]: TWorkItemFilterExpressionData[] };
       const andConditions = andExpression[LOGICAL_OPERATOR.AND];
 
-      if (!Array.isArray(andConditions) || andConditions.length === 0) {
-        throw new Error("AND group must contain at least one condition");
-      }
+      if (!Array.isArray(andConditions)) return createUnsupportedNode(expression, "AND 条件组格式无效。");
 
       const convertedConditions = andConditions.map((item) => this._convertExpressionToInternal(item));
       return createAndGroupNode(convertedConditions);
     }
 
-    throw new Error(`Invalid expression: unknown structure with keys [${expressionKeys.join(", ")}]`);
+    if (LOGICAL_OPERATOR.OR in expression) {
+      const values = (expression as { [LOGICAL_OPERATOR.OR]: TWorkItemFilterExpressionData[] })[LOGICAL_OPERATOR.OR];
+      if (!Array.isArray(values)) return createUnsupportedNode(expression, "OR 条件组格式无效。");
+      return createOrGroupNode(values.map((item) => this._convertExpressionToInternal(item)));
+    }
+
+    if (LOGICAL_OPERATOR.NOT in expression) {
+      const value = (expression as { [LOGICAL_OPERATOR.NOT]: TWorkItemFilterExpressionData })[LOGICAL_OPERATOR.NOT];
+      if (!value || typeof value !== "object") return createUnsupportedNode(expression, "NOT 条件格式无效。");
+      return createNotGroupNode(this._convertExpressionToInternal(value));
+    }
+
+    return createUnsupportedNode(expression, `无法识别的筛选结构：${expressionKeys.join(", ")}`);
   }
 
   /**
@@ -89,17 +117,14 @@ class WorkItemFiltersAdapter extends FilterAdapter<TWorkItemFilterProperty, TWor
    * @param internalFilter - The internal filter expression
    * @returns External filter expression
    */
-  toExternal(internalFilter: TFilterExpression<TWorkItemFilterProperty>): TWorkItemFilterExpression {
+  toExternal(internalFilter: TFilterExpression<TWorkItemFilterProperty> | null): TWorkItemFilterExpression {
     if (!internalFilter) {
       return {};
     }
 
-    try {
-      return this._convertExpressionToExternal(internalFilter);
-    } catch (error) {
-      console.error("Failed to convert internal filter to external:", error);
-      return {};
-    }
+    // If serialization encounters an invalid internal node, fail the caller's
+    // save/update operation instead of silently turning the user's filters into `{}`.
+    return this._convertExpressionToExternal(internalFilter);
   }
 
   /**
@@ -114,11 +139,25 @@ class WorkItemFiltersAdapter extends FilterAdapter<TWorkItemFilterProperty, TWor
       return this._createWorkItemFilterConditionData(expression.property, expression.operator, expression.value);
     }
 
+    if (isUnsupportedNode(expression)) return expression.externalData as TWorkItemFilterExpressionData;
+
     // It's a group node
 
     if (isAndGroupNode(expression)) {
       return {
         [LOGICAL_OPERATOR.AND]: expression.children.map((child) => this._convertExpressionToExternal(child)),
+      } as TWorkItemFilterExpressionData;
+    }
+
+    if (isOrGroupNode(expression)) {
+      return {
+        [LOGICAL_OPERATOR.OR]: expression.children.map((child) => this._convertExpressionToExternal(child)),
+      } as TWorkItemFilterExpressionData;
+    }
+
+    if (isNotGroupNode(expression)) {
+      return {
+        [LOGICAL_OPERATOR.NOT]: this._convertExpressionToExternal(expression.children[0]),
       } as TWorkItemFilterExpressionData;
     }
 
@@ -137,7 +176,9 @@ class WorkItemFiltersAdapter extends FilterAdapter<TWorkItemFilterProperty, TWor
     if (keys.length === 0) return false;
 
     // Check if any key contains logical operators (would indicate it's a group)
-    const hasLogicalOperators = keys.some((key) => key === LOGICAL_OPERATOR.AND);
+    const hasLogicalOperators = keys.some(
+      (key) => key === LOGICAL_OPERATOR.AND || key === LOGICAL_OPERATOR.OR || key === LOGICAL_OPERATOR.NOT
+    );
     if (hasLogicalOperators) return false;
 
     // All keys must match the work item filter condition key pattern
@@ -171,8 +212,9 @@ class WorkItemFiltersAdapter extends FilterAdapter<TWorkItemFilterProperty, TWor
       return false;
     }
 
-    // Validate operator is not empty
-    return operator.length > 0;
+    // Only emit operators supported by the canonical wire schema. Unknown
+    // operators are represented as unsupported leaf nodes and roundtrip raw.
+    return Object.values(CORE_OPERATORS).includes(operator as (typeof CORE_OPERATORS)[keyof typeof CORE_OPERATORS]);
   };
 
   /**

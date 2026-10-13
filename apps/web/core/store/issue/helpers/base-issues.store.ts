@@ -45,6 +45,7 @@ import {
   getSubGroupIssueKeyActions,
 } from "./base-issues-utils";
 import type { IBaseIssueFilterStore } from "./issue-filter-helper.store";
+import { sortWithOrderedCriteria } from "./multi-sort";
 
 export type TIssueDisplayFilterOptions = Exclude<TIssueGroupByOptions, null> | "target_date";
 
@@ -280,7 +281,7 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
     const displayFilters = this.issueFilterStore?.issueFilters?.displayFilters;
     if (!displayFilters) return;
 
-    return displayFilters?.order_by;
+    return displayFilters?.order_by_fields?.[0] ?? displayFilters?.order_by;
   }
 
   // current Group by value
@@ -292,7 +293,12 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
 
     return layout === EIssueLayoutTypes.CALENDAR
       ? "target_date"
-      : [EIssueLayoutTypes.LIST, EIssueLayoutTypes.KANBAN]?.includes(layout)
+      : [
+            EIssueLayoutTypes.LIST,
+            EIssueLayoutTypes.KANBAN,
+            EIssueLayoutTypes.SPREADSHEET,
+            EIssueLayoutTypes.GANTT,
+          ]?.includes(layout)
         ? displayFilters?.group_by
         : undefined;
   }
@@ -1592,14 +1598,18 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
     issue: Partial<TIssue> | undefined,
     issueBeforeUpdate: Partial<TIssue> | undefined
   ): { path: string[]; action: EIssueGroupedAction.REORDER }[] {
-    // if before and after states of the issue prop on which orderBy depends on then return and empty Array
-    if (
-      !issue ||
-      !issueBeforeUpdate ||
-      !this.orderByKey ||
-      isEqual(issue[this.orderByKey], issueBeforeUpdate[this.orderByKey])
-    )
-      return [];
+    if (!issue || !issueBeforeUpdate) return [];
+    const displayFilters = this.issueFilterStore?.issueFilters?.displayFilters;
+    const orderFields = displayFilters?.order_by_fields?.length
+      ? displayFilters.order_by_fields
+      : this.orderBy
+        ? [this.orderBy]
+        : [];
+    const changedOrderField = orderFields.some((field) => {
+      const property = ISSUE_ORDERBY_KEY[field];
+      return property && !isEqual(issue[property], issueBeforeUpdate[property]);
+    });
+    if (!changedOrderField) return [];
 
     // if they are not equal and issues are not grouped then, provide path as ALL_ISSUES
     if (!this.issueGroupKey) return [{ path: [ALL_ISSUES], action: EIssueGroupedAction.REORDER }];
@@ -1764,8 +1774,27 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
   }
 
   issuesSortWithOrderBy = (issueIds: string[], key: TIssueOrderByOptions | undefined): string[] => {
+    const displayFilters = this.issueFilterStore?.issueFilters?.displayFilters;
+    const sortFields = displayFilters?.order_by_fields?.length ? displayFilters.order_by_fields : key ? [key] : [];
+    if (sortFields.length < 2) return this.issuesSortWithSingleOrderBy(issueIds, sortFields[0]);
+
+    // Preserve the existing created-at tie break once, then layer the saved
+    // criteria from lowest to highest priority without resetting tie order.
+    const createdAtFallbackIds = this.issuesSortWithSingleOrderBy(issueIds, undefined);
+    return sortWithOrderedCriteria(createdAtFallbackIds, sortFields, (ids, sortField, preserveInputOrder) =>
+      this.issuesSortWithSingleOrderBy(ids, sortField, preserveInputOrder)
+    );
+  };
+
+  issuesSortWithSingleOrderBy = (
+    issueIds: string[],
+    key: TIssueOrderByOptions | undefined,
+    preserveInputOrder = false
+  ): string[] => {
     const issues = this.rootIssueStore.issues.getIssuesByIds(issueIds, this.isArchived ? "archived" : "un-archived");
-    const array = orderBy(issues, (issue) => convertToISODateString(issue["created_at"]), ["desc"]);
+    const array = preserveInputOrder
+      ? issues
+      : orderBy(issues, (issue) => convertToISODateString(issue["created_at"]), ["desc"]);
 
     switch (key) {
       case "sort_order":

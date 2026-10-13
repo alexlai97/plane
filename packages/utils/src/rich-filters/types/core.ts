@@ -6,6 +6,9 @@
 
 import type {
   TFilterAndGroupNode,
+  TFilterOrGroupNode,
+  TFilterNotGroupNode,
+  TFilterUnsupportedNode,
   TFilterConditionNode,
   TFilterExpression,
   TFilterFieldType,
@@ -24,6 +27,10 @@ export const isConditionNode = <P extends TFilterProperty, V extends TFilterValu
   node: TFilterExpression<P>
 ): node is TFilterConditionNode<P, V> => node.type === FILTER_NODE_TYPE.CONDITION;
 
+export const isUnsupportedNode = <P extends TFilterProperty>(
+  node: TFilterExpression<P>
+): node is TFilterUnsupportedNode<P> => node.type === FILTER_NODE_TYPE.UNSUPPORTED;
+
 /**
  * Type guard to check if a node is a group node.
  * @param node - The node to check
@@ -41,6 +48,13 @@ export const isAndGroupNode = <P extends TFilterProperty>(
   group: TFilterGroupNode<P>
 ): group is TFilterAndGroupNode<P> => group.logicalOperator === LOGICAL_OPERATOR.AND;
 
+export const isOrGroupNode = <P extends TFilterProperty>(group: TFilterGroupNode<P>): group is TFilterOrGroupNode<P> =>
+  group.logicalOperator === LOGICAL_OPERATOR.OR;
+
+export const isNotGroupNode = <P extends TFilterProperty>(
+  group: TFilterGroupNode<P>
+): group is TFilterNotGroupNode<P> => group.logicalOperator === LOGICAL_OPERATOR.NOT;
+
 /**
  * Type guard to check if a group node has children property
  * @param group - The group node to check
@@ -48,7 +62,7 @@ export const isAndGroupNode = <P extends TFilterProperty>(
  */
 export const hasChildrenProperty = <P extends TFilterProperty>(
   group: TFilterGroupNode<P>
-): group is TFilterAndGroupNode<P> => {
+): group is TFilterGroupNode<P> => {
   const groupWithChildren = group as { children?: unknown };
   return "children" in group && Array.isArray(groupWithChildren.children);
 };

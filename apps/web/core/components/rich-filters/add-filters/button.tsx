@@ -18,6 +18,8 @@ import { cn } from "@plane/utils";
 import { AddFilterDropdown } from "./dropdown";
 
 export type TAddFilterButtonProps<P extends TFilterProperty, E extends TExternalFilter> = {
+  groupOperator?: "and" | "or";
+  parentGroupId?: string | null;
   buttonConfig?: {
     label: string | null;
     variant?: TButtonVariant;
@@ -37,7 +39,7 @@ export type TAddFilterButtonProps<P extends TFilterProperty, E extends TExternal
 export const AddFilterButton = observer(function AddFilterButton<P extends TFilterProperty, E extends TExternalFilter>(
   props: TAddFilterButtonProps<P, E>
 ) {
-  const { filter, buttonConfig, onFilterSelect } = props;
+  const { filter, buttonConfig, onFilterSelect, parentGroupId, groupOperator } = props;
   const {
     variant = "secondary",
     size = "base",
@@ -50,15 +52,17 @@ export const AddFilterButton = observer(function AddFilterButton<P extends TFilt
   const FilterIcon = iconConfig.iconComponent || ListFilter;
 
   const handleFilterSelect = (property: P, operator: TSupportedOperators, isNegation: boolean) => {
-    filter.addCondition(
-      LOGICAL_OPERATOR.AND,
-      {
-        property,
-        operator,
-        value: undefined,
-      },
-      isNegation
-    );
+    const rootOperator =
+      groupOperator ??
+      (filter.expression?.type === "group" && filter.expression.logicalOperator === LOGICAL_OPERATOR.OR
+        ? LOGICAL_OPERATOR.OR
+        : LOGICAL_OPERATOR.AND);
+    const condition = { property, operator, value: undefined };
+    if (parentGroupId !== undefined) {
+      filter.addConditionToGroup(parentGroupId, rootOperator, condition, isNegation);
+    } else {
+      filter.addCondition(rootOperator, condition, isNegation);
+    }
     onFilterSelect?.(property);
   };
 

@@ -135,3 +135,10 @@ export const getDateRangePickerConfig = (config: TDateRangeConfig) =>
     type: FILTER_FIELD_TYPE.DATE_RANGE,
     ...config,
   });
+
+/** Value-less configuration for explicit empty/not-empty operators. */
+export const getEmptyFilterConfig = (config: TBaseFilterFieldConfig) =>
+  createFilterFieldConfig<typeof FILTER_FIELD_TYPE.EMPTY, never>({
+    type: FILTER_FIELD_TYPE.EMPTY,
+    ...config,
+  });

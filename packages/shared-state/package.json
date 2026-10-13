@@ -18,6 +18,7 @@
     "check:lint": "oxlint --max-warnings=0 .",
     "check:types": "tsc --noEmit",
     "check:format": "oxfmt --check .",
+    "test:rich-filters": "pnpm --filter @plane/types build && pnpm --filter @plane/utils build && pnpm --filter @plane/constants build && pnpm --filter @plane/shared-state build && node --test tests/rich-filters-foundation.test.mjs",
     "fix:lint": "oxlint --fix .",
     "fix:format": "oxfmt .",
     "clean": "rm -rf .turbo && rm -rf .next && rm -rf node_modules && rm -rf dist"

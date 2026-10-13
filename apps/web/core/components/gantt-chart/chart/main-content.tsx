@@ -13,6 +13,7 @@ import type {
   IBlockUpdateData,
   IBlockUpdateDependencyData,
   IGanttBlock,
+  IGanttIssueGroup,
   TGanttViews,
 } from "@plane/types";
 import { cn, getDate } from "@plane/utils";
@@ -33,6 +34,7 @@ import { TimelineDragHelper } from "./timeline-drag-helper";
 
 type Props = {
   blockIds: string[];
+  groups?: IGanttIssueGroup[];
   canLoadMoreBlocks?: boolean;
   loadMoreBlocks?: () => void;
   updateBlockDates?: (updates: IBlockUpdateDependencyData[]) => Promise<void>;
@@ -62,6 +64,7 @@ type Props = {
 export const GanttChartMainContent = observer(function GanttChartMainContent(props: Props) {
   const {
     blockIds,
+    groups,
     loadMoreBlocks,
     blockToRender,
     blockUpdateHandler,
@@ -181,6 +184,7 @@ export const GanttChartMainContent = observer(function GanttChartMainContent(pro
             >
               <GanttChartSidebar
                 blockIds={blockIds}
+                groups={groups}
                 loadMoreBlocks={loadMoreBlocks}
                 canLoadMoreBlocks={canLoadMoreBlocks}
                 ganttContainerRef={ganttContainerRef}
@@ -206,6 +210,7 @@ export const GanttChartMainContent = observer(function GanttChartMainContent(pro
                   >
                     <GanttChartRowList
                       blockIds={blockIds}
+                      groups={groups}
                       blockUpdateHandler={blockUpdateHandler}
                       handleScrollToBlock={handleScrollToBlock}
                       enableAddBlock={enableAddBlock}
@@ -215,6 +220,7 @@ export const GanttChartMainContent = observer(function GanttChartMainContent(pro
                     />
                     <GanttChartBlocksList
                       blockIds={blockIds}
+                      groups={groups}
                       blockToRender={blockToRender}
                       enableBlockLeftResize={enableBlockLeftResize}
                       enableBlockRightResize={enableBlockRightResize}

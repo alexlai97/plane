@@ -15,6 +15,7 @@ import type {
   TFilterValue,
   TFilterConditionNodeForDisplay,
   TAllAvailableOperatorsForDisplay,
+  TSupportedOperators,
 } from "@plane/types";
 import { CustomSearchSelect } from "@plane/ui";
 import { cn, getOperatorForPayload } from "@plane/utils";
@@ -47,11 +48,14 @@ export const FilterItem = observer(function FilterItem<P extends TFilterProperty
       content: option.label,
       query: option.label.toLowerCase(),
     }));
+  const operatorForPayload = getOperatorForPayload(condition.operator);
   const selectedOperatorFieldConfig = filterConfig?.getOperatorConfig(condition.operator);
-  const selectedOperatorOption = filterConfig?.getDisplayOperatorByValue(
-    condition.operator,
-    condition.value as TFilterValue
-  );
+  const selectedOperatorOption = operatorForPayload.isNegation
+    ? condition.operator
+    : filterConfig?.getDisplayOperatorByValue(
+        operatorForPayload.operator as TSupportedOperators,
+        condition.value as TFilterValue
+      );
   // Disable operator selection when filter is disabled or only one operator option is available and selected
   const isOperatorSelectionDisabled =
     isDisabled ||
@@ -60,7 +64,7 @@ export const FilterItem = observer(function FilterItem<P extends TFilterProperty
   const handleOperatorChange = (operator: TAllAvailableOperatorsForDisplay) => {
     if (operator) {
       const { operator: positiveOperator, isNegation } = getOperatorForPayload(operator);
-      filter.updateConditionOperator(condition.id, positiveOperator, isNegation);
+      filter.updateConditionOperator(condition.id, positiveOperator as TSupportedOperators, isNegation);
     }
   };
 
@@ -102,14 +106,14 @@ export const FilterItem = observer(function FilterItem<P extends TFilterProperty
         options={operatorOptions}
         className={COMMON_FILTER_ITEM_BORDER_CLASSNAME}
         customButtonClassName={cn(
-          "h-full px-2 text-13 font-regular",
-          isOperatorSelectionDisabled && "hover:bg-layer-2-hover"
+          "h-full min-w-[76px] justify-between gap-2 bg-layer-1 px-2 text-13 font-regular hover:bg-layer-2-hover",
+          isOperatorSelectionDisabled && "cursor-default"
         )}
         optionsClassName="w-48"
         maxHeight="2xl"
         disabled={isOperatorSelectionDisabled}
         customButton={
-          <div className="flex h-full items-center" aria-disabled={isOperatorSelectionDisabled}>
+          <div className="flex h-full items-center justify-between gap-2" aria-disabled={isOperatorSelectionDisabled}>
             {filterConfig.getLabelForOperator(selectedOperatorOption)}
           </div>
         }

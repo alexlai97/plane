@@ -12,10 +12,12 @@ import { observer } from "mobx-react";
 import { useOutsideClickDetector } from "@plane/hooks";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { DropIndicator } from "@plane/ui";
+import { getGanttSidebarElementId } from "@/components/gantt-chart/constants";
 import { HIGHLIGHT_WITH_LINE, highlightIssueOnDrop } from "@/components/issues/issue-layouts/utils";
 
 type Props = {
   id: string;
+  groupId?: string;
   isLastChild: boolean;
   isDragEnabled: boolean;
   children: (isDragging: boolean) => React.ReactNode;
@@ -23,7 +25,7 @@ type Props = {
 };
 
 export const GanttDnDHOC = observer(function GanttDnDHOC(props: Props) {
-  const { id, isLastChild, children, onDrop, isDragEnabled } = props;
+  const { id, groupId, isLastChild, children, onDrop, isDragEnabled } = props;
   // states
   const [isDragging, setIsDragging] = useState(false);
   const [instruction, setInstruction] = useState<"DRAG_OVER" | "DRAG_BELOW" | undefined>(undefined);
@@ -100,7 +102,7 @@ export const GanttDnDHOC = observer(function GanttDnDHOC(props: Props) {
 
   return (
     <div
-      id={`draggable-${id}`}
+      id={getGanttSidebarElementId(id, groupId)}
       className={"relative"}
       ref={blockRef}
       onDragStart={() => {

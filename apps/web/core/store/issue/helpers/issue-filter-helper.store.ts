@@ -99,7 +99,9 @@ export class IssueFilterHelperStore implements IIssueFilterHelperStore {
       sub_group_by: displayFilters?.sub_group_by
         ? EIssueGroupByToServerOptions[displayFilters.sub_group_by]
         : undefined,
-      order_by: displayFilters?.order_by || undefined,
+      order_by: displayFilters?.order_by_fields?.length
+        ? displayFilters.order_by_fields.join(",")
+        : displayFilters?.order_by || undefined,
       sub_issue: displayFilters?.sub_issue ?? true,
     };
 
@@ -265,7 +267,7 @@ export class IssueFilterHelperStore implements IIssueFilterHelperStore {
    * @returns
    */
   getShouldReFetchIssues = (displayFilters: IIssueDisplayFilterOptions) => {
-    const NON_SERVER_DISPLAY_FILTERS = ["order_by", "sub_issue", "type"];
+    const NON_SERVER_DISPLAY_FILTERS = ["group_by", "sub_group_by", "order_by", "order_by_fields", "sub_issue", "type"];
     const displayFilterKeys = Object.keys(displayFilters);
 
     return NON_SERVER_DISPLAY_FILTERS.some((serverDisplayfilter: string) =>

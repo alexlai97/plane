@@ -2,13 +2,17 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+# Python imports
+from types import SimpleNamespace
+
 # Third party imports
 from rest_framework import serializers
 
 # Module imports
 from .base import DynamicBaseSerializer
-from plane.db.models import IssueView
+from plane.db.models import Issue, IssueView
 from plane.utils.issue_filters import issue_filters
+from plane.utils.filters import ComplexFilterBackend, IssueFilterSet
 
 
 class ViewIssueListSerializer(serializers.Serializer):
@@ -55,6 +59,17 @@ class ViewIssueListSerializer(serializers.Serializer):
 
 class IssueViewSerializer(DynamicBaseSerializer):
     is_favorite = serializers.BooleanField(read_only=True)
+
+    def validate_rich_filters(self, value):
+        # Validate the exact expression that will be queried. Saving a rule
+        # must not succeed only to fail when the view is opened later.
+        if not isinstance(value, dict):
+            raise serializers.ValidationError("筛选规则必须是条件对象。")
+        if value:
+            ComplexFilterBackend().filter_queryset(
+                None, Issue.objects.none(), SimpleNamespace(filterset_class=IssueFilterSet), filter_data=value
+            )
+        return value
 
     class Meta:
         model = IssueView

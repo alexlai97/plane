@@ -94,3 +94,75 @@ class TestIssueListOrderByInjection:
             assert response.status_code == status.HTTP_200_OK, (
                 f"order_by={value!r} got {response.status_code}: {response.data!r}"
             )
+
+    @pytest.mark.django_db
+    def test_comma_separated_multi_sort_orders_by_criteria_priority(
+        self, api_key_client, workspace, project, state, issue
+    ):
+        """Every requested criterion participates in stable priority order."""
+        issue.priority = "medium"
+        issue.sequence_id = 1
+        issue.save(update_fields=["priority", "sequence_id"])
+        high = Issue.objects.create(
+            name="High issue", workspace=workspace, project=project, state=state,
+            created_by=issue.created_by, priority="high", sequence_id=3,
+        )
+        urgent = Issue.objects.create(
+            name="Urgent issue", workspace=workspace, project=project, state=state,
+            created_by=issue.created_by, priority="urgent", sequence_id=2,
+        )
+
+        response = api_key_client.get(
+            self.get_url(workspace.slug, project.id),
+            {"order_by": "-priority,-sequence_id"},
+        )
+
+        assert response.status_code == status.HTTP_200_OK, response.data
+        assert [item["id"] for item in response.data["results"]] == [
+            str(urgent.id), str(high.id), str(issue.id),
+        ]
+
+    @pytest.mark.django_db
+    def test_comma_separated_multi_sort_works_with_grouped_pagination(
+        self, api_key_client, workspace, project, state, issue
+    ):
+        """Grouped windows use the same multi-sort ordering as flat lists."""
+        issue.priority = "medium"
+        issue.save(update_fields=["priority"])
+        urgent = Issue.objects.create(
+            name="Urgent issue", workspace=workspace, project=project, state=state,
+            created_by=issue.created_by, priority="urgent", sequence_id=2,
+        )
+
+        response = api_key_client.get(
+            self.get_url(workspace.slug, project.id),
+            {"order_by": "-priority,sequence_id", "group_by": "state_id"},
+        )
+
+        assert response.status_code == status.HTTP_200_OK, response.data
+        group = response.data["results"][str(state.id)]
+        assert [item["id"] for item in group["results"]] == [str(urgent.id), str(issue.id)]
+
+    @pytest.mark.django_db
+    def test_comma_separated_multi_sort_works_with_subgrouped_pagination(
+        self, api_key_client, workspace, project, state, issue
+    ):
+        issue.priority = "medium"
+        issue.save(update_fields=["priority"])
+        urgent = Issue.objects.create(
+            name="Urgent issue", workspace=workspace, project=project, state=state,
+            created_by=issue.created_by, priority="urgent", sequence_id=2,
+        )
+
+        response = api_key_client.get(
+            self.get_url(workspace.slug, project.id),
+            {
+                "order_by": "-priority,sequence_id",
+                "group_by": "state_id",
+                "sub_group_by": "priority",
+            },
+        )
+
+        assert response.status_code == status.HTTP_200_OK, response.data
+        subgroup = response.data["results"][str(state.id)]["results"]["urgent"]
+        assert [item["id"] for item in subgroup["results"]] == [str(urgent.id)]

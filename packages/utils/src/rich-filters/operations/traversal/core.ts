@@ -12,10 +12,11 @@ import type {
   TFilterExpression,
   TFilterGroupNode,
   TFilterProperty,
+  TFilterUnsupportedNode,
   TFilterValue,
 } from "@plane/types";
 // local imports
-import { isConditionNode, isGroupNode } from "../../types/core";
+import { isConditionNode, isGroupNode, isUnsupportedNode } from "../../types/core";
 import { getGroupChildren } from "../../types/shared";
 import { getDisplayOperator } from "./shared";
 
@@ -107,6 +108,11 @@ export const findNodeById = <P extends TFilterProperty>(
   // Return the first match (there should only be one with unique IDs)
   return results.length > 0 ? results[0] : null;
 };
+
+export const extractUnsupportedNodes = <P extends TFilterProperty>(
+  expression: TFilterExpression<P> | null
+): TFilterUnsupportedNode<P>[] =>
+  traverseExpressionTree(expression, (node) => (isUnsupportedNode(node) ? node : null), TreeTraversalMode.ALL);
 
 /**
  * Finds the parent chain of a given node ID in the filter expression tree.

@@ -2,7 +2,10 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
-from django.db.models import Case, CharField, Min, Value, When
+from django.db.models import Case, Count, F, IntegerField, Min, OuterRef, Subquery, Value, When
+from django.db.models.functions import Coalesce
+
+from plane.db.models import FileAsset, Issue, IssueLink
 
 # Custom ordering for priority and state
 PRIORITY_ORDER = ["urgent", "high", "medium", "low", "none"]
@@ -31,6 +34,11 @@ ISSUE_ORDER_BY_ALLOWLIST = frozenset({
     "assignees__first_name",
     "labels__name",
     "issue_module__module__name",
+    "issue_cycle__cycle__name",
+    "estimate_point__key",
+    "link_count",
+    "attachment_count",
+    "sub_issues_count",
 })
 
 # IntakeIssue queryset — fields are prefixed with `issue__` for the join.
@@ -142,52 +150,123 @@ def sanitize_order_by(value, allowed_fields, default="-created_at"):
     return f"-{bare}" if is_desc else bare
 
 
-def order_issue_queryset(issue_queryset, order_by_param="-created_at"):
-    # Reject any field that is not in the allowlist before building the queryset.
-    # An unrecognised value is silently replaced with the safe default so callers
-    # receive consistent output rather than an ORM error or data leak.
-    order_by_param = sanitize_order_by(order_by_param, ISSUE_ORDER_BY_ALLOWLIST, default="-created_at")
-    # Priority Ordering
-    if order_by_param == "priority" or order_by_param == "-priority":
-        issue_queryset = issue_queryset.annotate(
-            priority_order=Case(
-                *[When(priority=p, then=Value(i)) for i, p in enumerate(PRIORITY_ORDER)],
-                output_field=CharField(),
-            )
-        ).order_by("priority_order", "-created_at")
-        order_by_param = "priority_order" if order_by_param.startswith("-") else "-priority_order"
-    # State Ordering
-    elif order_by_param in ["state__group", "-state__group"]:
-        state_order = STATE_ORDER if order_by_param in ["state__name", "state__group"] else STATE_ORDER[::-1]
-        issue_queryset = issue_queryset.annotate(
-            state_order=Case(
-                *[When(state__group=state_group, then=Value(i)) for i, state_group in enumerate(state_order)],
-                default=Value(len(state_order)),
-                output_field=CharField(),
-            )
-        ).order_by("state_order", "-created_at")
-        order_by_param = "-state_order" if order_by_param.startswith("-") else "state_order"
-    # assignee and label ordering
-    elif order_by_param in [
-        "labels__name",
-        "assignees__first_name",
-        "issue_module__module__name",
-        "-labels__name",
-        "-assignees__first_name",
-        "-issue_module__module__name",
-    ]:
-        issue_queryset = issue_queryset.annotate(
-            min_values=Min(order_by_param[1::] if order_by_param.startswith("-") else order_by_param)
-        ).order_by(
-            "-min_values" if order_by_param.startswith("-") else "min_values",
-            "-created_at",
-        )
-        order_by_param = "-min_values" if order_by_param.startswith("-") else "min_values"
+def _order_issue_queryset_multi(issue_queryset, order_by_param):
+    """Apply an ordered list of issue sort criteria.
+
+    The request value is a comma-separated list. Resolve every public field
+    through the same allowlist used by the single-sort path, then translate
+    fields with domain-specific ordering into private annotations. Returning
+    the resolved field names lets all paginator variants apply the exact same
+    ordering, including grouped and nested-group queries.
+    """
+    if isinstance(order_by_param, (list, tuple)):
+        raw_fields = order_by_param
     else:
-        # If the order_by_param is created_at, then don't add the -created_at
-        if "created_at" in order_by_param:
-            issue_queryset = issue_queryset.order_by(order_by_param)
-        else:
-            issue_queryset = issue_queryset.order_by(order_by_param, "-created_at")
-        order_by_param = order_by_param
-    return issue_queryset, order_by_param
+        raw_fields = str(order_by_param or "-created_at").split(",")
+    fields = []
+    for raw_field in raw_fields:
+        field = sanitize_order_by(str(raw_field).strip(), ISSUE_ORDER_BY_ALLOWLIST, default="")
+        if field and field not in fields:
+            fields.append(field)
+
+    if not fields:
+        fields = ["-created_at"]
+
+    resolved = []
+    annotations = {}
+    for index, field in enumerate(fields):
+        descending = field.startswith("-")
+        bare_field = field[1:] if descending else field
+        alias = f"_sort_{index}"
+
+        if bare_field == "priority":
+            annotations[alias] = Case(
+                *[
+                    When(priority=value, then=Value(len(PRIORITY_ORDER) - index))
+                    for index, value in enumerate(PRIORITY_ORDER)
+                ],
+                default=Value(None, output_field=IntegerField()),
+                output_field=IntegerField(),
+            )
+            bare_field = alias
+        elif bare_field == "state__group":
+            annotations[alias] = Case(
+                *[When(state__group=value, then=Value(index)) for index, value in enumerate(STATE_ORDER)],
+                default=Value(len(STATE_ORDER)),
+                output_field=IntegerField(),
+            )
+            bare_field = alias
+        elif bare_field in {
+            "labels__name",
+            "assignees__first_name",
+            "issue_module__module__name",
+            "issue_cycle__cycle__name",
+        }:
+            annotations[alias] = Min(bare_field)
+            bare_field = alias
+        elif bare_field == "link_count":
+            annotations[alias] = Coalesce(
+                Subquery(
+                    IssueLink.objects.filter(issue=OuterRef("id"))
+                    .values("issue")
+                    .annotate(count=Count("id"))
+                    .values("count")
+                ),
+                Value(0),
+                output_field=IntegerField(),
+            )
+            bare_field = alias
+        elif bare_field == "attachment_count":
+            annotations[alias] = Coalesce(
+                Subquery(
+                    FileAsset.objects.filter(
+                        issue_id=OuterRef("id"),
+                        entity_type=FileAsset.EntityTypeContext.ISSUE_ATTACHMENT,
+                    )
+                    .values("issue_id")
+                    .annotate(count=Count("id"))
+                    .values("count")
+                ),
+                Value(0),
+                output_field=IntegerField(),
+            )
+            bare_field = alias
+        elif bare_field == "sub_issues_count":
+            annotations[alias] = Coalesce(
+                Subquery(
+                    Issue.issue_objects.filter(parent=OuterRef("id"))
+                    .values("parent")
+                    .annotate(count=Count("id"))
+                    .values("count")
+                ),
+                Value(0),
+                output_field=IntegerField(),
+            )
+            bare_field = alias
+
+        resolved.append(f"-{bare_field}" if descending else bare_field)
+
+    if annotations:
+        issue_queryset = issue_queryset.annotate(**annotations)
+
+    # Deterministic pagination needs a unique final key. Keep caller criteria
+    # in their supplied priority order and only append the primary key as a tie
+    # breaker; do not silently add another business sort criterion.
+    if not any(field.lstrip("-") == "id" for field in resolved):
+        resolved.append("id")
+
+    ordering_expressions = []
+    for value in resolved:
+        descending = value.startswith("-")
+        field = value[1:] if descending else value
+        expression = F(field)
+        ordering_expressions.append(
+            expression.desc(nulls_last=True) if descending else expression.asc(nulls_last=True)
+        )
+    issue_queryset = issue_queryset.order_by(*ordering_expressions)
+    return issue_queryset, resolved
+
+
+def order_issue_queryset(issue_queryset, order_by_param="-created_at"):
+    """Apply the same safe ordering contract for legacy single-sort and lists."""
+    return _order_issue_queryset_multi(issue_queryset, order_by_param)

@@ -37,15 +37,26 @@ export function HeaderColumn(props: Props) {
     ""
   );
   const propertyDetails = SPREADSHEET_PROPERTY_DETAILS[property];
+  if (!propertyDetails) return null;
 
   const handleOrderBy = (order: TIssueOrderByOptions, itemKey: string) => {
-    handleDisplayFilterUpdate({ order_by: order });
+    const currentOrder = displayFilters.order_by_fields?.length
+      ? displayFilters.order_by_fields
+      : displayFilters.order_by
+        ? [displayFilters.order_by]
+        : [];
+    const nextOrder = [
+      order,
+      ...currentOrder.filter(
+        (field) =>
+          field !== order && field !== propertyDetails.descendingOrderKey && field !== propertyDetails.ascendingOrderKey
+      ),
+    ];
+    handleDisplayFilterUpdate({ order_by: order, order_by_fields: nextOrder });
 
     setSelectedMenuItem(`${order}_${itemKey}`);
     setActiveSortingProperty(order === "-created_at" ? "" : itemKey);
   };
-
-  if (!propertyDetails) return null;
 
   return (
     <CustomMenu

@@ -8,7 +8,7 @@
 import type { SingleOrArray, TFilterExpression, TFilterProperty, TFilterValue } from "@plane/types";
 // local imports
 import { getGroupChildren } from "../types";
-import { isConditionNode, isGroupNode } from "../types/core";
+import { isConditionNode, isGroupNode, isUnsupportedNode } from "../types/core";
 
 /**
  * Determines whether to notify about a change based on the filter value.
@@ -47,6 +47,8 @@ export const shouldNotifyChangeForExpression = <P extends TFilterProperty>(
   if (isConditionNode(expression)) {
     return hasValidValue(expression.value);
   }
+
+  if (isUnsupportedNode(expression)) return true;
 
   // If it's a group, check if any of its children have meaningful values
   if (isGroupNode(expression)) {

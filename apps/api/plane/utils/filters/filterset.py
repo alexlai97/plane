@@ -9,6 +9,7 @@ from django.db.models import Q
 from django_filters import FilterSet, filters
 
 from plane.db.models import Issue
+from .dates import RelativeDateFilter, RelativeDateRangeFilter
 
 
 class UUIDInFilter(filters.BaseInFilter, filters.UUIDFilter):
@@ -19,7 +20,7 @@ class CharInFilter(filters.BaseInFilter, filters.CharFilter):
     pass
 
 
-class DateCSVRangeFilter(filters.BaseCSVFilter, filters.DateFilter):
+class DateCSVRangeFilter(RelativeDateRangeFilter):
     """Comma-separated date range ("YYYY-MM-DD,YYYY-MM-DD") for DateTimeField columns.
 
     Parses the CSV value the UI sends into a list of dates so it can be paired with a
@@ -180,19 +181,80 @@ class IssueFilterSet(BaseFilterSet):
     # The same applies to ranges: the UI sends "YYYY-MM-DD,YYYY-MM-DD", and a plain
     # `range` on a DateTimeField turns the upper bound into that day's midnight, which
     # silently dropped every row created during the final day of the range.
-    created_at = filters.DateFilter(field_name="created_at", lookup_expr="date")
-    created_at__exact = filters.DateFilter(field_name="created_at", lookup_expr="date")
+    created_at = RelativeDateFilter(field_name="created_at", lookup_expr="date")
+    created_at__exact = RelativeDateFilter(field_name="created_at", lookup_expr="date")
     created_at__range = DateCSVRangeFilter(field_name="created_at", lookup_expr="date__range")
 
-    updated_at = filters.DateFilter(field_name="updated_at", lookup_expr="date")
-    updated_at__exact = filters.DateFilter(field_name="updated_at", lookup_expr="date")
+    updated_at = RelativeDateFilter(field_name="updated_at", lookup_expr="date")
+    updated_at__exact = RelativeDateFilter(field_name="updated_at", lookup_expr="date")
     updated_at__range = DateCSVRangeFilter(field_name="updated_at", lookup_expr="date__range")
+
+    start_date = RelativeDateFilter(field_name="start_date")
+    start_date__exact = RelativeDateFilter(field_name="start_date")
+    start_date__range = RelativeDateRangeFilter(field_name="start_date", lookup_expr="range")
+
+    target_date = RelativeDateFilter(field_name="target_date")
+    target_date__exact = RelativeDateFilter(field_name="target_date")
+    target_date__range = RelativeDateRangeFilter(field_name="target_date", lookup_expr="range")
+
+    start_date__lt = RelativeDateFilter(field_name="start_date", lookup_expr="lt")
+    start_date__lte = RelativeDateFilter(field_name="start_date", lookup_expr="lte")
+    start_date__gt = RelativeDateFilter(field_name="start_date", lookup_expr="gt")
+    start_date__gte = RelativeDateFilter(field_name="start_date", lookup_expr="gte")
+
+    target_date__lt = RelativeDateFilter(field_name="target_date", lookup_expr="lt")
+    target_date__lte = RelativeDateFilter(field_name="target_date", lookup_expr="lte")
+    target_date__gt = RelativeDateFilter(field_name="target_date", lookup_expr="gt")
+    target_date__gte = RelativeDateFilter(field_name="target_date", lookup_expr="gte")
+
+    created_at__lt = RelativeDateFilter(field_name="created_at", lookup_expr="date__lt")
+    created_at__lte = RelativeDateFilter(field_name="created_at", lookup_expr="date__lte")
+    created_at__gt = RelativeDateFilter(field_name="created_at", lookup_expr="date__gt")
+    created_at__gte = RelativeDateFilter(field_name="created_at", lookup_expr="date__gte")
+    created_at__isnull = filters.BooleanFilter(field_name="created_at", lookup_expr="isnull")
+
+    updated_at__lt = RelativeDateFilter(field_name="updated_at", lookup_expr="date__lt")
+    updated_at__lte = RelativeDateFilter(field_name="updated_at", lookup_expr="date__lte")
+    updated_at__gt = RelativeDateFilter(field_name="updated_at", lookup_expr="date__gt")
+    updated_at__gte = RelativeDateFilter(field_name="updated_at", lookup_expr="date__gte")
+    updated_at__isnull = filters.BooleanFilter(field_name="updated_at", lookup_expr="isnull")
+
+    # Empty relations mean no active relation; soft-deleted rows are absent.
+    assignee_id__isnull = filters.BooleanFilter(method="filter_relation_empty")
+    label_id__isnull = filters.BooleanFilter(method="filter_relation_empty")
+    module_id__isnull = filters.BooleanFilter(method="filter_relation_empty")
+    cycle_id__isnull = filters.BooleanFilter(method="filter_relation_empty")
+    mention_id__isnull = filters.BooleanFilter(method="filter_relation_empty")
+    subscriber_id__isnull = filters.BooleanFilter(method="filter_relation_empty")
+    created_by_id__isnull = filters.BooleanFilter(field_name="created_by_id", lookup_expr="isnull")
+    state_id__isnull = filters.BooleanFilter(field_name="state_id", lookup_expr="isnull")
+    state_group__isnull = filters.BooleanFilter(field_name="state__group", lookup_expr="isnull")
+    project_id__isnull = filters.BooleanFilter(field_name="project_id", lookup_expr="isnull")
+    priority__isnull = filters.BooleanFilter(method="filter_priority_empty")
+
+    def filter_priority_empty(self, queryset, name, value):
+        condition = Q(priority="none") | Q(priority__isnull=True)
+        return condition if value else ~condition
+
+    def filter_relation_empty(self, queryset, name, value):
+        relations = {
+            "assignee_id": "issue_assignee", "label_id": "label_issue",
+            "module_id": "issue_module", "cycle_id": "issue_cycle",
+            "mention_id": "issue_mention", "subscriber_id": "issue_subscribers",
+        }
+        relation = relations[name.removesuffix("__isnull")]
+        active = queryset.order_by().filter(**{
+            f"{relation}__pk__isnull": False,
+            f"{relation}__deleted_at__isnull": True,
+        }).values("pk")
+        present = Q(pk__in=active)
+        return ~present if value else present
 
     class Meta:
         model = Issue
         fields = {
-            "start_date": ["exact", "range"],
-            "target_date": ["exact", "range"],
+            "start_date": ["exact", "range", "isnull"],
+            "target_date": ["exact", "range", "isnull"],
             "created_at": ["exact", "range"],
             "updated_at": ["exact", "range"],
             "is_draft": ["exact"],
@@ -214,84 +276,96 @@ class IssueFilterSet(BaseFilterSet):
 
     def filter_assignee_id(self, queryset, name, value):
         """Filter by assignee ID, excluding soft deleted users"""
-        return Q(
+        matching = queryset.order_by().filter(Q(
             issue_assignee__assignee_id=value,
             issue_assignee__deleted_at__isnull=True,
-        )
+        )).values("pk")
+        return Q(pk__in=matching)
 
     def filter_assignee_id_in(self, queryset, name, value):
         """Filter by assignee IDs (in), excluding soft deleted users"""
-        return Q(
+        matching = queryset.order_by().filter(Q(
             issue_assignee__assignee_id__in=value,
             issue_assignee__deleted_at__isnull=True,
-        )
+        )).values("pk")
+        return Q(pk__in=matching)
 
     def filter_cycle_id(self, queryset, name, value):
         """Filter by cycle ID, excluding soft deleted cycles"""
-        return Q(
+        matching = queryset.order_by().filter(Q(
             issue_cycle__cycle_id=value,
             issue_cycle__deleted_at__isnull=True,
-        )
+        )).values("pk")
+        return Q(pk__in=matching)
 
     def filter_cycle_id_in(self, queryset, name, value):
         """Filter by cycle IDs (in), excluding soft deleted cycles"""
-        return Q(
+        matching = queryset.order_by().filter(Q(
             issue_cycle__cycle_id__in=value,
             issue_cycle__deleted_at__isnull=True,
-        )
+        )).values("pk")
+        return Q(pk__in=matching)
 
     def filter_module_id(self, queryset, name, value):
         """Filter by module ID, excluding soft deleted modules"""
-        return Q(
+        matching = queryset.order_by().filter(Q(
             issue_module__module_id=value,
             issue_module__deleted_at__isnull=True,
-        )
+        )).values("pk")
+        return Q(pk__in=matching)
 
     def filter_module_id_in(self, queryset, name, value):
         """Filter by module IDs (in), excluding soft deleted modules"""
-        return Q(
+        matching = queryset.order_by().filter(Q(
             issue_module__module_id__in=value,
             issue_module__deleted_at__isnull=True,
-        )
+        )).values("pk")
+        return Q(pk__in=matching)
 
     def filter_mention_id(self, queryset, name, value):
         """Filter by mention ID, excluding soft deleted users"""
-        return Q(
+        matching = queryset.order_by().filter(Q(
             issue_mention__mention_id=value,
             issue_mention__deleted_at__isnull=True,
-        )
+        )).values("pk")
+        return Q(pk__in=matching)
 
     def filter_mention_id_in(self, queryset, name, value):
         """Filter by mention IDs (in), excluding soft deleted users"""
-        return Q(
+        matching = queryset.order_by().filter(Q(
             issue_mention__mention_id__in=value,
             issue_mention__deleted_at__isnull=True,
-        )
+        )).values("pk")
+        return Q(pk__in=matching)
 
     def filter_label_id(self, queryset, name, value):
         """Filter by label ID, excluding soft deleted labels"""
-        return Q(
+        matching = queryset.order_by().filter(Q(
             label_issue__label_id=value,
             label_issue__deleted_at__isnull=True,
-        )
+        )).values("pk")
+        return Q(pk__in=matching)
 
     def filter_label_id_in(self, queryset, name, value):
         """Filter by label IDs (in), excluding soft deleted labels"""
-        return Q(
+        matching = queryset.order_by().filter(Q(
             label_issue__label_id__in=value,
             label_issue__deleted_at__isnull=True,
-        )
+        )).values("pk")
+        return Q(pk__in=matching)
 
     def filter_subscriber_id(self, queryset, name, value):
         """Filter by subscriber ID, excluding soft deleted users"""
-        return Q(
+        matching = queryset.order_by().filter(Q(
             issue_subscribers__subscriber_id=value,
             issue_subscribers__deleted_at__isnull=True,
-        )
+        )).values("pk")
+        return Q(pk__in=matching)
 
     def filter_subscriber_id_in(self, queryset, name, value):
         """Filter by subscriber IDs (in), excluding soft deleted users"""
-        return Q(
+        matching = queryset.order_by().filter(Q(
             issue_subscribers__subscriber_id__in=value,
             issue_subscribers__deleted_at__isnull=True,
-        )
+        )).values("pk")
+        return Q(pk__in=matching)

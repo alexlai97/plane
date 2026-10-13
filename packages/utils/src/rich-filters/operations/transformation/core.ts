@@ -117,6 +117,9 @@ export const transformExpressionTree = <P extends TFilterProperty>(
     return { expression, shouldNotify: false };
   }
 
+  // Unknown saved filters are preserved as leaf nodes until the user removes them.
+  if (!isGroupNode(expression)) return { expression, shouldNotify: false };
+
   // Handle group nodes by delegating to the extended transformGroup function
   if (isGroupNode(expression)) {
     return transformGroup(expression, transformFn);

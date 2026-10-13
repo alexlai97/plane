@@ -90,12 +90,13 @@ export const SubIssueDisplayFilters = observer(function SubIssueDisplayFilters(p
               <div className="py-2">
                 <FilterOrderBy
                   selectedOrderBy={displayFilters?.order_by}
-                  handleUpdate={(val) =>
+                  handleUpdate={(values) =>
                     handleDisplayFiltersUpdate({
-                      order_by: val,
+                      order_by: values[0],
                     })
                   }
                   orderByOptions={layoutDisplayFiltersOptions?.display_filters.order_by ?? []}
+                  allowMultiple={false}
                 />
               </div>
             )}

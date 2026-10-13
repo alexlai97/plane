@@ -16,6 +16,7 @@ import type { TSupportedOperators, LOGICAL_OPERATOR, TAllAvailableOperatorsForDi
 export const FILTER_NODE_TYPE = {
   CONDITION: "condition",
   GROUP: "group",
+  UNSUPPORTED: "unsupported",
 } as const;
 export type TFilterNodeType = (typeof FILTER_NODE_TYPE)[keyof typeof FILTER_NODE_TYPE];
 
@@ -78,11 +79,36 @@ export type TFilterAndGroupNode<P extends TFilterProperty> = TBaseFilterNode & {
   children: TFilterExpression<P>[];
 };
 
+/** A group that matches when any child expression matches. */
+export type TFilterOrGroupNode<P extends TFilterProperty> = TBaseFilterNode & {
+  type: typeof FILTER_NODE_TYPE.GROUP;
+  logicalOperator: typeof LOGICAL_OPERATOR.OR;
+  children: TFilterExpression<P>[];
+};
+
+/** A unary group that negates its only child expression. */
+export type TFilterNotGroupNode<P extends TFilterProperty> = TBaseFilterNode & {
+  type: typeof FILTER_NODE_TYPE.GROUP;
+  logicalOperator: typeof LOGICAL_OPERATOR.NOT;
+  children: [TFilterExpression<P>];
+};
+
+/** Raw saved filter data that this client version cannot interpret safely. */
+export type TFilterUnsupportedNode<P extends TFilterProperty> = TBaseFilterNode & {
+  type: typeof FILTER_NODE_TYPE.UNSUPPORTED;
+  property?: P;
+  externalData: unknown;
+  error: string;
+};
+
 /**
  * Union type for all group node types - AND, OR, and NOT groups.
  * @template P - Property key type
  */
-export type TFilterGroupNode<P extends TFilterProperty> = TFilterAndGroupNode<P>;
+export type TFilterGroupNode<P extends TFilterProperty> =
+  | TFilterAndGroupNode<P>
+  | TFilterOrGroupNode<P>
+  | TFilterNotGroupNode<P>;
 
 /**
  * Union type for any filter node - either a single condition or a group container.
@@ -91,7 +117,8 @@ export type TFilterGroupNode<P extends TFilterProperty> = TFilterAndGroupNode<P>
  */
 export type TFilterExpression<P extends TFilterProperty, V extends TFilterValue = TFilterValue> =
   | TFilterConditionNode<P, V>
-  | TFilterGroupNode<P>;
+  | TFilterGroupNode<P>
+  | TFilterUnsupportedNode<P>;
 
 /**
  * Payload for creating/updating condition nodes - excludes base node properties.

@@ -7,7 +7,7 @@
 // plane imports
 import type { TFilterGroupNode, TFilterProperty } from "@plane/types";
 // local imports
-import { getGroupChildren } from "../types/shared";
+import { getGroupChildren, isNotGroupNode } from "../types";
 
 /**
  * Determines if a group should be unwrapped based on the number of children and group type.
@@ -15,7 +15,7 @@ import { getGroupChildren } from "../types/shared";
  * @param preserveNotGroups - Whether to preserve NOT groups even with single children
  * @returns True if the group should be unwrapped, false otherwise
  */
-export const shouldUnwrapGroup = <P extends TFilterProperty>(group: TFilterGroupNode<P>, _preserveNotGroups = true) => {
+export const shouldUnwrapGroup = <P extends TFilterProperty>(group: TFilterGroupNode<P>, preserveNotGroups = true) => {
   const children = getGroupChildren(group);
 
   // Never unwrap groups with multiple children
@@ -23,6 +23,6 @@ export const shouldUnwrapGroup = <P extends TFilterProperty>(group: TFilterGroup
     return false;
   }
 
-  // Unwrap AND/OR groups with single children, and NOT groups if preserveNotGroups is false
-  return true;
+  // A unary NOT carries meaning even though it has a single child.
+  return !(preserveNotGroups && isNotGroupNode(group));
 };

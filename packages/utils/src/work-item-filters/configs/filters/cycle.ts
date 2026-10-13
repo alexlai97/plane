@@ -9,7 +9,12 @@ import type { ICycle, TCycleGroups, TFilterProperty, TSupportedOperators } from 
 import { EQUALITY_OPERATOR, COLLECTION_OPERATOR } from "@plane/types";
 // local imports
 import type { TCreateFilterConfigParams, IFilterIconConfig, TCreateFilterConfig } from "../../../rich-filters";
-import { createFilterConfig, getMultiSelectConfig, createOperatorConfigEntry } from "../../../rich-filters";
+import {
+  createFilterConfig,
+  getMultiSelectConfig,
+  createOperatorConfigEntry,
+  createEmptyOperatorConfigEntry,
+} from "../../../rich-filters";
 
 /**
  * Cycle filter specific params
@@ -60,5 +65,6 @@ export const getCycleFilterConfig =
         createOperatorConfigEntry(COLLECTION_OPERATOR.IN, params, (updatedParams) =>
           getCycleMultiSelectConfig(updatedParams, EQUALITY_OPERATOR.EXACT)
         ),
+        createEmptyOperatorConfigEntry(params),
       ]),
     });

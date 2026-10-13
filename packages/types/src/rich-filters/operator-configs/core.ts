@@ -10,6 +10,7 @@ import type {
   TDateRangeFilterFieldConfig,
   TSingleSelectFilterFieldConfig,
   TMultiSelectFilterFieldConfig,
+  TEmptyFilterFieldConfig,
 } from "../field-types";
 import type { CORE_COLLECTION_OPERATOR, CORE_COMPARISON_OPERATOR, CORE_EQUALITY_OPERATOR } from "../operators";
 
@@ -23,10 +24,17 @@ export type TCoreInOperatorConfigs = TMultiSelectFilterFieldConfig<TFilterValue>
 
 // ----------------------------- RANGE Operator -----------------------------
 export type TCoreRangeOperatorConfigs = TDateRangeFilterFieldConfig<TFilterValue>;
+export type TCoreIsNullOperatorConfigs = TEmptyFilterFieldConfig;
+export type TCoreDateComparisonOperatorConfigs = TDateFilterFieldConfig<TFilterValue>;
 
 // ----------------------------- Core Operator Specific Configs -----------------------------
 export type TCoreOperatorSpecificConfigs = {
   [CORE_EQUALITY_OPERATOR.EXACT]: TCoreExactOperatorConfigs;
+  [CORE_EQUALITY_OPERATOR.IS_NULL]: TCoreIsNullOperatorConfigs;
   [CORE_COLLECTION_OPERATOR.IN]: TCoreInOperatorConfigs;
   [CORE_COMPARISON_OPERATOR.RANGE]: TCoreRangeOperatorConfigs;
+  [CORE_COMPARISON_OPERATOR.LESS_THAN]: TCoreDateComparisonOperatorConfigs;
+  [CORE_COMPARISON_OPERATOR.LESS_THAN_OR_EQUAL]: TCoreDateComparisonOperatorConfigs;
+  [CORE_COMPARISON_OPERATOR.GREATER_THAN]: TCoreDateComparisonOperatorConfigs;
+  [CORE_COMPARISON_OPERATOR.GREATER_THAN_OR_EQUAL]: TCoreDateComparisonOperatorConfigs;
 };

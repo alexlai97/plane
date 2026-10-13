@@ -5,7 +5,13 @@
  */
 
 import type { EQUALITY_OPERATOR, COLLECTION_OPERATOR, COMPARISON_OPERATOR } from "../operators";
-import type { TCoreExactOperatorConfigs, TCoreInOperatorConfigs, TCoreRangeOperatorConfigs } from "./core";
+import type {
+  TCoreDateComparisonOperatorConfigs,
+  TCoreExactOperatorConfigs,
+  TCoreInOperatorConfigs,
+  TCoreIsNullOperatorConfigs,
+  TCoreRangeOperatorConfigs,
+} from "./core";
 import type {
   TExtendedExactOperatorConfigs,
   TExtendedInOperatorConfigs,
@@ -29,6 +35,8 @@ export type TInOperatorConfigs = TCoreInOperatorConfigs | TExtendedInOperatorCon
  * RANGE operator - combines core and extended configurations
  */
 export type TRangeOperatorConfigs = TCoreRangeOperatorConfigs | TExtendedRangeOperatorConfigs;
+export type TIsNullOperatorConfigs = TCoreIsNullOperatorConfigs;
+export type TDateComparisonOperatorConfigs = TCoreDateComparisonOperatorConfigs;
 
 // ----------------------------- Final Operator Specific Configs -----------------------------
 
@@ -38,8 +46,13 @@ export type TRangeOperatorConfigs = TCoreRangeOperatorConfigs | TExtendedRangeOp
  */
 export type TOperatorSpecificConfigs = {
   [EQUALITY_OPERATOR.EXACT]: TExactOperatorConfigs;
+  [EQUALITY_OPERATOR.IS_NULL]: TIsNullOperatorConfigs;
   [COLLECTION_OPERATOR.IN]: TInOperatorConfigs;
   [COMPARISON_OPERATOR.RANGE]: TRangeOperatorConfigs;
+  [COMPARISON_OPERATOR.LESS_THAN]: TDateComparisonOperatorConfigs;
+  [COMPARISON_OPERATOR.LESS_THAN_OR_EQUAL]: TDateComparisonOperatorConfigs;
+  [COMPARISON_OPERATOR.GREATER_THAN]: TDateComparisonOperatorConfigs;
+  [COMPARISON_OPERATOR.GREATER_THAN_OR_EQUAL]: TDateComparisonOperatorConfigs;
 } & TExtendedOperatorSpecificConfigs;
 
 /**

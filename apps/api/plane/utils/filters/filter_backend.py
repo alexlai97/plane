@@ -262,8 +262,9 @@ class ComplexFilterBackend(filters.BaseFilterBackend):
         for key, value in processed_conditions.items():
             # Default serialization to string; QueryDict expects strings
             if isinstance(value, list):
-                # Repeat key for list values (e.g., __in)
-                qd.setlist(key, [str(v) for v in value])
+                # BaseCSVFilter reads one comma-separated value, not repeated
+                # QueryDict keys (which would silently retain only the last).
+                qd[key] = ",".join(str(v) for v in value)
             else:
                 qd[key] = "" if value is None else str(value)
 

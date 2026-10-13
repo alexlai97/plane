@@ -28,6 +28,7 @@ import type {
   TFilterExpression,
   TFilterProperty,
   TFilterValue,
+  TFilterUnsupportedNode,
   TLogicalOperator,
   TSupportedOperators,
 } from "@plane/types";
@@ -42,8 +43,11 @@ import {
   hasValidValue,
   removeNodeFromExpression,
   sanitizeAndStabilizeExpression,
+  extractUnsupportedNodes,
   shouldNotifyChangeForExpression,
   updateNodeInExpression,
+  setRootGroupOperator,
+  updateGroupOperator,
 } from "@plane/utils";
 import type { IFilterConfigManager } from "./config-manager";
 import { FilterConfigManager } from "./config-manager";
@@ -83,6 +87,7 @@ export interface IFilterInstance<P extends TFilterProperty, E extends TExternalF
   isVisible: boolean;
   allConditions: TFilterConditionNode<P, TFilterValue>[];
   allConditionsForDisplay: TFilterConditionNodeForDisplay<P, TFilterValue>[];
+  unsupportedNodes: TFilterUnsupportedNode<P>[];
   // computed option helpers
   clearFilterOptions: TClearFilterOptions | undefined;
   saveViewOptions: TSaveViewOptions<E> | undefined;
@@ -121,6 +126,15 @@ export interface IFilterInstance<P extends TFilterProperty, E extends TExternalF
     value: SingleOrArray<V>,
     forceUpdate?: boolean
   ) => void;
+  setRootLogicalOperator: (logicalOperator: "and" | "or") => void;
+  addGroup: (parentGroupId: string | null, logicalOperator: "and" | "or") => string | null;
+  addConditionToGroup: <V extends TFilterValue>(
+    parentGroupId: string | null,
+    logicalOperator: "and" | "or",
+    condition: TFilterConditionPayload<P, V>,
+    isNegation?: boolean
+  ) => void;
+  updateGroupOperator: (groupId: string, logicalOperator: "and" | "or") => void;
   removeCondition: (conditionId: string) => void;
   // config actions
   clearFilters: () => Promise<void>;
@@ -181,6 +195,7 @@ export class FilterInstance<P extends TFilterProperty, E extends TExternalFilter
       isVisible: computed,
       allConditions: computed,
       allConditionsForDisplay: computed,
+      unsupportedNodes: computed,
       // computed option helpers
       clearFilterOptions: computed,
       saveViewOptions: computed,
@@ -196,6 +211,10 @@ export class FilterInstance<P extends TFilterProperty, E extends TExternalFilter
       addCondition: action,
       updateConditionOperator: action,
       updateConditionValue: action,
+      setRootLogicalOperator: action,
+      addGroup: action,
+      addConditionToGroup: action,
+      updateGroupOperator: action,
       removeCondition: action,
       clearFilters: action,
       saveView: action,
@@ -213,6 +232,9 @@ export class FilterInstance<P extends TFilterProperty, E extends TExternalFilter
   get hasActiveFilters(): IFilterInstance<P, E>["hasActiveFilters"] {
     // if the expression is null, return false
     if (!this.expression) return false;
+    // Keep unknown saved rules visible and clearable even when they are mixed
+    // with editable conditions.
+    if (this.unsupportedNodes.length > 0) return true;
     // if there are no conditions, return false
     if (this.allConditionsForDisplay.length === 0) return false;
     // if there are conditions, return true if any of them have a valid value
@@ -253,6 +275,11 @@ export class FilterInstance<P extends TFilterProperty, E extends TExternalFilter
     return extractConditionsWithDisplayOperators(this.expression);
   }
 
+  get unsupportedNodes(): IFilterInstance<P, E>["unsupportedNodes"] {
+    if (!this.expression) return [];
+    return extractUnsupportedNodes(this.expression);
+  }
+
   // ------------ computed option helpers ------------
 
   /**
@@ -287,7 +314,7 @@ export class FilterInstance<P extends TFilterProperty, E extends TExternalFilter
    */
   get canClearFilters(): IFilterInstance<P, E>["canClearFilters"] {
     if (!this.expression) return false;
-    if (this.allConditionsForDisplay.length === 0) return false;
+    if (this.allConditionsForDisplay.length === 0 && this.unsupportedNodes.length === 0) return false;
     return this.clearFilterOptions ? !this.clearFilterOptions.isDisabled : true;
   }
 
@@ -373,7 +400,7 @@ export class FilterInstance<P extends TFilterProperty, E extends TExternalFilter
 
     this.expression = this.helper.addConditionToExpression(this.expression, groupOperator, condition, isNegation);
 
-    if (hasValidValue(conditionValue)) {
+    if (hasValidValue(conditionValue) || condition.operator === "isnull") {
       this._notifyExpressionChange();
     }
   });
@@ -439,7 +466,7 @@ export class FilterInstance<P extends TFilterProperty, E extends TExternalFilter
         this.expression = updatedExpression;
       }
 
-      if (hasValidValue(conditionBeforeUpdate.value)) {
+      if (hasValidValue(conditionBeforeUpdate.value) || operator === "isnull") {
         this._notifyExpressionChange();
       }
     }
@@ -482,6 +509,37 @@ export class FilterInstance<P extends TFilterProperty, E extends TExternalFilter
       this._notifyExpressionChange();
     }
   );
+
+  setRootLogicalOperator: IFilterInstance<P, E>["setRootLogicalOperator"] = action((logicalOperator) => {
+    const next = setRootGroupOperator(this.expression, logicalOperator);
+    if (next !== this.expression) this.expression = next;
+    this._notifyExpressionChange();
+  });
+
+  addGroup: IFilterInstance<P, E>["addGroup"] = action((parentGroupId, logicalOperator) => {
+    const groupId = uuidv4();
+    this.expression = this.helper.addGroup(this.expression, parentGroupId, logicalOperator, groupId);
+    this._notifyExpressionChange();
+    return groupId;
+  });
+
+  addConditionToGroup: IFilterInstance<P, E>["addConditionToGroup"] = action(
+    (parentGroupId, logicalOperator, condition, isNegation = false) => {
+      this.expression = this.helper.addConditionToGroup(
+        this.expression,
+        parentGroupId,
+        logicalOperator,
+        condition,
+        isNegation
+      );
+      if (hasValidValue(condition.value) || condition.operator === "isnull") this._notifyExpressionChange();
+    }
+  );
+
+  updateGroupOperator: IFilterInstance<P, E>["updateGroupOperator"] = action((groupId, logicalOperator) => {
+    this.expression = updateGroupOperator(this.expression, groupId, logicalOperator);
+    this._notifyExpressionChange();
+  });
 
   /**
    * Removes a condition from the filter expression.

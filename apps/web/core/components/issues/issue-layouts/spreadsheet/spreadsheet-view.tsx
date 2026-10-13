@@ -9,7 +9,13 @@ import { observer } from "mobx-react";
 // plane constants
 import { SPREADSHEET_SELECT_GROUP, SPREADSHEET_PROPERTY_LIST } from "@plane/constants";
 // types
-import type { TIssue, IIssueDisplayFilterOptions, IIssueDisplayProperties } from "@plane/types";
+import type {
+  TIssue,
+  IIssueDisplayFilterOptions,
+  IIssueDisplayProperties,
+  IGroupByColumn,
+  TGroupedIssues,
+} from "@plane/types";
 import { EIssueLayoutTypes } from "@plane/types";
 // components
 import { MultipleSelectGroup } from "@/components/core/multiple-select";
@@ -27,13 +33,15 @@ type Props = {
   displayFilters: IIssueDisplayFilterOptions;
   handleDisplayFilterUpdate: (data: Partial<IIssueDisplayFilterOptions>) => void;
   issueIds: string[] | undefined;
+  groups?: IGroupByColumn[];
+  groupedIssueIds?: TGroupedIssues;
   quickActions: TRenderQuickActions;
   updateIssue: ((projectId: string | null, issueId: string, data: Partial<TIssue>) => Promise<void>) | undefined;
   openIssuesListModal?: (() => void) | null;
   quickAddCallback?: (projectId: string | null | undefined, data: TIssue) => Promise<TIssue | undefined>;
   canEditProperties: (projectId: string | undefined) => boolean;
   canLoadMoreIssues: boolean;
-  loadMoreIssues: () => void;
+  loadMoreIssues: (groupId?: string) => void;
   enableQuickCreateIssue?: boolean;
   disableIssueCreation?: boolean;
   isWorkspaceLevel?: boolean;
@@ -46,6 +54,8 @@ export const SpreadsheetView = observer(function SpreadsheetView(props: Props) {
     displayFilters,
     handleDisplayFilterUpdate,
     issueIds,
+    groups,
+    groupedIssueIds,
     quickActions,
     updateIssue,
     quickAddCallback,
@@ -94,6 +104,8 @@ export const SpreadsheetView = observer(function SpreadsheetView(props: Props) {
                 displayFilters={displayFilters}
                 handleDisplayFilterUpdate={handleDisplayFilterUpdate}
                 issueIds={issueIds}
+                groups={groups}
+                groupedIssueIds={groupedIssueIds}
                 isEstimateEnabled={isEstimateEnabled}
                 portalElement={portalRef}
                 quickActions={quickActions}

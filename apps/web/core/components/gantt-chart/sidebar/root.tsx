@@ -5,6 +5,7 @@
  */
 
 import type { RefObject } from "react";
+import type { IGanttIssueGroup } from "@plane/types";
 import { observer } from "mobx-react";
 import { useTranslation } from "@plane/i18n";
 // components
@@ -20,6 +21,7 @@ import { GANTT_SELECT_GROUP, HEADER_HEIGHT, SIDEBAR_WIDTH } from "../constants";
 
 type Props = {
   blockIds: string[];
+  groups?: IGanttIssueGroup[];
   blockUpdateHandler: (block: any, payload: IBlockUpdateData) => void;
   canLoadMoreBlocks?: boolean;
   loadMoreBlocks?: () => void;
@@ -37,6 +39,7 @@ export const GanttChartSidebar = observer(function GanttChartSidebar(props: Prop
   const { t } = useTranslation();
   const {
     blockIds,
+    groups,
     blockUpdateHandler,
     enableReorder,
     enableSelection,
@@ -94,6 +97,7 @@ export const GanttChartSidebar = observer(function GanttChartSidebar(props: Prop
             title,
             blockUpdateHandler,
             blockIds,
+            groups,
             enableReorder,
             enableSelection,
             canLoadMoreBlocks,

@@ -18,6 +18,7 @@ import type {
   TAllAvailableOperatorsForDisplay,
 } from "@plane/types";
 import { FILTER_FIELD_TYPE } from "@plane/types";
+import { CORE_NEGATED_OPERATOR } from "@plane/types";
 import {
   getOperatorLabel,
   isDateFilterType,
@@ -167,7 +168,7 @@ export class FilterConfig<P extends TFilterProperty> implements IFilterConfig<P>
         label: displayOperatorLabel,
       });
 
-      const additionalOperatorOption = this._getAdditionalOperatorOptions(operator, value);
+      const additionalOperatorOption = this._getAdditionalOperatorOptions(operator);
       if (additionalOperatorOption) {
         operatorOptions.push(additionalOperatorOption);
       }
@@ -195,8 +196,24 @@ export class FilterConfig<P extends TFilterProperty> implements IFilterConfig<P>
 
   // ------------ private helpers ------------
 
-  private _getAdditionalOperatorOptions = (
-    _operator: TSupportedOperators,
-    _value: TFilterValue
-  ): TOperatorOptionForDisplay | undefined => undefined;
+  private _getAdditionalOperatorOptions = (operator: TSupportedOperators): TOperatorOptionForDisplay | undefined => {
+    const operatorConfig = this.getOperatorConfig(operator);
+    if (!operatorConfig?.allowNegative) return undefined;
+    const negatedOperator: Partial<Record<TSupportedOperators, TAllAvailableOperatorsForDisplay>> = {
+      exact: CORE_NEGATED_OPERATOR.NOT_EXACT,
+      in: CORE_NEGATED_OPERATOR.NOT_IN,
+      isnull: CORE_NEGATED_OPERATOR.NOT_IS_NULL,
+      range: CORE_NEGATED_OPERATOR.NOT_RANGE,
+      lt: CORE_NEGATED_OPERATOR.NOT_LESS_THAN,
+      lte: CORE_NEGATED_OPERATOR.NOT_LESS_THAN_OR_EQUAL,
+      gt: CORE_NEGATED_OPERATOR.NOT_GREATER_THAN,
+      gte: CORE_NEGATED_OPERATOR.NOT_GREATER_THAN_OR_EQUAL,
+    };
+    // Negate the actual wire operator. A single selected value can display an
+    // `in` condition as `exact`, but its negative form must remain `not_in`
+    // because there may be no exact operator config for that field.
+    const valueForDisplay = negatedOperator[operator];
+    if (!valueForDisplay) return undefined;
+    return { value: valueForDisplay, label: this.getLabelForOperator(valueForDisplay) };
+  };
 }

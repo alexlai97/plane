@@ -9,7 +9,13 @@ import { observer } from "mobx-react";
 import { createPortal } from "react-dom";
 // plane imports
 // components
-import type { ChartDataType, IBlockUpdateData, IBlockUpdateDependencyData, TGanttViews } from "@plane/types";
+import type {
+  ChartDataType,
+  IBlockUpdateData,
+  IBlockUpdateDependencyData,
+  IGanttIssueGroup,
+  TGanttViews,
+} from "@plane/types";
 import { cn } from "@plane/utils";
 import { GanttChartHeader, GanttChartMainContent } from "@/components/gantt-chart";
 // helpers
@@ -27,6 +33,7 @@ type ChartViewRootProps = {
   title: string;
   loaderTitle: string;
   blockIds: string[];
+  groups?: IGanttIssueGroup[];
   blockUpdateHandler: (block: any, payload: IBlockUpdateData) => void;
   blockToRender: (data: any) => React.ReactNode;
   sidebarToRender: (props: any) => React.ReactNode;
@@ -58,6 +65,7 @@ export const ChartViewRoot = observer(function ChartViewRoot(props: ChartViewRoo
     border,
     title,
     blockIds,
+    groups,
     loadMoreBlocks,
     loaderTitle,
     blockUpdateHandler,
@@ -196,6 +204,7 @@ export const ChartViewRoot = observer(function ChartViewRoot(props: ChartViewRoo
       />
       <GanttChartMainContent
         blockIds={blockIds}
+        groups={groups}
         loadMoreBlocks={loadMoreBlocks}
         canLoadMoreBlocks={canLoadMoreBlocks}
         blockToRender={blockToRender}

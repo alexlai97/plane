@@ -5,15 +5,15 @@
  */
 
 import { useCallback, useMemo, useState } from "react";
-import { isEqual, cloneDeep } from "lodash-es";
+import { isEqual, cloneDeep, merge } from "lodash-es";
 import { observer } from "mobx-react";
 // plane imports
 import { DEFAULT_GLOBAL_VIEWS_LIST, EUserPermissionsLevel } from "@plane/constants";
 import { setToast, TOAST_TYPE } from "@plane/propel/toast";
 import type { IWorkspaceView, TWorkItemFilterExpression } from "@plane/types";
 import { EUserProjectRoles, EViewAccess } from "@plane/types";
+import { getComputedDisplayFilters, getComputedDisplayProperties } from "@plane/utils";
 // components
-import { removeNillKeys } from "@/components/issues/issue-layouts/utils";
 import { CreateUpdateWorkspaceViewModal } from "@/components/workspace/views/modal";
 // hooks
 import { useGlobalView } from "@/hooks/store/use-global-view";
@@ -23,6 +23,7 @@ import { useProject } from "@/hooks/store/use-project";
 import { useUser, useUserPermissions } from "@/hooks/store/user";
 // local imports
 import { WorkItemFiltersHOC } from "./base";
+import { mergeSavedDisplayFilters } from "./merge-display-filters";
 import type { TEnableSaveViewProps, TEnableUpdateViewProps, TSharedWorkItemFiltersHOCProps } from "./shared";
 
 type TWorkspaceLevelWorkItemFiltersHOCProps = TSharedWorkItemFiltersHOCProps & {
@@ -77,17 +78,24 @@ export const WorkspaceLevelWorkItemFiltersHOC = observer(function WorkspaceLevel
       isCurrentUserOwner,
     ]
   );
-  const createViewLabel = useMemo(() => props.saveViewOptions?.label, [props.saveViewOptions?.label]);
-  const updateViewLabel = useMemo(() => props.updateViewOptions?.label, [props.updateViewOptions?.label]);
-  const hasAdditionalChanges = useMemo(
-    () =>
-      !isEqual(initialWorkItemFilters?.displayFilters, viewDetails?.display_filters) ||
-      !isEqual(
-        removeNillKeys(initialWorkItemFilters?.displayProperties),
-        removeNillKeys(viewDetails?.display_properties)
-      ),
-    [initialWorkItemFilters, viewDetails]
+  const createViewLabel = useMemo(
+    () => (props.saveViewOptions?.label === "Save as" ? "另存为视图" : props.saveViewOptions?.label),
+    [props.saveViewOptions?.label]
   );
+  const updateViewLabel = useMemo(
+    () =>
+      props.updateViewOptions?.label ?? (viewDetails?.access === EViewAccess.PUBLIC ? "更新共享视图" : "更新个人视图"),
+    [props.updateViewOptions?.label, viewDetails?.access]
+  );
+  const hasAdditionalChanges =
+    !isEqual(
+      getComputedDisplayFilters(initialWorkItemFilters?.displayFilters),
+      getComputedDisplayFilters(viewDetails?.display_filters)
+    ) ||
+    !isEqual(
+      getComputedDisplayProperties(initialWorkItemFilters?.displayProperties),
+      getComputedDisplayProperties(viewDetails?.display_properties)
+    );
 
   const getDefaultViewDetailPayload: () => Partial<IWorkspaceView> = useCallback(
     () => ({
@@ -101,10 +109,10 @@ export const WorkspaceLevelWorkItemFiltersHOC = observer(function WorkspaceLevel
   const getViewFilterPayload: (filterExpression: TWorkItemFilterExpression) => Partial<IWorkspaceView> = useCallback(
     (filterExpression: TWorkItemFilterExpression) => ({
       rich_filters: cloneDeep(filterExpression),
-      display_filters: cloneDeep(initialWorkItemFilters?.displayFilters),
-      display_properties: cloneDeep(initialWorkItemFilters?.displayProperties),
+      display_filters: mergeSavedDisplayFilters(viewDetails?.display_filters, initialWorkItemFilters?.displayFilters),
+      display_properties: merge({}, viewDetails?.display_properties, initialWorkItemFilters?.displayProperties),
     }),
-    [initialWorkItemFilters]
+    [initialWorkItemFilters, viewDetails]
   );
 
   const handleViewSave = useCallback(
@@ -123,8 +131,8 @@ export const WorkspaceLevelWorkItemFiltersHOC = observer(function WorkspaceLevel
       if (!viewDetails) {
         setToast({
           type: TOAST_TYPE.ERROR,
-          title: "We couldn't find the view",
-          message: "The view you're trying to update doesn't exist.",
+          title: "视图不存在",
+          message: "未找到要更新的视图。",
         });
 
         return;
@@ -142,15 +150,15 @@ export const WorkspaceLevelWorkItemFiltersHOC = observer(function WorkspaceLevel
         .then(() => {
           setToast({
             type: TOAST_TYPE.SUCCESS,
-            title: "Success!",
-            message: "Your view has been updated successfully.",
+            title: "视图已更新",
+            message: "视图内容已成功保存。",
           });
         })
         .catch(() => {
           setToast({
             type: TOAST_TYPE.ERROR,
-            title: "Error!",
-            message: "Your view could not be updated. Please try again.",
+            title: "视图更新失败",
+            message: "视图未保存，请检查筛选规则或权限后重试。",
           });
         });
     },

@@ -204,7 +204,7 @@ const getCycleColumns = (): IGroupByColumn[] | undefined => {
   });
   cycles.push({
     id: "None",
-    name: "None",
+    name: "未设置",
     icon: <CycleIcon className="h-3.5 w-3.5" />,
     payload: {},
   });
@@ -231,7 +231,7 @@ const getModuleColumns = (): IGroupByColumn[] | undefined => {
   });
   modules.push({
     id: "None",
-    name: "None",
+    name: "未设置",
     icon: <ModuleIcon className="h-3.5 w-3.5" />,
     payload: {},
   });
@@ -286,7 +286,7 @@ const getLabelsColumns = ({ isWorkspaceLevel }: TGetColumns): IGroupByColumn[] =
   // map labels to group by columns
   const labels = [
     ...(isWorkspaceLevel ? workspaceLabels || [] : projectLabels || []),
-    { id: "None", name: "None", color: "#666" },
+    { id: "None", name: "未设置", color: "#666" },
   ];
   // map labels to group by columns
   return labels.map((label) => ({
@@ -319,7 +319,7 @@ const getAssigneeColumns = ({ isWorkspaceLevel, projectId }: TGetColumns): IGrou
     });
   });
   if (includeNone) {
-    assigneeColumns.push({ id: "None", name: "None", icon: <Avatar size="md" />, payload: {} });
+    assigneeColumns.push({ id: "None", name: "未设置", icon: <Avatar size="md" />, payload: {} });
   }
 
   return assigneeColumns;

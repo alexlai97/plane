@@ -10,7 +10,12 @@ import type { IState, TFilterProperty, TStateGroups, TSupportedOperators } from 
 import { COLLECTION_OPERATOR, EQUALITY_OPERATOR } from "@plane/types";
 // local imports
 import type { IFilterIconConfig, TCreateFilterConfig, TCreateFilterConfigParams } from "../../../rich-filters";
-import { createFilterConfig, getMultiSelectConfig, createOperatorConfigEntry } from "../../../rich-filters";
+import {
+  createFilterConfig,
+  getMultiSelectConfig,
+  createOperatorConfigEntry,
+  createEmptyOperatorConfigEntry,
+} from "../../../rich-filters";
 
 // ------------ State group filter ------------
 
@@ -63,6 +68,7 @@ export const getStateGroupFilterConfig =
         createOperatorConfigEntry(COLLECTION_OPERATOR.IN, params, (updatedParams) =>
           getStateGroupMultiSelectConfig(updatedParams, EQUALITY_OPERATOR.EXACT)
         ),
+        createEmptyOperatorConfigEntry(params),
       ]),
     });
 
@@ -117,5 +123,6 @@ export const getStateFilterConfig =
         createOperatorConfigEntry(COLLECTION_OPERATOR.IN, params, (updatedParams) =>
           getStateMultiSelectConfig(updatedParams, EQUALITY_OPERATOR.EXACT)
         ),
+        createEmptyOperatorConfigEntry(params),
       ]),
     });

@@ -11,7 +11,12 @@ import type { TFilterProperty, TSupportedOperators } from "@plane/types";
 import { EQUALITY_OPERATOR, COLLECTION_OPERATOR } from "@plane/types";
 // local imports
 import type { TCreateFilterConfigParams, IFilterIconConfig, TCreateFilterConfig } from "../../../rich-filters";
-import { createFilterConfig, getMultiSelectConfig, createOperatorConfigEntry } from "../../../rich-filters";
+import {
+  createFilterConfig,
+  getMultiSelectConfig,
+  createOperatorConfigEntry,
+  createEmptyOperatorConfigEntry,
+} from "../../../rich-filters";
 
 // ------------ Priority filter ------------
 
@@ -64,5 +69,6 @@ export const getPriorityFilterConfig =
         createOperatorConfigEntry(COLLECTION_OPERATOR.IN, params, (updatedParams) =>
           getPriorityMultiSelectConfig(updatedParams, EQUALITY_OPERATOR.EXACT)
         ),
+        createEmptyOperatorConfigEntry(params),
       ]),
     });

@@ -10,7 +10,9 @@ import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane imports
 import { ALL_ISSUES, EIssueFilterType, EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
-import type { EIssuesStoreType, IIssueDisplayFilterOptions } from "@plane/types";
+import type { EIssuesStoreType, IIssueDisplayFilterOptions, IGroupByColumn, TGroupedIssues } from "@plane/types";
+import { getGroupByColumns, isWorkspaceLevel } from "../utils";
+import type { GroupByColumnTypes } from "@plane/types";
 import { EIssueLayoutTypes } from "@plane/types";
 // hooks
 import { useIssues } from "@/hooks/store/use-issues";
@@ -67,8 +69,18 @@ export const BaseSpreadsheetRoot = observer(function BaseSpreadsheetRoot(props: 
   );
 
   useEffect(() => {
-    fetchIssues("init-loader", { canGroup: false, perPageCount: 100 }, viewId);
-  }, [fetchIssues, storeType, viewId]);
+    const groupBy =
+      issuesFilter.issueFilters?.displayFilters?.layout === EIssueLayoutTypes.SPREADSHEET
+        ? issuesFilter.issueFilters?.displayFilters?.group_by
+        : undefined;
+    fetchIssues("init-loader", { canGroup: !!groupBy, perPageCount: 100 }, viewId);
+  }, [
+    fetchIssues,
+    storeType,
+    viewId,
+    issuesFilter.issueFilters?.displayFilters?.layout,
+    issuesFilter.issueFilters?.displayFilters?.group_by,
+  ]);
 
   const canEditProperties = useCallback(
     (projectId: string | undefined) => {
@@ -80,8 +92,29 @@ export const BaseSpreadsheetRoot = observer(function BaseSpreadsheetRoot(props: 
     [canEditPropertiesBasedOnProject, enableInlineEditing, isEditingAllowed]
   );
 
-  const issueIds = issues.groupedIssueIds?.[ALL_ISSUES] ?? [];
-  const nextPageResults = issues.getPaginationData(ALL_ISSUES, undefined)?.nextPageResults;
+  const groupBy =
+    issuesFilter.issueFilters?.displayFilters?.layout === EIssueLayoutTypes.SPREADSHEET
+      ? issuesFilter.issueFilters?.displayFilters?.group_by
+      : undefined;
+  const groupedIssueIds = issues.groupedIssueIds as TGroupedIssues | undefined;
+  const groups = groupBy
+    ? getGroupByColumns({
+        groupBy: groupBy as GroupByColumnTypes,
+        includeNone: true,
+        isWorkspaceLevel: isWorkspaceLevel(storeType),
+        isEpic,
+      })
+    : undefined;
+  const orderedGroups = (groups ?? []).filter(
+    (group) =>
+      groupBy &&
+      (issuesFilter.issueFilters?.displayFilters?.show_empty_groups || groupedIssueIds?.[group.id] !== undefined)
+  );
+  const issueIds = groupBy
+    ? orderedGroups.flatMap((group) => groupedIssueIds?.[group.id] ?? [])
+    : (groupedIssueIds?.[ALL_ISSUES] ?? []);
+  const nextPageResults = !groupBy && issues.getPaginationData(ALL_ISSUES, undefined)?.nextPageResults;
+  const loadMore = useCallback((groupId?: string) => fetchNextIssues(groupId), [fetchNextIssues]);
 
   const handleDisplayFiltersUpdate = useCallback(
     (updatedDisplayFilter: Partial<IIssueDisplayFilterOptions>) => {
@@ -120,6 +153,8 @@ export const BaseSpreadsheetRoot = observer(function BaseSpreadsheetRoot(props: 
         displayFilters={issuesFilter.issueFilters?.displayFilters ?? {}}
         handleDisplayFilterUpdate={handleDisplayFiltersUpdate}
         issueIds={issueIds}
+        groups={groupBy ? (orderedGroups as IGroupByColumn[]) : undefined}
+        groupedIssueIds={groupedIssueIds}
         quickActions={renderQuickActions}
         updateIssue={updateIssue}
         canEditProperties={canEditProperties}
@@ -127,7 +162,7 @@ export const BaseSpreadsheetRoot = observer(function BaseSpreadsheetRoot(props: 
         enableQuickCreateIssue={enableQuickAdd}
         disableIssueCreation={!enableIssueCreation || !isEditingAllowed || isCompletedCycle}
         canLoadMoreIssues={!!nextPageResults}
-        loadMoreIssues={fetchNextIssues}
+        loadMoreIssues={loadMore}
         isEpic={isEpic}
       />
     </IssueLayoutHOC>

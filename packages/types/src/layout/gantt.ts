@@ -23,6 +23,12 @@ export interface IGanttBlock {
   meta?: Record<string, any>;
 }
 
+export interface IGanttIssueGroup {
+  id: string;
+  name: string;
+  issueIds: string[];
+}
+
 export interface IBlockUpdateData {
   sort_order?: {
     destinationIndex: number;

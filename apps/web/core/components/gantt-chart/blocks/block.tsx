@@ -15,13 +15,14 @@ import RenderIfVisible from "@/components/core/render-if-visible-HOC";
 // hooks
 import { useTimeLineChartStore } from "@/hooks/use-timeline-chart";
 // constants
-import { BLOCK_HEIGHT } from "../constants";
+import { BLOCK_HEIGHT, getGanttBlockElementId } from "../constants";
 // components
 import { ChartDraggable } from "../helpers";
 import { useGanttResizable } from "../helpers/blockResizables/use-gantt-resizable";
 
 type Props = {
   blockId: string;
+  groupId?: string;
   showAllBlocks: boolean;
   blockToRender: (data: any) => React.ReactNode;
   enableBlockLeftResize: boolean;
@@ -35,6 +36,7 @@ type Props = {
 export const GanttChartBlock = observer(function GanttChartBlock(props: Props) {
   const {
     blockId,
+    groupId,
     showAllBlocks,
     blockToRender,
     enableBlockLeftResize,
@@ -69,7 +71,7 @@ export const GanttChartBlock = observer(function GanttChartBlock(props: Props) {
         "transition-all": !!isMoving && currentView === "week",
         "pointer-events-none": !isBlockVisibleOnChart,
       })}
-      id={`gantt-block-${block.id}`}
+      id={getGanttBlockElementId(block.id, groupId)}
       ref={resizableRef}
       style={{
         height: `${BLOCK_HEIGHT}px`,

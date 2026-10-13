@@ -15,7 +15,7 @@ import type {
 } from "@plane/types";
 import { FILTER_NODE_TYPE } from "@plane/types";
 // local imports
-import { isConditionNode, isGroupNode } from "../types/core";
+import { isConditionNode, isGroupNode, isUnsupportedNode } from "../types/core";
 import { processGroupNode } from "../types/shared";
 import { hasValidValue } from "../validators/core";
 import { transformExpressionTree } from "./transformation/core";
@@ -83,6 +83,8 @@ export const createGroupComparable = <P extends TFilterProperty>(
 
   return processGroupNode(group, {
     onAndGroup: (andGroup) => createComparableChildren(andGroup.children, baseComparable),
+    onOrGroup: (orGroup) => createComparableChildren(orGroup.children, baseComparable),
+    onNotGroup: (notGroup) => createComparableChildren(notGroup.children, baseComparable),
   });
 };
 
@@ -102,6 +104,8 @@ export const createExpressionComparable = <P extends TFilterProperty>(
   if (isConditionNode(expression)) {
     return createConditionComparable(expression);
   }
+
+  if (isUnsupportedNode(expression)) return { type: expression.type, externalData: expression.externalData };
 
   // Handle group nodes - exclude ID completely and support deep nesting
   if (isGroupNode(expression)) {

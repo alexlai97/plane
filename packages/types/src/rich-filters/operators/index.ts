@@ -6,6 +6,7 @@
 
 import type { TCoreSupportedOperators } from "./core";
 import {
+  type TCoreNegatedOperators,
   CORE_LOGICAL_OPERATOR,
   CORE_EQUALITY_OPERATOR,
   CORE_COLLECTION_OPERATOR,
@@ -64,7 +65,7 @@ export type TSupportedOperators = TCoreSupportedOperators | TExtendedSupportedOp
 /**
  * All operators available for use in rich filters UI, including negated versions.
  */
-export type TAllAvailableOperatorsForDisplay = TSupportedOperators;
+export type TAllAvailableOperatorsForDisplay = TSupportedOperators | TCoreNegatedOperators;
 
 // -------- RE-EXPORTS --------
 
