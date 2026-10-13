@@ -7,7 +7,7 @@ def backfill_source_projects(apps, schema_editor):
     alias = schema_editor.connection.alias
     # Preserve only identities backed by the exact retained Issue. Unknown orphans stay null.
     for source_id, issue_id in Source.objects.using(alias).filter(issue_id__isnull=False).values_list("id", "issue_id").iterator():
-        project_id = Issue.objects.using(alias).filter(id=issue_id).values_list("project_id", flat=True).first()
+        project_id = Issue._base_manager.using(alias).filter(id=issue_id).values_list("project_id", flat=True).first()
         if project_id:
             Source.objects.using(alias).filter(id=source_id).update(project_id=project_id)
 
