@@ -32,6 +32,9 @@ urlpatterns = [
     path("workspaces/<str:slug>/artifacts/<uuid:pk>/assets/<uuid:asset_id>/<str:resource>/", ArtifactAssetEndpoint.as_view(), name="artifact-asset-source"),
     path("workspaces/<str:slug>/artifacts/<uuid:pk>/assets/<uuid:asset_id>/preview/<path:resource>", ArtifactAssetEndpoint.as_view(), name="artifact-asset-preview"),
     path("workspaces/<str:slug>/artifacts/<uuid:pk>/covers/<uuid:asset_id>/", ArtifactCoverEndpoint.as_view(), name="artifact-cover"),
+]
+
+api_urlpatterns = [
     path("workspaces/<str:slug>/artifacts/", APIKeyArtifactEndpoint.as_view(), name="api-artifact-list"),
     path("workspaces/<str:slug>/artifacts/<uuid:pk>/", APIKeyArtifactEndpoint.as_view(), name="api-artifact-detail"),
     path("workspaces/<str:slug>/artifacts/<uuid:pk>/publish/", APIKeyArtifactEndpoint.as_view(), {"action": "publish"}, name="api-artifact-publish"),
@@ -45,5 +48,3 @@ urlpatterns = [
     path("workspaces/<str:slug>/artifact-sources/<uuid:pk>/materials/", APIKeyArtifactSourceEndpoint.as_view(), name="api-artifact-source-materials"),
     path("workspaces/<str:slug>/artifacts/<uuid:pk>/uploads/", APIKeyArtifactUploadEndpoint.as_view(), name="api-artifact-upload"),
 ]
-
-api_urlpatterns = [pattern for pattern in urlpatterns if pattern.name and pattern.name.startswith("api-artifact-")]

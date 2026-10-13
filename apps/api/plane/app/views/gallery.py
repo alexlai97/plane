@@ -7,6 +7,7 @@ from django.utils.html import escape
 from rest_framework.response import Response
 
 from plane.app.services.artifacts import can_edit, published_snapshot, render_authorized_asset, snapshot
+from plane.app.views.attachment_preview import is_previewable_asset
 from plane.app.views.base import BaseAPIView
 from plane.app.permissions import ROLE, allow_permission
 from rest_framework.exceptions import NotFound, PermissionDenied
@@ -34,7 +35,7 @@ class WorkspaceGalleryEndpoint(BaseAPIView):
                 if material.get("asset_id"):
                     asset_id = material["asset_id"]
                     file_url = f"/api/workspaces/{slug}/artifacts/{artifact.id}/assets/{asset_id}/"
-                    attachments.append({"id": asset_id, "name": material.get("name", material["title"]), "size": material.get("size", 0), "mime": material.get("mime", "application/octet-stream"), "file_url": file_url, "source_url": file_url + "source/", "can_preview": True})
+                    attachments.append({"id": asset_id, "name": material.get("name", material["title"]), "size": material.get("size", 0), "mime": material.get("mime", "application/octet-stream"), "file_url": file_url, "source_url": file_url + "source/", "can_preview": is_previewable_asset(material.get("name", material["title"]), material.get("size", 0))})
                 elif material.get("url"):
                     links.append({"title": material["title"], "url": material["url"], "kind": material.get("kind", "reference")})
             cover = snap.get("cover")
@@ -91,11 +92,21 @@ class ArtifactCoverEndpoint(ArtifactAssetEndpoint):
     def get(self, request, slug, pk, asset_id):
         from django.http import FileResponse
         workspace = get_object_or_404(Workspace, slug=slug, deleted_at__isnull=True)
-        artifact = get_object_or_404(Artifact, id=pk, workspace=workspace, status=Artifact.Status.PUBLISHED, deleted_at__isnull=True)
-        revision = artifact.published_revision
-        if not revision:
+        artifact = get_object_or_404(Artifact, id=pk, workspace=workspace, deleted_at__isnull=True)
+        if request.query_params.get("view") == "draft":
             from rest_framework.exceptions import NotFound
-            raise NotFound()
+            from types import SimpleNamespace
+            if not can_edit(request.user, artifact):
+                raise NotFound()
+            revision = SimpleNamespace(snapshot=snapshot(artifact, workspace.slug), id=None)
+            request.artifact_preview_claim = {"artifact": str(artifact.id), "revision": None, "draft_version": artifact.version,
+                                              "user": str(request.user.id)}
+        else:
+            revision = artifact.published_revision
+            if not revision or artifact.status != Artifact.Status.PUBLISHED:
+                from rest_framework.exceptions import NotFound
+                raise NotFound()
+            request.artifact_preview_claim = {"artifact": str(artifact.id), "revision": str(revision.id), "user": str(request.user.id)}
         render_authorized_asset(request.user, artifact, revision, asset_id)
         path = COVER_DIR / f"{asset_id}.png"
         if path.is_file():

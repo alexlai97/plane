@@ -10,14 +10,14 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core import signing
 from django.http import HttpResponse
 from unittest.mock import Mock, patch
-from rest_framework.test import APIRequestFactory, force_authenticate
+from rest_framework.test import APIClient, APIRequestFactory, force_authenticate
 
 from plane.app.views.artifact import ArtifactEndpoint
 from plane.app.views.artifact import ArtifactUploadEndpoint
-from plane.app.views.attachment_preview import ArtifactPreviewSourceEndpoint, ARTIFACT_SOURCE_SALT
+from plane.app.views.attachment_preview import ArtifactPreviewSourceEndpoint, ARTIFACT_SOURCE_SALT, is_previewable_asset
 from plane.db.models import (
     Artifact, ArtifactCategory, ArtifactRevision, FileAsset, Issue, Project,
-    ProjectMember, User, Workspace, WorkspaceMember,
+    APIToken, ProjectMember, User, Workspace, WorkspaceMember,
 )
 
 
@@ -121,6 +121,13 @@ class ArtifactLifecycleTests(TestCase):
         denied = self.request("patch", self.unassigned_admin, self.payload(version=2, source_issue_ids=[str(self.private_issue.id)]), artifact_id)
         self.assertEqual(denied.status_code, 403)
         self.assertEqual(Artifact.objects.get(id=artifact_id).sources.count(), 0)
+
+    def test_api_key_url_resolves_to_api_key_view_and_authenticates(self):
+        token = APIToken.objects.create(user=self.owner, workspace=self.workspace, token="artifact-test-api-key")
+        client = APIClient()
+        response = client.get(f"/api/v1/workspaces/{self.workspace.slug}/artifacts/", HTTP_X_API_KEY=token.token)
+        self.assertEqual(response.status_code, 200, getattr(response, "data", None))
+        self.assertEqual(response.data["count"], 0)
 
     def test_first_publish_opens_workspace_collaboration(self):
         created = self.request("post", self.owner, self.payload())
@@ -312,6 +319,12 @@ class ArtifactLifecycleTests(TestCase):
             response = ArtifactPreviewSourceEndpoint.as_view()(request, token=token, filename=f"{asset.id.hex}-attachment.pdf")
         self.assertEqual(response.status_code, 404)
         source_response.assert_not_called()
+
+    def test_preview_capability_matches_supported_formats_and_office_size_limit(self):
+        self.assertTrue(is_previewable_asset("manual.pdf", 40 * 1024 * 1024))
+        self.assertTrue(is_previewable_asset("manual.docx", 30 * 1024 * 1024))
+        self.assertFalse(is_previewable_asset("manual.docx", 30 * 1024 * 1024 + 1))
+        self.assertFalse(is_previewable_asset("archive.exe", 100))
 
 
 class ArtifactImportCommandTests(TestCase):

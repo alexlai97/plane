@@ -324,19 +324,20 @@ def serialize_artifact(artifact, user, view="published"):
                  "can_edit": can_edit(user, artifact)})
     # Stable GalleryCard projection is shared by the gallery, editor preview, and detail route.
     attachments, links = [], []
+    from plane.app.views.attachment_preview import is_previewable_asset
     for item in snap.get("materials", []):
         if item.get("asset_id"):
             base_url = f"/api/workspaces/{artifact.workspace.slug}/artifacts/{artifact.id}/assets/{item['asset_id']}/"
             file_url = base_url + ("?view=draft" if view == "draft" else "")
             attachments.append({"id": item["asset_id"], "name": item.get("name", item["title"]), "size": item.get("size", 0),
                                 "mime": item.get("mime", "application/octet-stream"), "file_url": file_url,
-                                "source_url": base_url + "source/" + ("?view=draft" if view == "draft" else ""), "can_preview": True})
+                                "source_url": base_url + "source/" + ("?view=draft" if view == "draft" else ""), "can_preview": is_previewable_asset(item.get("name", item.get("title", "")), item.get("size", 0))})
         elif item.get("url"):
             links.append({"title": item["title"], "url": item["url"], "kind": item.get("kind", "reference")})
     cover = snap.get("cover")
     if cover:
-        cover_url = f"/api/workspaces/{artifact.workspace.slug}/artifacts/{artifact.id}/assets/{cover['asset_id']}/"
+        cover_url = f"/api/workspaces/{artifact.workspace.slug}/artifacts/{artifact.id}/covers/{cover['asset_id']}/"
         draft_query = "?view=draft" if view == "draft" else ""
-        cover.update({"file_url": cover_url + draft_query, "source_url": cover_url + "source/" + draft_query})
+        cover.update({"file_url": cover_url + draft_query, "source_url": cover_url + draft_query})
     snap.update({"attachments": attachments, "links": links})
     return snap

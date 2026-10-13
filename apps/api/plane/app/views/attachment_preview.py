@@ -23,7 +23,17 @@ CLOSE_BRIDGE = """<script>function closeAttachmentPreview(){if(parent!==window)p
 SOURCE_SALT = "bokang-attachment-preview-source-v1"
 ARTIFACT_SOURCE_SALT = "bokang-artifact-preview-source-v1"
 PREVIEW_EXTENSIONS = frozenset("md markdown txt log csv json xml pdf doc docx xls xlsx ppt pptx odt ods odp rtf jpg jpeg png gif webp bmp tif tiff mp3 wav ogg m4a aac flac mp4 webm mov avi mkv".split())
+OFFICE_PREVIEW_EXTENSIONS = frozenset("doc docx xls xlsx ppt pptx odt ods odp rtf".split())
 STATIC_ROOTS = frozenset("js css bootstrap bootstrap-table pdfjs xlsx excel xspreadsheet pptx highlight images ckplayer".split())
+
+
+def is_previewable_asset(asset_or_name, size=None):
+    if isinstance(asset_or_name, str):
+        name, size = asset_or_name, size
+    else:
+        name, size = asset_or_name.attributes.get("name", ""), asset_or_name.size
+    extension = name.rsplit(".", 1)[-1].lower()
+    return extension in PREVIEW_EXTENSIONS and (extension not in OFFICE_PREVIEW_EXTENSIONS or int(size or 0) <= 30 * 1024 * 1024)
 
 
 def allowed_preview_path(path, asset_id):
