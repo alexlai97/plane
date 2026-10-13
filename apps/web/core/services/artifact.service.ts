@@ -34,8 +34,8 @@ class ArtifactService extends APIService {
   async publish(slug: string, id: string, version: number): Promise<Artifact> {
     return (await this.post(`${this.base(slug)}/artifacts/${id}/publish/`, { version })).data;
   }
-  async withdraw(slug: string, id: string, version: number): Promise<void> {
-    await this.post(`${this.base(slug)}/artifacts/${id}/withdraw/`, { version });
+  async withdraw(slug: string, id: string, version: number): Promise<Pick<Artifact, "id" | "status" | "version">> {
+    return (await this.post(`${this.base(slug)}/artifacts/${id}/withdraw/`, { version })).data;
   }
   async remove(slug: string, id: string, version: number): Promise<void> {
     await this.delete(`${this.base(slug)}/artifacts/${id}/`, { version });

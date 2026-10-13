@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { artifactService } from "@/services/artifact.service";
-import { artifactError, artifactStatus, artifactToWrite, removeArtifactAsset } from "../../helpers/artifact";
+import {
+  artifactError,
+  artifactStatus,
+  artifactToWrite,
+  removeArtifactAsset,
+  mergeArtifactWrites,
+  artifactFieldLabels,
+} from "../../helpers/artifact";
 import type {
   Artifact,
   ArtifactAsset,
@@ -9,6 +16,8 @@ import type {
   ArtifactRevision,
   ArtifactSource,
   ArtifactSnapshot,
+  ArtifactMergeChoices,
+  ArtifactWriteField,
   ArtifactWrite,
 } from "../../helpers/artifact";
 import { isSafeHttpUrl } from "../../helpers/gallery";
@@ -21,6 +30,8 @@ export default function ArtifactEditorPage() {
   const routeId = params.artifactId?.toString();
   const [artifact, setArtifact] = useState<Artifact>();
   const [form, setForm] = useState<ArtifactWrite>(artifactToWrite());
+  const [baseline, setBaseline] = useState<ArtifactWrite>(artifactToWrite());
+  const [mergeChoices, setMergeChoices] = useState<ArtifactMergeChoices>({});
   const [assets, setAssets] = useState<ArtifactAsset[]>([]);
   const [sources, setSources] = useState<ArtifactSource[]>([]);
   const [categories, setCategories] = useState<ArtifactCategory[]>([]);
@@ -39,6 +50,8 @@ export default function ArtifactEditorPage() {
   const apply = useCallback((item: Artifact) => {
     setArtifact(item);
     setForm(artifactToWrite(item));
+    setBaseline(artifactToWrite(item));
+    setMergeChoices({});
     setAssets(item.assets);
     setSources(item.sources);
     setConflict(false);
@@ -172,6 +185,39 @@ export default function ArtifactEditorPage() {
         : [...previous.assets, { id: asset.id }],
     }));
   };
+  const mergeResult = latest ? mergeArtifactWrites(baseline, form, artifactToWrite(latest), mergeChoices) : undefined;
+  const describeField = (field: ArtifactWriteField, value: ArtifactWrite): string => {
+    if (field === "category_id") return categories.find((item) => item.id === value.category_id)?.name ?? "未分类";
+    if (field === "source_issue_ids")
+      return (
+        value.source_issue_ids
+          .map((id) => [...sources, ...(latest?.sources ?? [])].find((item) => item.id === id))
+          .map((item) => (item ? `${item.identifier} · ${item.name}` : "不可用工作项"))
+          .join("\n") || "无关联"
+      );
+    if (field === "assets")
+      return (
+        value.assets
+          .map(({ id }) => [...assets, ...(latest?.assets ?? [])].find((item) => item.id === id)?.name ?? "不可用材料")
+          .join("\n") || "无材料"
+      );
+    if (field === "links")
+      return (
+        value.links
+          .map(
+            (link) =>
+              `${link.title} · ${{ application: "应用入口", demo: "演示", reference: "参考资料" }[link.kind]}\n${link.url}`
+          )
+          .join("\n\n") || "无链接"
+      );
+    if (field === "cover_asset_id")
+      return [...assets, ...(latest?.assets ?? [])].find((item) => item.id === value.cover_asset_id)?.name ?? "无封面";
+    if (field === "primary_action") {
+      const action = value.primary_action;
+      return `${action.label}\n${action.type === "detail" ? "成果详情" : action.type === "link" ? action.url : ([...assets, ...(latest?.assets ?? [])].find((item) => item.id === action.attachment_id)?.name ?? "不可用材料")}`;
+    }
+    return String(value[field] || "未填写");
+  };
   const selectedAssets = assets.filter((asset) => form.assets.some((selected) => selected.id === asset.id));
   if (loading)
     return (
@@ -220,7 +266,10 @@ export default function ArtifactEditorPage() {
                 disabled={busy}
                 onClick={() =>
                   void run(async () => {
-                    if (artifact) setLatest(await artifactService.detail(slug, artifact.id, "draft"));
+                    if (artifact) {
+                      setLatest(await artifactService.detail(slug, artifact.id, "draft"));
+                      setMergeChoices({});
+                    }
                   })
                 }
               >
@@ -228,35 +277,60 @@ export default function ArtifactEditorPage() {
               </button>
               {latest && (
                 <>
-                  <div className="text-sm rounded-md bg-[#f5f8fc] p-4">
-                    <strong>
-                      {latest.title} · 版本 {latest.version}
-                    </strong>
-                    <p className="whitespace-pre-wrap">{latest.summary}</p>
-                    <p>
-                      类型：{latest.kind} · 分类：{latest.category || "未分类"}
-                    </p>
-                    <p>来源：{latest.sources.map((item) => `${item.identifier} ${item.name}`).join("、") || "无"}</p>
-                    <p>材料：{latest.assets.map((item) => item.name).join("、") || "无"}</p>
-                    {latest.links.map((item) => (
-                      <p key={item.url}>
-                        {item.title}：{item.url}
-                      </p>
-                    ))}
-                  </div>
+                  <p className="text-sm">
+                    最新版本 {latest.version}。未在本地修改的字段会自动采用最新内容；双方修改了同一字段时，请逐项选择。
+                  </p>
+                  {mergeResult?.conflicts.map((field) => (
+                    <div key={field} className="border-amber-200 bg-amber-50 text-sm space-y-3 rounded-md border p-4">
+                      <h3 className="font-semibold">{artifactFieldLabels[field]}</h3>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        {(["local", "latest"] as const).map((side) => (
+                          <label key={side} className="space-y-2 rounded-md border border-[#dce5ef] bg-white p-3">
+                            <span className="flex items-center gap-2">
+                              <input
+                                type="radio"
+                                name={`merge-${field}`}
+                                checked={mergeChoices[field] === side}
+                                onChange={() => setMergeChoices((previous) => ({ ...previous, [field]: side }))}
+                              />
+                              {side === "local" ? "保留本地" : "采用最新"}
+                            </span>
+                            <p className="font-normal break-all whitespace-pre-wrap">
+                              {describeField(field, side === "local" ? form : artifactToWrite(latest))}
+                            </p>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  {mergeResult && mergeResult.conflicts.length === 0 && (
+                    <p className="text-sm text-green-800">修改涉及不同字段，可自动合并并保留双方改动。</p>
+                  )}
                   <div className="flex flex-wrap gap-3">
                     <button
                       className={buttonClass}
+                      disabled={!mergeResult || mergeResult.unresolved.length > 0}
                       onClick={() => {
+                        if (!mergeResult || mergeResult.unresolved.length) return;
                         setArtifact(latest);
-                        setForm((previous) => ({ ...previous, version: latest.version }));
+                        setBaseline(artifactToWrite(latest));
+                        setForm(mergeResult.merged);
+                        setAssets((previous) => [
+                          ...previous,
+                          ...latest.assets.filter((item) => !previous.some((existing) => existing.id === item.id)),
+                        ]);
+                        setSources((previous) => [
+                          ...previous,
+                          ...latest.sources.filter((item) => !previous.some((existing) => existing.id === item.id)),
+                        ]);
                         setConflict(false);
                         setLatest(undefined);
+                        setMergeChoices({});
                         setError("");
-                        setMessage("已采用最新版本号，本地输入保留。请确认已合并其他成员的修改，再保存。");
+                        setMessage("已按选择合并双方修改，请检查表单后保存草稿。");
                       }}
                     >
-                      已合并，保留当前输入继续编辑
+                      应用合并结果，继续编辑
                     </button>
                     <button
                       className={buttonClass}
@@ -369,12 +443,13 @@ export default function ArtifactEditorPage() {
                         </button>
                         <button
                           className={buttonClass}
-                          onClick={() =>
+                          onClick={() => {
                             change(
                               "source_issue_ids",
                               form.source_issue_ids.filter((id) => id !== source.id)
-                            )
-                          }
+                            );
+                            setMessage("关联已移除。工作项材料仍可能已选中；如不再保留来源，请同时移除其材料后保存。");
+                          }}
                         >
                           移除关联
                         </button>
@@ -686,9 +761,11 @@ export default function ArtifactEditorPage() {
                       onClick={() => {
                         if (window.confirm(`撤下「${artifact.title}」？展厅将不再展示此成果，草稿与修订仍保留。`))
                           void run(async () => {
-                            await artifactService.withdraw(slug, artifact.id, artifact.version);
-                            apply(await artifactService.detail(slug, artifact.id, "draft"));
-                            setMessage("成果已撤下，可编辑草稿后重新发布。");
+                            const withdrawn = await artifactService.withdraw(slug, artifact.id, artifact.version);
+                            setArtifact((previous) => (previous ? { ...previous, ...withdrawn } : previous));
+                            setForm((previous) => ({ ...previous, version: withdrawn.version }));
+                            setBaseline((previous) => ({ ...previous, version: withdrawn.version }));
+                            setMessage("成果已撤下，本地未保存修改已保留，可保存草稿后重新发布。");
                           });
                       }}
                     >

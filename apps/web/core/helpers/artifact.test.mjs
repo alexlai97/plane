@@ -58,3 +58,72 @@ test("preview path retains draft and revision parameters after path insertion", 
   );
   assert.equal(getAttachmentPreviewUrl("https://example.com/file/"), "https://example.com/file/preview/onlinePreview");
 });
+
+test("three-way merge preserves independent local and remote edits and uses newest version", async () => {
+  const { mergeArtifactWrites } = await import("./artifact.ts");
+  const base = artifactToWrite(artifact);
+  const local = { ...base, title: "本地标题" };
+  const latest = { ...base, summary: "其他成员说明", version: 9 };
+  const result = mergeArtifactWrites(base, local, latest);
+  assert.deepEqual(result.conflicts, []);
+  assert.equal(result.merged.title, "本地标题");
+  assert.equal(result.merged.summary, "其他成员说明");
+  assert.equal(result.merged.version, 9);
+  assert.equal(local.version, 7);
+});
+test("concurrent same-field changes require a side choice and equal edits need no choice", async () => {
+  const { mergeArtifactWrites } = await import("./artifact.ts");
+  const base = artifactToWrite(artifact);
+  const local = { ...base, title: "本地标题", summary: "相同新说明" };
+  const latest = { ...base, title: "其他成员标题", summary: "相同新说明", version: 8 };
+  const pending = mergeArtifactWrites(base, local, latest);
+  assert.deepEqual(pending.unresolved, ["title"]);
+  assert.deepEqual(pending.conflicts, ["title"]);
+  const chosen = mergeArtifactWrites(base, local, latest, { title: "latest" });
+  assert.deepEqual(chosen.unresolved, []);
+  assert.equal(chosen.merged.title, "其他成员标题");
+  assert.equal(chosen.merged.summary, "相同新说明");
+});
+test("cover, primary target and button label, and link kind all participate in conflict resolution", async () => {
+  const { mergeArtifactWrites } = await import("./artifact.ts");
+  const base = artifactToWrite(artifact);
+  const local = {
+    ...base,
+    cover_asset_id: "local-cover",
+    primary_action: { type: "detail", label: "本地按钮" },
+    links: [{ ...base.links[0], kind: "demo" }],
+  };
+  const latest = {
+    ...base,
+    cover_asset_id: "latest-cover",
+    primary_action: { type: "link", label: "最新按钮", url: "https://example.com" },
+    links: [{ ...base.links[0], kind: "reference" }],
+    version: 10,
+  };
+  const pending = mergeArtifactWrites(base, local, latest);
+  assert.deepEqual(pending.unresolved, ["links", "cover_asset_id", "primary_action"]);
+  const partial = mergeArtifactWrites(base, local, latest, { links: "latest" });
+  assert.deepEqual(partial.unresolved, ["cover_asset_id", "primary_action"]);
+  const resolved = mergeArtifactWrites(base, local, latest, {
+    links: "latest",
+    cover_asset_id: "local",
+    primary_action: "latest",
+  });
+  assert.deepEqual(resolved.unresolved, []);
+  assert.equal(resolved.merged.links[0].kind, "reference");
+  assert.equal(resolved.merged.cover_asset_id, "local-cover");
+  assert.deepEqual(resolved.merged.primary_action, latest.primary_action);
+});
+test("remote untouched main action accepts local label even when object property order differs", async () => {
+  const { mergeArtifactWrites } = await import("./artifact.ts");
+  const base = artifactToWrite(artifact);
+  const local = { ...base, primary_action: { ...base.primary_action, label: "新按钮" } };
+  const latest = {
+    ...base,
+    primary_action: { attachment_id: "file-one", label: "打开材料", type: "attachment" },
+    version: 8,
+  };
+  const result = mergeArtifactWrites(base, local, latest);
+  assert.deepEqual(result.unresolved, []);
+  assert.equal(result.merged.primary_action.label, "新按钮");
+});

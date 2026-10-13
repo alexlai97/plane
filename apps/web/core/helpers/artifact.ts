@@ -75,3 +75,63 @@ export function artifactError(error: unknown): string {
   if (error instanceof Error && !response && !error.message.includes("Network")) return error.message;
   return "操作失败，请检查连接后重试。";
 }
+
+export const artifactWriteFields = [
+  "title",
+  "summary",
+  "kind",
+  "category_id",
+  "source_issue_ids",
+  "assets",
+  "links",
+  "cover_asset_id",
+  "primary_action",
+] as const;
+export type ArtifactWriteField = (typeof artifactWriteFields)[number];
+export type ArtifactMergeChoices = Partial<Record<ArtifactWriteField, "local" | "latest">>;
+export const artifactFieldLabels: Record<ArtifactWriteField, string> = {
+  title: "成果名称",
+  summary: "简短说明",
+  kind: "类型",
+  category_id: "分类",
+  source_issue_ids: "关联工作项",
+  assets: "成果材料",
+  links: "链接（标题、地址与用途）",
+  cover_asset_id: "封面",
+  primary_action: "主操作（目标与按钮文字）",
+};
+function canonical(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonical);
+  if (value && typeof value === "object")
+    return Object.fromEntries(
+      Object.entries(value)
+        // oxlint-disable-next-line unicorn/no-array-sort -- Object.entries creates a fresh array; web targets pre-ES2023 libraries.
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([key, item]) => [key, canonical(item)])
+    );
+  return value;
+}
+function equalWriteValue(a: unknown, b: unknown): boolean {
+  return JSON.stringify(canonical(a)) === JSON.stringify(canonical(b));
+}
+/** Arrays are resolved as one field. Unresolved concurrent edits never silently select a side. */
+export function mergeArtifactWrites(
+  baseline: ArtifactWrite,
+  local: ArtifactWrite,
+  latest: ArtifactWrite,
+  choices: ArtifactMergeChoices = {}
+): { merged: ArtifactWrite; conflicts: ArtifactWriteField[]; unresolved: ArtifactWriteField[] } {
+  const merged = { ...local, version: latest.version };
+  const conflicts: ArtifactWriteField[] = [];
+  const unresolved: ArtifactWriteField[] = [];
+  for (const field of artifactWriteFields) {
+    const localChanged = !equalWriteValue(local[field], baseline[field]);
+    const latestChanged = !equalWriteValue(latest[field], baseline[field]);
+    if (localChanged && latestChanged && !equalWriteValue(local[field], latest[field])) {
+      conflicts.push(field);
+      if (!choices[field]) unresolved.push(field);
+      Object.assign(merged, { [field]: choices[field] === "latest" ? latest[field] : local[field] });
+    } else Object.assign(merged, { [field]: localChanged ? local[field] : latest[field] });
+  }
+  return { merged, conflicts, unresolved };
+}
