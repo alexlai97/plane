@@ -189,7 +189,10 @@ def preview_authorized_asset(request, asset, resource="onlinePreview"):
             token = signing.dumps(str(asset.id), salt=SOURCE_SALT, compress=True)
             source_path = "/api/attachment-preview-source/"
         filename = f"{asset.id.hex}-attachment.{extension}"
-        internal_source = f"http://api:8000{source_path}{token}/{filename}"
+        # The conversion service must reach this deployment's API instance.
+        # Keep the origin server-controlled; request parameters never choose it.
+        source_origin = os.environ.get("ATTACHMENT_PREVIEW_SOURCE_URL", "http://api:8000").rstrip("/")
+        internal_source = f"{source_origin}{source_path}{token}/{filename}"
         source = internal_source + "?fullfilename=" + quote(filename)
         params = {"url": base64.b64encode(source.encode()).decode()}
         # Only a password supplied by the user is forwarded; caller URLs,

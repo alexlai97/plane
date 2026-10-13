@@ -1,7 +1,9 @@
 """Artifact lifecycle and authorization contracts for the Django test runner."""
 import json
+import base64
 import tempfile
 import uuid
+from urllib.parse import unquote
 from pathlib import Path
 
 from django.core.management import call_command, CommandError
@@ -383,6 +385,28 @@ class ArtifactLifecycleTests(TestCase):
                                                        asset_id=asset.id, resource="onlinePreview")
         self.assertEqual(response.status_code, 413)
         converter.assert_not_called()
+
+    def test_converter_source_origin_is_configured_and_server_controlled(self):
+        from plane.app.views.gallery import ArtifactAssetEndpoint
+        created = self.request("post", self.owner, self.payload())
+        artifact_id = created.data["id"]
+        asset = FileAsset.objects.create(workspace=self.workspace, user=self.owner,
+                                         entity_type=FileAsset.EntityTypeContext.ARTIFACT_ATTACHMENT,
+                                         entity_identifier=artifact_id, is_uploaded=True, asset="preview.pdf",
+                                         attributes={"name": "preview.pdf", "size": 1024, "type": "application/pdf"}, size=1024)
+        self.request("patch", self.owner, self.payload(version=1, assets=[{"id": str(asset.id)}]), artifact_id)
+        request = APIRequestFactory().get(f"/api/workspaces/{self.workspace.slug}/artifacts/{artifact_id}/assets/{asset.id}/preview/onlinePreview?url=http://attacker.invalid")
+        force_authenticate(request, user=self.owner)
+        converter_result = Mock(status_code=400)
+        with patch.dict("os.environ", {"ATTACHMENT_PREVIEW_SOURCE_URL": "http://stage-api.internal:8000/"}), \
+                patch("plane.app.views.attachment_preview.requests.get", return_value=converter_result) as converter:
+            response = ArtifactAssetEndpoint.as_view()(request, slug=self.workspace.slug, pk=artifact_id,
+                                                       asset_id=asset.id, resource="onlinePreview")
+        self.assertEqual(response.status_code, 502)
+        source = unquote(base64.b64decode(converter.call_args.kwargs["params"]["url"]).decode())
+        self.assertTrue(source.startswith("http://stage-api.internal:8000/api/artifact-preview-source/"))
+        self.assertIn(str(asset.id), source)
+        self.assertNotIn("attacker.invalid", source)
 
 
 class ArtifactImportCommandTests(TestCase):
