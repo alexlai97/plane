@@ -86,6 +86,16 @@ def _asset(user, workspace, asset_id, artifact=None):
     return asset
 
 
+def _validate_asset_sources(assets, source_ids):
+    allowed = {str(issue_id) for issue_id in source_ids if issue_id}
+    for asset in assets:
+        if asset.entity_type == FileAsset.EntityTypeContext.ARTIFACT_ATTACHMENT:
+            continue
+        issue_id = asset.issue_id or (asset.comment.issue_id if asset.comment_id else None)
+        if issue_id is None or str(issue_id) not in allowed:
+            raise ValidationError({"assets": "附件来源必须包含在所选来源任务中。"})
+
+
 def _serialize_source(issue, slug):
     return {"id": str(issue.id), "sequence_id": issue.sequence_id, "name": issue.name,
             "project_id": str(issue.project_id), "project_name": issue.project.name,
@@ -167,6 +177,7 @@ def _apply_body(artifact, user, data, create=False):
                 raise ValidationError({"category_id": "分类不存在。"})
     else:
         category = artifact.category
+    _validate_asset_sources(assets + ([cover] if cover else []), [issue.id for issue in issues])
     action = data.get("primary_action") if "primary_action" in data else artifact.primary_action
     action = action or {"type": "detail", "label": "查看详情"}
     if not isinstance(action, dict) or action.get("type") not in ("detail", "attachment", "link"):
@@ -316,12 +327,15 @@ def publish_artifact(user, artifact, version):
         raise PermissionDenied()
     if artifact.sources.filter(issue__isnull=True).exists():
         raise ValidationError({"source_issue_ids": "存在已删除的来源任务，请先移除该来源。"})
-    _source_rows(user, artifact.workspace, list(artifact.sources.values_list("issue_id", flat=True)))
+    source_ids = list(artifact.sources.values_list("issue_id", flat=True))
+    issues = _source_rows(user, artifact.workspace, source_ids)
+    selected_assets = []
     for item in artifact.materials.select_related("asset"):
         if item.asset_id:
-            _asset(user, artifact.workspace, item.asset_id, artifact)
+            selected_assets.append(_asset(user, artifact.workspace, item.asset_id, artifact))
     if artifact.cover_asset_id:
-        _asset(user, artifact.workspace, artifact.cover_asset_id, artifact)
+        selected_assets.append(_asset(user, artifact.workspace, artifact.cover_asset_id, artifact))
+    _validate_asset_sources(selected_assets, [issue.id for issue in issues])
     snap = snapshot(artifact, artifact.workspace.slug)
     if snap["unavailable_reference_count"]:
         raise ValidationError({"materials": "存在已失效的来源或材料，请先修复草稿。"})
