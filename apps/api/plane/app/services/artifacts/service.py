@@ -38,13 +38,50 @@ def can_edit(user, artifact):
     return role == ROLE.ADMIN.value or (role == ROLE.MEMBER.value and (artifact.access == Artifact.Access.WORKSPACE or artifact.owner_id == user.id))
 
 
+def authorize_snapshot_sources(user, workspace, snap):
+    """Authorize frozen metadata even when its Issue has been deleted."""
+    unavailable = 0
+    for source in snap.get("sources", []):
+        issue = Issue.all_objects.filter(id=source.get("id"), workspace=workspace).first()
+        project_id = issue.project_id if issue else source.get("project_id")
+        if not project_id or not ProjectMember.objects.filter(
+            project_id=project_id, workspace=workspace, project__deleted_at__isnull=True,
+            member=user, is_active=True, deleted_at__isnull=True,
+        ).exists():
+            raise NotFound()
+        if issue is None or issue.deleted_at is not None:
+            unavailable += 1
+    return unavailable
+
+
+def authorize_existing_sources(user, artifact):
+    """Protect the current draft and publication before replacing either."""
+    if artifact.published_revision:
+        authorize_snapshot_sources(user, artifact.workspace, artifact.published_revision.snapshot)
+    for row in artifact.sources.select_related("issue"):
+        if row.issue is not None:
+            authorize_snapshot_sources(user, artifact.workspace, {"sources": [{"id": str(row.issue_id)}]})
+        elif not artifact.published_revision or not artifact.published_revision.snapshot.get("sources"):
+            # A SET_NULL reference has no project identity unless the publication retained it.
+            raise NotFound()
+
+
+def require_artifact_write(user, artifact):
+    if not can_edit(user, artifact):
+        raise PermissionDenied()
+    try:
+        authorize_existing_sources(user, artifact)
+    except NotFound:
+        raise PermissionDenied("成果来源项目不可访问。")
+
+
 def active_artifact(user, workspace, artifact_id, write=False):
     require_workspace(user, workspace)
     obj = Artifact.objects.filter(id=artifact_id, workspace=workspace, deleted_at__isnull=True).first()
     if obj is None:
         raise NotFound()
-    if write and not can_edit(user, obj):
-        raise PermissionDenied()
+    if write:
+        require_artifact_write(user, obj)
     return obj
 
 
@@ -316,6 +353,7 @@ def update_artifact(user, artifact, data):
     validate_artifact_payload(data)
     artifact = Artifact.objects.select_for_update().get(pk=artifact.pk)
     _lock_version(artifact, data.get("version"))
+    require_artifact_write(user, artifact)
     _apply_body(artifact, user, data)
     artifact.version += 1
     artifact.save(update_fields=["version", "updated_at"])
@@ -328,6 +366,7 @@ def render_authorized_asset(user, artifact, revision, asset_id):
         raise NotFound()
     if artifact.status == Artifact.Status.PUBLISHED and artifact.access == Artifact.Access.PRIVATE and not can_edit(user, artifact):
         raise NotFound()
+    authorize_snapshot_sources(user, artifact.workspace, revision.snapshot)
     sources = []
     for source in revision.snapshot.get("sources", []):
         issue = Issue.issue_objects.filter(id=source["id"], workspace=artifact.workspace, deleted_at__isnull=True).first()
@@ -376,18 +415,7 @@ def published_snapshot(artifact, user):
         if asset is None or (asset.entity_type == FileAsset.EntityTypeContext.ARTIFACT_ATTACHMENT and str(asset.entity_identifier) != str(artifact.id)):
             unavailable_assets += 1
     snap["unavailable_reference_count"] = unavailable_assets
-    unavailable = snap.get("unavailable_reference_count", 0)
-    for source in snap.get("sources", []):
-        issue = Issue.issue_objects.filter(id=source["id"], workspace=artifact.workspace, deleted_at__isnull=True).first()
-        if issue is None:
-            retained = Issue.all_objects.filter(id=source["id"], workspace=artifact.workspace).first()
-            if retained is None or retained.deleted_at is not None:
-                unavailable += 1
-                continue
-            raise NotFound()
-        if not can_project(user, issue):
-            raise NotFound()
-    snap["unavailable_reference_count"] = unavailable
+    snap["unavailable_reference_count"] += authorize_snapshot_sources(user, artifact.workspace, snap)
     return snap
 
 
@@ -395,8 +423,7 @@ def published_snapshot(artifact, user):
 def publish_artifact(user, artifact, version):
     artifact = Artifact.objects.select_for_update().get(pk=artifact.pk)
     _lock_version(artifact, version)
-    if not can_edit(user, artifact):
-        raise PermissionDenied()
+    require_artifact_write(user, artifact)
     if artifact.sources.filter(issue__isnull=True).exists():
         raise ValidationError({"source_issue_ids": "存在已删除的来源任务，请先移除该来源。"})
     source_ids = list(artifact.sources.values_list("issue_id", flat=True))
@@ -426,8 +453,7 @@ def publish_artifact(user, artifact, version):
 def transition_artifact(user, artifact, version, status_value):
     artifact = Artifact.objects.select_for_update().get(pk=artifact.pk)
     _lock_version(artifact, version)
-    if not can_edit(user, artifact):
-        raise PermissionDenied()
+    require_artifact_write(user, artifact)
     artifact.status = status_value
     artifact.version += 1
     artifact.save(update_fields=["status", "version", "updated_at"])
@@ -437,22 +463,26 @@ def transition_artifact(user, artifact, version, status_value):
 def serialize_artifact(artifact, user, view="published"):
     draft_snap = snapshot(artifact, artifact.workspace.slug)
     if view == "draft" and can_edit(user, artifact):
-        for row in artifact.sources.select_related("issue__project"):
-            if row.issue is not None and row.issue.deleted_at is None and not can_project(user, row.issue):
-                raise NotFound()
+        authorize_existing_sources(user, artifact)
         snap = draft_snap
     else:
         snap = published_snapshot(artifact, user)
         if snap is None:
             raise NotFound()
+    editable = can_edit(user, artifact)
+    if editable:
+        try:
+            authorize_existing_sources(user, artifact)
+        except NotFound:
+            editable = False
     published = artifact.published_revision.snapshot if artifact.published_revision else None
     compare_keys = ("title", "summary", "category_id", "kind", "source_issue_ids", "assets", "links", "primary_action", "cover")
-    changed = bool(can_edit(user, artifact) and published and any(draft_snap.get(key) != published.get(key) for key in compare_keys))
+    changed = bool(editable and published and any(draft_snap.get(key) != published.get(key) for key in compare_keys))
     snap.update({"owner_id": str(artifact.owner_id) if artifact.owner_id else None, "status": artifact.status, "version": artifact.version,
                  "access": artifact.access,
                  "published_version": artifact.published_revision.number if artifact.published_revision else None,
                  "has_unpublished_changes": changed,
-                 "can_edit": can_edit(user, artifact)})
+                 "can_edit": editable})
     # Stable GalleryCard projection is shared by the gallery, editor preview, and detail route.
     attachments, links = [], []
     from plane.app.views.attachment_preview import is_previewable_asset

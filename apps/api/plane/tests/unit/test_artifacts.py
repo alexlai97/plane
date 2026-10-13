@@ -103,8 +103,107 @@ class ArtifactLifecycleTests(TestCase):
         force_authenticate(restored_request, user=self.owner)
         restored = ArtifactEndpoint.as_view()(restored_request, slug="artifacts-qa", pk=artifact_id, action="restore", revision_id=published_revision)
         self.assertEqual(restored.status_code, 200, restored.data)
-        self.assertEqual(restored.data["status"], Artifact.Status.DRAFT)
+        self.assertEqual(restored.data["status"], Artifact.Status.WITHDRAWN)
         self.assertEqual(self.request("get", self.member).data["count"], 0)
+
+    def revision_request(self, user, artifact_id, revision_id=None):
+        from plane.app.views.artifact import ArtifactRevisionEndpoint
+        request = APIRequestFactory().get("/revisions/")
+        force_authenticate(request, user=user)
+        return ArtifactRevisionEndpoint.as_view()(request, slug=self.workspace.slug, pk=artifact_id, revision_id=revision_id)
+
+    def test_historical_sources_are_authorized_independently_of_current_draft(self):
+        created = self.request("post", self.owner, self.payload(source_issue_ids=[str(self.private_issue.id)]))
+        artifact_id = created.data["id"]
+        self.request("post", self.owner, {"version": 1}, artifact_id, "publish")
+        revision_id = Artifact.objects.get(id=artifact_id).published_revision_id
+        self.request("patch", self.owner, self.payload(version=2), artifact_id)
+        self.request("post", self.owner, {"version": 3}, artifact_id, "publish")
+        for user in (self.member, self.unassigned_admin):
+            self.assertEqual(self.revision_request(user, artifact_id, revision_id).status_code, 404)
+            history = self.revision_request(user, artifact_id)
+            self.assertEqual(history.status_code, 200)
+            self.assertEqual(len(history.data["results"]), 1)
+            denied = self.request("post", user, {"version": 4, "revision_id": str(revision_id)}, artifact_id, "restore")
+            self.assertGreaterEqual(denied.status_code, 400)
+            self.assertEqual(Artifact.objects.get(id=artifact_id).version, 4)
+        self.assertEqual(self.revision_request(self.owner, artifact_id, revision_id).status_code, 200)
+        # Old revisions do not permanently prevent editing an accessible current publication.
+        self.assertEqual(self.request("patch", self.member, {"version": 4, "summary": "allowed"}, artifact_id).status_code, 200)
+
+    def test_existing_private_sources_protect_clear_withdraw_delete_and_deleted_metadata(self):
+        from django.utils import timezone
+        for deletion in ("active", "soft", "hard"):
+            issue = Issue.objects.create(project=self.private_project, name="受保护任务")
+            created = self.request("post", self.owner, self.payload(source_issue_ids=[str(issue.id)]))
+            artifact_id = created.data["id"]
+            self.request("post", self.owner, {"version": 1}, artifact_id, "publish")
+            artifact = Artifact.objects.get(id=artifact_id)
+            revision_id = artifact.published_revision_id
+            if deletion == "soft":
+                Issue.all_objects.filter(id=issue.id).update(deleted_at=timezone.now())
+            elif deletion == "hard":
+                Issue.all_objects.filter(id=issue.id).delete()
+            for user in (self.member, self.unassigned_admin):
+                self.assertEqual(self.request("get", user, pk=artifact_id).status_code, 404)
+                self.assertEqual(self.revision_request(user, artifact_id, revision_id).status_code, 404)
+                self.assertEqual(self.revision_request(user, artifact_id).data["results"], [])
+                operations = [
+                    ("patch", self.payload(version=2), None),
+                    ("patch", {"version": 2, "source_issue_ids": [], "assets": [], "links": [], "primary_action": {"type": "detail", "label": "详情"}}, None),
+                    ("post", {"version": 2}, "withdraw"),
+                    ("delete", {"version": 2}, None),
+                ]
+                before = (artifact.summary, artifact.sources.count(), artifact.materials.count(), revision_id)
+                for method, body, action in operations:
+                    self.assertEqual(self.request(method, user, body, artifact_id, action).status_code, 403)
+                    artifact.refresh_from_db()
+                    self.assertEqual(artifact.version, 2)
+                    self.assertEqual(artifact.status, Artifact.Status.PUBLISHED)
+                    self.assertIsNone(artifact.deleted_at)
+                    self.assertEqual((artifact.summary, artifact.sources.count(), artifact.materials.count(), artifact.published_revision_id), before)
+            allowed = self.request("get", self.owner, pk=artifact_id)
+            self.assertEqual(allowed.status_code, 200, allowed.data)
+            self.assertEqual(allowed.data["unavailable_reference_count"], int(deletion != "active"))
+            self.assertEqual(self.revision_request(self.owner, artifact_id, revision_id).status_code, 200)
+            self.assertEqual(self.request("patch", self.owner, self.payload(version=2), artifact_id).status_code, 200)
+            self.assertEqual(self.request("post", self.owner, {"version": 3}, artifact_id, "withdraw").status_code, 200)
+            self.assertEqual(self.request("delete", self.owner, {"version": 4}, artifact_id).status_code, 204)
+
+    def test_current_publication_protects_replaced_draft_and_unknown_deleted_scope_denies(self):
+        created = self.request("post", self.owner, self.payload(source_issue_ids=[str(self.private_issue.id)]))
+        artifact_id = created.data["id"]
+        self.request("post", self.owner, {"version": 1}, artifact_id, "publish")
+        self.assertEqual(self.request("patch", self.owner, self.payload(version=2), artifact_id).status_code, 200)
+        for user in (self.member, self.unassigned_admin):
+            self.assertEqual(self.request("patch", user, self.payload(version=3), artifact_id).status_code, 403)
+            self.assertEqual(self.request("post", user, {"version": 3}, artifact_id, "withdraw").status_code, 403)
+            self.assertEqual(self.request("delete", user, {"version": 3}, artifact_id).status_code, 403)
+        artifact = Artifact.objects.get(id=artifact_id)
+        self.assertEqual(artifact.version, 3)
+        revision = artifact.published_revision
+        revision.snapshot["sources"] = [{"id": str(uuid.uuid4()), "name": "unknown private"}]
+        revision.save(update_fields=["snapshot"])
+        self.assertEqual(self.request("get", self.owner, pk=artifact_id).status_code, 404)
+        self.assertEqual(self.revision_request(self.owner, artifact_id, revision.id).status_code, 404)
+        self.assertEqual(self.request("patch", self.owner, self.payload(version=3), artifact_id).status_code, 403)
+        self.assertEqual(Artifact.objects.get(id=artifact_id).version, 3)
+
+    def test_restore_published_changes_only_draft_and_preserves_served_revision(self):
+        created = self.request("post", self.owner, self.payload(summary="first"))
+        artifact_id = created.data["id"]
+        self.request("post", self.owner, {"version": 1}, artifact_id, "publish")
+        first_revision = Artifact.objects.get(id=artifact_id).published_revision_id
+        self.request("patch", self.owner, {"version": 2, "summary": "second"}, artifact_id)
+        self.request("post", self.owner, {"version": 3}, artifact_id, "publish")
+        published_revision = Artifact.objects.get(id=artifact_id).published_revision_id
+        restored = self.request("post", self.owner, {"version": 4, "revision_id": str(first_revision)}, artifact_id, "restore")
+        self.assertEqual(restored.status_code, 200, restored.data)
+        self.assertEqual(restored.data["status"], Artifact.Status.PUBLISHED)
+        self.assertEqual(restored.data["summary"], "first")
+        self.assertTrue(restored.data["has_unpublished_changes"])
+        self.assertEqual(Artifact.objects.get(id=artifact_id).published_revision_id, published_revision)
+        self.assertEqual(self.request("get", self.member, pk=artifact_id).data["summary"], "second")
 
     def test_workspace_role_owner_write_and_source_project_boundaries(self):
         created = self.request("post", self.owner, self.payload(source_issue_ids=[str(self.issue.id)]))
@@ -372,9 +471,18 @@ class ArtifactLifecycleTests(TestCase):
         self.assertEqual(failed.status_code, 502)
         self.assertEqual(FileAsset.objects.filter(entity_identifier=artifact_id).count(), 0)
 
+        from botocore.exceptions import EndpointConnectionError
+        storage.upload_file.side_effect = EndpointConnectionError(endpoint_url="http://unavailable.invalid")
+        with patch("plane.app.views.artifact.S3Storage", return_value=storage) as constructor:
+            network_failed = upload({"file": SimpleUploadedFile("network.pdf", b"1234", content_type="application/pdf")})
+        constructor.assert_called_once_with()
+        self.assertEqual(network_failed.status_code, 502)
+        self.assertEqual(FileAsset.objects.filter(entity_identifier=artifact_id).count(), 0)
+        storage.upload_file.side_effect = None
         storage.upload_file.return_value = True
-        with patch("plane.app.views.artifact.S3Storage", return_value=storage):
+        with patch("plane.app.views.artifact.S3Storage", return_value=storage) as constructor:
             saved = upload({"file": SimpleUploadedFile("ok.pdf", b"1234", content_type="application/pdf")})
+        constructor.assert_called_once_with()
         self.assertEqual(saved.status_code, 201, saved.data)
         asset = FileAsset.objects.get(id=saved.data["id"])
         self.assertEqual(asset.entity_type, FileAsset.EntityTypeContext.ARTIFACT_ATTACHMENT)

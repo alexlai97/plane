@@ -2,20 +2,20 @@ from django.db import transaction
 from rest_framework.exceptions import PermissionDenied
 
 from plane.db.models import Artifact, ArtifactMaterial, ArtifactSource, FileAsset, Issue
-from .service import _asset, _lock_version, _source_rows, can_edit
+from .service import _asset, _lock_version, _source_rows, authorize_snapshot_sources, require_artifact_write
 
 
 @transaction.atomic
 def restore_revision(user, artifact, revision_id, version):
     artifact = Artifact.objects.select_for_update().get(pk=artifact.pk)
     _lock_version(artifact, version)
-    if not can_edit(user, artifact):
-        raise PermissionDenied()
+    require_artifact_write(user, artifact)
     revision = artifact.revisions.filter(id=revision_id).first()
     if revision is None:
         from rest_framework.exceptions import NotFound
         raise NotFound()
     snap = revision.snapshot
+    authorize_snapshot_sources(user, artifact.workspace, snap)
     issue_ids = [s["id"] for s in snap.get("sources", [])]
     issues = _source_rows(user, artifact.workspace, issue_ids)
     assets = []
@@ -32,7 +32,6 @@ def restore_revision(user, artifact, revision_id, version):
         raise ValidationError({"category_id": "原修订分类已失效，无法恢复。"})
     artifact.cover_asset = cover
     artifact.primary_action = snap.get("primary_action", {})
-    artifact.status = Artifact.Status.DRAFT
     artifact.version += 1
     artifact.save()
     artifact.sources.all().delete()

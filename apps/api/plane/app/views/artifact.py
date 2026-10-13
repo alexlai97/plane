@@ -80,10 +80,11 @@ class ArtifactEndpoint(BaseAPIView):
     def delete(self, request, slug, pk):
         ws = self.workspace(slug)
         obj = active_artifact(request.user, ws, pk, write=True)
-        from plane.app.services.artifacts.service import _lock_version
+        from plane.app.services.artifacts.service import _lock_version, require_artifact_write
         with transaction.atomic():
             obj = Artifact.objects.select_for_update().get(pk=obj.pk)
             _lock_version(obj, request.data.get("version"))
+            require_artifact_write(request.user, obj)
             obj.deleted_at = timezone.now()
             obj.version += 1
             obj.save(update_fields=["deleted_at", "version", "updated_at"])
@@ -97,6 +98,7 @@ class ArtifactRevisionEndpoint(ArtifactEndpoint):
         if not can_edit(request.user, obj):
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied()
+        from plane.app.services.artifacts.service import authorize_snapshot_sources
         revisions = obj.revisions.select_related("actor").all()
         def actor_name(actor):
             if actor is None:
@@ -104,10 +106,18 @@ class ArtifactRevisionEndpoint(ArtifactEndpoint):
             return actor.display_name or actor.full_name or "已删除成员"
         if revision_id:
             revision = get_object_or_404(revisions, id=revision_id)
+            authorize_snapshot_sources(request.user, ws, revision.snapshot)
             return Response({"id": str(revision.id), "version": revision.number, "snapshot": revision.snapshot, "actor": str(revision.actor_id) if revision.actor_id else None,
                              "actor_name": actor_name(revision.actor), "created_at": revision.created_at})
+        visible = []
+        for revision in revisions:
+            try:
+                authorize_snapshot_sources(request.user, ws, revision.snapshot)
+                visible.append(revision)
+            except NotFound:
+                continue
         return Response({"results": [{"id": str(r.id), "version": r.number, "actor": str(r.actor_id) if r.actor_id else None,
-                                      "actor_name": actor_name(r.actor), "created_at": r.created_at} for r in revisions]})
+                                      "actor_name": actor_name(r.actor), "created_at": r.created_at} for r in visible]})
 
 
 class ArtifactCategoryEndpoint(BaseAPIView):
@@ -239,8 +249,12 @@ class ArtifactUploadEndpoint(BaseAPIView):
         if not upload or upload.size <= 0 or upload.size > size_limit:
             return Response({"error": f"文件不能为空且不能超过 {size_limit} 字节。"}, status=400)
         object_name = f"{ws.id}/{obj.id}/{uuid4().hex}-{get_valid_filename(upload.name)}"
-        storage = S3Storage(request=request)
-        if not storage.upload_file(upload, object_name, upload.content_type or "application/octet-stream"):
+        storage = S3Storage()
+        try:
+            uploaded = storage.upload_file(upload, object_name, upload.content_type or "application/octet-stream")
+        except Exception:
+            return Response({"error": "文件存储失败，请重试。"}, status=502)
+        if not uploaded:
             return Response({"error": "文件存储失败，请重试。"}, status=502)
         asset = FileAsset(workspace=ws, user=request.user, entity_type=FileAsset.EntityTypeContext.ARTIFACT_ATTACHMENT,
                           entity_identifier=str(obj.id), attributes={"name": upload.name, "size": upload.size, "type": upload.content_type or "application/octet-stream"},

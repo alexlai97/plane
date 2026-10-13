@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { artifactService } from "@/services/artifact.service";
 import {
@@ -24,6 +24,7 @@ import { isSafeHttpUrl } from "../../helpers/gallery";
 import { ArtifactShell, buttonClass, Field, inputClass, Message, primaryClass, Section } from "./shared";
 
 export default function ArtifactEditorPage() {
+  const uploadInput = useRef<HTMLInputElement>(null);
   const params = useParams();
   const router = useRouter();
   const slug = params.workspaceSlug?.toString() ?? "";
@@ -140,6 +141,7 @@ export default function ArtifactEditorPage() {
   };
   const validate = () => {
     if (!form.title.trim()) throw new Error("名称必填");
+    if (!form.kind.trim()) throw new Error("类型必填");
     if (form.links.some((link) => !link.title.trim() || !isSafeHttpUrl(link.url)))
       throw new Error("链接必须填写标题及有效的 http/https 地址");
   };
@@ -364,7 +366,7 @@ export default function ArtifactEditorPage() {
                     onChange={(e) => change("title", e.target.value)}
                   />
                 </Field>
-                <Field label="类型">
+                <Field label="类型 *">
                   <input
                     className={inputClass}
                     placeholder="例如：在线工具、演示、交付资料"
@@ -495,13 +497,21 @@ export default function ArtifactEditorPage() {
                   </div>
                 ))}
               </div>
-              <label className="text-sm block">
-                上传文件
+              <div className="text-sm block">
+                <button
+                  type="button"
+                  className={buttonClass}
+                  disabled={!artifact}
+                  onClick={() => uploadInput.current?.click()}
+                >
+                  上传文件
+                </button>
                 <input
+                  ref={uploadInput}
                   aria-label="上传成果文件"
                   type="file"
                   disabled={!artifact}
-                  className="text-sm mt-2 block max-w-full"
+                  className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     e.target.value = "";
@@ -512,7 +522,7 @@ export default function ArtifactEditorPage() {
                       });
                   }}
                 />
-              </label>
+              </div>
               {!artifact && (
                 <p className="text-sm text-[#718399]">首次保存草稿后即可上传文件；现在可先选择工作项材料或添加链接。</p>
               )}
