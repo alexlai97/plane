@@ -91,9 +91,9 @@ def validate_artifact_payload(data, create=False):
             raise ValidationError({"assets": "必须是附件列表。"})
         for value in values:
             if isinstance(value, dict):
-                if set(value) != {"id"}:
-                    raise ValidationError({"assets": "每个附件只能包含 id 字段。"})
-                value = value["id"]
+                if "id" not in value:
+                    raise ValidationError({"assets": "每个附件必须包含 id 字段。"})
+                value = value.get("id")
             check_uuid(value, "assets")
     if "links" in data:
         values = data["links"]
