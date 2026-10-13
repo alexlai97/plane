@@ -1,6 +1,6 @@
 {
   "workspace_id": "bb96243d-e9cd-424e-8fb6-6117ae54f621",
-  "categories": ["产品与研发", "生产与质量", "采购与物料"],
+  "categories": ["产品与研发", "生产与质量", "采购与物料", "人才与组织"],
   "cards": [
     {
       "key": "model-entry",
@@ -257,6 +257,48 @@
         "type": "attachment",
         "label": "查看处理结果截图",
         "attachment_id": "b3eb5134-ac6f-4ca6-b1ac-7ed07ca57db1"
+      }
+    },
+    {
+      "key": "bom-code-generator",
+      "title": "BOM 编码生成工具",
+      "summary": "按规则批量生成物料编码，本地桌面工具；提供操作演示。",
+      "category": "采购与物料",
+      "kind": "本地工具",
+      "sources": ["24c011b5-67c9-48d0-bae2-f91c24d330f1"],
+      "assets": [],
+      "links": [
+        {
+          "title": "BOM 编码生成工具操作演示",
+          "url": "https://my.feishu.cn/file/ZVzQbpw2pooMIYx9b0rcYRC0nGg",
+          "kind": "demo"
+        }
+      ],
+      "primary_action": {
+        "type": "link",
+        "label": "查看演示",
+        "url": "https://my.feishu.cn/file/ZVzQbpw2pooMIYx9b0rcYRC0nGg"
+      }
+    },
+    {
+      "key": "talent-assessment",
+      "title": "储备干部性格测评工具",
+      "summary": "提供性格测评填写入口，支持储备干部信息收集与查看。",
+      "category": "人才与组织",
+      "kind": "在线工具",
+      "sources": ["42eac7fd-2d75-40b1-8ba7-2bde2ecd08d8"],
+      "assets": [],
+      "links": [
+        {
+          "title": "候选人填写入口",
+          "url": "https://my.feishu.cn/share/base/shrcnhVgngMYAZEe5drhpnehm0e",
+          "kind": "application"
+        }
+      ],
+      "primary_action": {
+        "type": "link",
+        "label": "打开填写入口",
+        "url": "https://my.feishu.cn/share/base/shrcnhVgngMYAZEe5drhpnehm0e"
       }
     }
   ]
