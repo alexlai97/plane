@@ -1,6 +1,6 @@
 {
   "workspace_id": "bb96243d-e9cd-424e-8fb6-6117ae54f621",
-  "categories": ["产品与研发", "生产与质量", "采购与物料", "人才与组织", "绩效", "成就"],
+  "categories": ["产品与研发", "生产与质量", "采购与物料", "人才与组织", "市场运营", "内部运营"],
   "cards": [
     {
       "key": "model-entry",
@@ -305,7 +305,7 @@
       "key": "central-channel-brief",
       "title": "中区渠道工作简报",
       "summary": "梳理中区渠道事业部工作记录，当前展示 2026 年 10 月 13 日历史梳理特别刊。",
-      "category": "绩效",
+      "category": "市场运营",
       "kind": "工作简报",
       "sources": ["3388880c-a7c1-47cf-89b2-ab578fbfeff8", "3cef8f8c-a5be-484a-ae98-e3f311118044"],
       "assets": [
@@ -324,7 +324,7 @@
       "key": "fitness-frontier",
       "title": "智健前沿",
       "summary": "智能健身器械竞品分析刊物。阅读入口需要阅读码，可在关联工作项中查看。",
-      "category": "成就",
+      "category": "内部运营",
       "kind": "内容刊物",
       "sources": ["13ee68e7-9c67-4c0a-9469-b7f54740ee7d", "da0bbf8b-7193-4426-8bc1-465c50385696"],
       "assets": [
