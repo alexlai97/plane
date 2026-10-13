@@ -1,4 +1,5 @@
 """Shared artifact authorization, lifecycle, snapshot, and rendering services."""
+import uuid
 from urllib.parse import urlparse
 
 from django.db import transaction
@@ -52,6 +53,71 @@ def _validate_url(url):
     if parsed.scheme not in ("http", "https") or not parsed.netloc or parsed.username or parsed.password:
         raise ValidationError({"links": "链接必须是安全的 http 或 https 地址。"})
     return url
+
+
+def validate_artifact_payload(data, create=False):
+    if not isinstance(data, dict):
+        raise ValidationError({"detail": "请求内容必须是对象。"})
+    allowed = {"title", "summary", "kind", "category_id", "cover_asset_id", "primary_action", "source_issue_ids", "assets", "links", "version"}
+    unknown = set(data) - allowed
+    if unknown:
+        raise ValidationError({"detail": f"不支持的字段：{', '.join(sorted(unknown))}"})
+    for field, limit in (("title", 255), ("kind", 80), ("summary", None)):
+        if field in data and (not isinstance(data[field], str) or (limit and len(data[field]) > limit)):
+            raise ValidationError({field: "字段类型或长度无效。"})
+    if create and (not str(data.get("title", "")).strip() or not str(data.get("kind", "")).strip()):
+        raise ValidationError({"title": "名称和类型必填。"})
+
+    def check_uuid(value, field, allow_empty=False):
+        if value is None or (allow_empty and value == ""):
+            return
+        try:
+            uuid.UUID(str(value))
+        except (TypeError, ValueError, AttributeError):
+            raise ValidationError({field: "必须是有效的 UUID。"})
+
+    for field in ("category_id", "cover_asset_id"):
+        if field in data:
+            check_uuid(data[field], field, allow_empty=True)
+    if "source_issue_ids" in data:
+        values = data["source_issue_ids"]
+        if not isinstance(values, list):
+            raise ValidationError({"source_issue_ids": "必须是 UUID 列表。"})
+        for value in values:
+            check_uuid(value, "source_issue_ids")
+    if "assets" in data:
+        values = data["assets"]
+        if not isinstance(values, list):
+            raise ValidationError({"assets": "必须是附件列表。"})
+        for value in values:
+            if isinstance(value, dict):
+                if set(value) != {"id"}:
+                    raise ValidationError({"assets": "每个附件只能包含 id 字段。"})
+                value = value["id"]
+            check_uuid(value, "assets")
+    if "links" in data:
+        values = data["links"]
+        if not isinstance(values, list):
+            raise ValidationError({"links": "必须是链接列表。"})
+        for item in values:
+            if not isinstance(item, dict) or not isinstance(item.get("title"), str) or not isinstance(item.get("url"), str):
+                raise ValidationError({"links": "每个链接必须包含标题和 URL。"})
+            if len(item["title"]) > 255 or len(item["url"]) > 2000 or ("kind" in item and not isinstance(item["kind"], str)):
+                raise ValidationError({"links": "链接字段类型或长度无效。"})
+            if len(item.get("kind", "reference")) > 40:
+                raise ValidationError({"links": "链接类型过长。"})
+    if "primary_action" in data and data["primary_action"] is not None:
+        action = data["primary_action"]
+        if not isinstance(action, dict) or action.get("type") not in ("detail", "attachment", "link"):
+            raise ValidationError({"primary_action": "操作类型无效。"})
+        if not isinstance(action.get("label"), str) or len(action["label"]) > 80:
+            raise ValidationError({"primary_action": "操作标签必须是长度不超过 80 的文本。"})
+        if action["type"] == "attachment":
+            check_uuid(action.get("attachment_id"), "primary_action")
+        if action["type"] == "link" and not isinstance(action.get("url"), str):
+            raise ValidationError({"primary_action": "链接操作必须包含 URL。"})
+    if "version" in data and (isinstance(data["version"], bool) or not isinstance(data["version"], (int, str))):
+        raise ValidationError({"version": "版本号必须是整数。"})
 
 
 def _source_rows(user, workspace, issue_ids):
@@ -220,6 +286,7 @@ def _apply_body(artifact, user, data, create=False):
 
 @transaction.atomic
 def create_artifact(user, workspace, data):
+    validate_artifact_payload(data, create=True)
     require_workspace(user, workspace)
     if member_role(user, workspace) not in (ROLE.ADMIN.value, ROLE.MEMBER.value):
         raise PermissionDenied()
@@ -242,6 +309,7 @@ def _lock_version(artifact, version):
 
 @transaction.atomic
 def update_artifact(user, artifact, data):
+    validate_artifact_payload(data)
     artifact = Artifact.objects.select_for_update().get(pk=artifact.pk)
     _lock_version(artifact, data.get("version"))
     _apply_body(artifact, user, data)

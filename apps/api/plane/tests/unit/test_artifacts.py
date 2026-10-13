@@ -161,6 +161,27 @@ class ArtifactLifecycleTests(TestCase):
         self.assertEqual([row["id"] for row in cleared.data["assets"]], [str(asset.id)])
         self.assertEqual(cleared.data["cover"]["asset_id"], str(asset.id))
 
+    def test_malformed_json_payloads_return_400_without_mutating_artifact(self):
+        before = Artifact.objects.count()
+        malformed_create = self.request("post", self.owner, self.payload(source_issue_ids={"bad": "shape"}))
+        self.assertEqual(malformed_create.status_code, 400)
+        self.assertEqual(Artifact.objects.count(), before)
+        created = self.request("post", self.owner, self.payload())
+        artifact_id = created.data["id"]
+        invalid_patches = [
+            {"source_issue_ids": {"bad": "shape"}},
+            {"links": [None]},
+            {"category_id": "not-a-uuid"},
+            {"summary": {"unexpected": "object"}},
+            {"primary_action": {"type": "detail", "label": {"nested": "object"}}},
+        ]
+        for patch in invalid_patches:
+            response = self.request("patch", self.owner, {"version": 1, **patch}, artifact_id)
+            self.assertEqual(response.status_code, 400, (patch, response.data))
+            artifact = Artifact.objects.get(id=artifact_id)
+            self.assertEqual(artifact.version, 1)
+            self.assertEqual(artifact.summary, "简介")
+
     def test_workspace_admin_without_project_membership_cannot_read_private_project_material(self):
         created = self.request("post", self.owner, self.payload())
         artifact_id = created.data["id"]
@@ -405,7 +426,7 @@ class ArtifactLifecycleTests(TestCase):
                                          entity_type=FileAsset.EntityTypeContext.ARTIFACT_ATTACHMENT,
                                          entity_identifier=artifact_id, is_uploaded=True,
                                          asset="revoked.pdf", attributes={"name": "revoked.pdf", "size": 10, "type": "application/pdf"}, size=10)
-        self.request("patch", self.owner, self.payload(version=1, assets=[{"id": str(asset.id)}]), artifact_id)
+        self.request("patch", self.owner, self.payload(version=1, source_issue_ids=[str(self.issue.id)], assets=[{"id": str(asset.id)}]), artifact_id)
         artifact = Artifact.objects.get(id=artifact_id)
         token = signing.dumps({"artifact": str(artifact.id), "revision": None, "draft_version": artifact.version,
                                "user": str(self.owner.id), "asset": str(asset.id)}, salt=ARTIFACT_SOURCE_SALT, compress=True)
@@ -443,14 +464,15 @@ class ArtifactLifecycleTests(TestCase):
 
     def test_converter_source_origin_is_configured_and_server_controlled(self):
         from plane.app.views.gallery import ArtifactAssetEndpoint
-        created = self.request("post", self.owner, self.payload())
+        created = self.request("post", self.owner, self.payload(source_issue_ids=[str(self.issue.id)]))
         artifact_id = created.data["id"]
         asset = FileAsset.objects.create(workspace=self.workspace, user=self.owner,
+                                         issue=self.issue, project=self.project,
                                          entity_type=FileAsset.EntityTypeContext.ARTIFACT_ATTACHMENT,
                                          entity_identifier=artifact_id, is_uploaded=True, asset="preview.pdf",
                                          attributes={"name": "preview.pdf", "size": 1024, "type": "application/pdf"}, size=1024)
-        self.request("patch", self.owner, self.payload(version=1, assets=[{"id": str(asset.id)}]), artifact_id)
-        request = APIRequestFactory().get(f"/api/workspaces/{self.workspace.slug}/artifacts/{artifact_id}/assets/{asset.id}/preview/onlinePreview?url=http://attacker.invalid")
+        self.request("patch", self.owner, self.payload(version=1, source_issue_ids=[str(self.issue.id)], assets=[{"id": str(asset.id)}]), artifact_id)
+        request = APIRequestFactory().get(f"/api/workspaces/{self.workspace.slug}/artifacts/{artifact_id}/assets/{asset.id}/preview/onlinePreview?view=draft&url=http://attacker.invalid")
         force_authenticate(request, user=self.owner)
         converter_result = Mock(status_code=400)
         with patch.dict("os.environ", {"ATTACHMENT_PREVIEW_SOURCE_URL": "http://stage-api.internal:8000/"}), \
