@@ -135,6 +135,32 @@ class ArtifactLifecycleTests(TestCase):
         self.assertEqual(draft.status_code, 200, draft.data)
         self.assertEqual(draft.data["unavailable_reference_count"], 1)
 
+    def test_partial_patch_preserves_omitted_relationships_and_rejects_invalid_explicit_clear(self):
+        category = ArtifactCategory.objects.create(workspace=self.workspace, name="产品")
+        asset = FileAsset.objects.create(workspace=self.workspace, user=self.owner, issue=self.issue, project=self.project,
+                                         entity_type=FileAsset.EntityTypeContext.ISSUE_ATTACHMENT, is_uploaded=True,
+                                         asset="partial.pdf", attributes={"name": "partial.pdf", "size": 64, "type": "application/pdf"}, size=64)
+        created = self.request("post", self.owner, self.payload(category_id=str(category.id), source_issue_ids=[str(self.issue.id)],
+                                     assets=[{"id": str(asset.id)}], cover_asset_id=str(asset.id)))
+        self.assertEqual(created.status_code, 201, created.data)
+        artifact_id = created.data["id"]
+        partial = self.request("patch", self.owner, {"version": 1, "summary": "只改说明"}, artifact_id)
+        self.assertEqual(partial.status_code, 200, partial.data)
+        self.assertEqual(partial.data["category_id"], str(category.id))
+        self.assertEqual(partial.data["source_issue_ids"], [str(self.issue.id)])
+        self.assertEqual([row["id"] for row in partial.data["assets"]], [str(asset.id)])
+        self.assertEqual(partial.data["links"][0]["url"], "https://example.invalid/demo")
+        self.assertEqual(partial.data["cover"]["asset_id"], str(asset.id))
+        invalid_clear = self.request("patch", self.owner, {"version": 2, "links": []}, artifact_id)
+        self.assertEqual(invalid_clear.status_code, 400)
+        self.assertEqual(Artifact.objects.get(id=artifact_id).version, 2)
+        cleared = self.request("patch", self.owner, {"version": 2, "links": [], "primary_action": {"type": "detail", "label": "详情"}}, artifact_id)
+        self.assertEqual(cleared.status_code, 200, cleared.data)
+        self.assertEqual(cleared.data["links"], [])
+        self.assertEqual(cleared.data["source_issue_ids"], [str(self.issue.id)])
+        self.assertEqual([row["id"] for row in cleared.data["assets"]], [str(asset.id)])
+        self.assertEqual(cleared.data["cover"]["asset_id"], str(asset.id))
+
     def test_workspace_admin_without_project_membership_cannot_read_private_project_material(self):
         created = self.request("post", self.owner, self.payload())
         artifact_id = created.data["id"]

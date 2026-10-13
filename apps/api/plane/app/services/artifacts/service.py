@@ -129,26 +129,44 @@ def snapshot(artifact, slug):
 
 
 def _apply_body(artifact, user, data, create=False):
-    issues = _source_rows(user, artifact.workspace, data.get("source_issue_ids", []))
-    assets = [_asset(user, artifact.workspace, entry["id"] if isinstance(entry, dict) else entry, artifact) for entry in data.get("assets", [])]
-    cover = _asset(user, artifact.workspace, data["cover_asset_id"], artifact) if data.get("cover_asset_id") else None
-    category = None
-    if data.get("category_id"):
-        category = ArtifactCategory.objects.filter(id=data["category_id"], workspace=artifact.workspace, deleted_at__isnull=True).first()
-        if category is None:
-            raise ValidationError({"category_id": "分类不存在。"})
-    links = data.get("links", [])
-    for link in links:
+    existing_materials = list(artifact.materials.select_related("asset").order_by("position", "created_at"))
+    sources_changed = create or "source_issue_ids" in data
+    assets_changed = create or "assets" in data
+    links_changed = create or "links" in data
+    issues = _source_rows(user, artifact.workspace, data.get("source_issue_ids", [])) if sources_changed else None
+    assets = ([_asset(user, artifact.workspace, entry["id"] if isinstance(entry, dict) else entry, artifact)
+               for entry in data.get("assets", [])] if assets_changed else
+              [item.asset for item in existing_materials if item.url is None and item.asset is not None])
+    links = data.get("links", []) if links_changed else [
+        {"title": item.title, "url": item.url, "kind": item.kind}
+        for item in existing_materials if item.url is not None
+    ]
+    for link in links if links_changed else []:
         _validate_url(link.get("url"))
-    action = data.get("primary_action") or {"type": "detail", "label": "查看详情"}
-    if action.get("type") not in ("detail", "attachment", "link"):
-        raise ValidationError({"primary_action": "操作类型无效。"})
-    if action.get("type") == "link":
-        _validate_url(action.get("url"))
-        if not any(l.get("url") == action["url"] for l in links):
-            raise ValidationError({"primary_action": "主链接必须出现在链接材料中。"})
-    if action.get("type") == "attachment" and str(action.get("attachment_id")) not in {str(a.id) for a in assets}:
-        raise ValidationError({"primary_action": "主附件必须在所选材料中。"})
+    if "cover_asset_id" in data:
+        cover = _asset(user, artifact.workspace, data["cover_asset_id"], artifact) if data.get("cover_asset_id") else None
+    else:
+        cover = artifact.cover_asset
+    if "category_id" in data:
+        category = None
+        if data.get("category_id"):
+            category = ArtifactCategory.objects.filter(id=data["category_id"], workspace=artifact.workspace, deleted_at__isnull=True).first()
+            if category is None:
+                raise ValidationError({"category_id": "分类不存在。"})
+    else:
+        category = artifact.category
+    action_changed = create or "primary_action" in data
+    action = data.get("primary_action") if "primary_action" in data else artifact.primary_action
+    action = action or {"type": "detail", "label": "查看详情"}
+    if action_changed or assets_changed or links_changed:
+        if action.get("type") not in ("detail", "attachment", "link"):
+            raise ValidationError({"primary_action": "操作类型无效。"})
+        if action.get("type") == "link":
+            _validate_url(action.get("url"))
+            if not any(l.get("url") == action["url"] for l in links):
+                raise ValidationError({"primary_action": "主链接必须出现在链接材料中。"})
+        if action.get("type") == "attachment" and str(action.get("attachment_id")) not in {str(a.id) for a in assets}:
+            raise ValidationError({"primary_action": "主附件必须在所选材料中。"})
     artifact.title = str(data.get("title", artifact.title)).strip()
     artifact.summary = data.get("summary", artifact.summary)
     artifact.kind = str(data.get("kind", artifact.kind)).strip()
@@ -158,12 +176,25 @@ def _apply_body(artifact, user, data, create=False):
     if not artifact.title or not artifact.kind:
         raise ValidationError({"title": "名称和类型必填。"})
     artifact.save(update_fields=["title", "summary", "kind", "category", "cover_asset", "primary_action", "updated_at"])
-    artifact.sources.all().delete()
-    ArtifactSource.objects.bulk_create([ArtifactSource(artifact=artifact, issue=i) for i in issues])
-    artifact.materials.all().delete()
-    material_rows = [ArtifactMaterial(artifact=artifact, asset=a, title=a.attributes.get("name", "附件"), kind="attachment", position=n) for n, a in enumerate(assets)]
-    material_rows += [ArtifactMaterial(artifact=artifact, title=l["title"], url=l["url"], kind=l.get("kind", "reference"), position=len(material_rows)+n) for n, l in enumerate(links)]
-    ArtifactMaterial.objects.bulk_create(material_rows)
+    if sources_changed:
+        artifact.sources.all().delete()
+        ArtifactSource.objects.bulk_create([ArtifactSource(artifact=artifact, issue=i) for i in issues])
+    if assets_changed or links_changed:
+        material_rows = []
+        if assets_changed:
+            material_rows.extend(ArtifactMaterial(artifact=artifact, asset=a, title=a.attributes.get("name", "附件"), kind="attachment", position=n) for n, a in enumerate(assets))
+        else:
+            material_rows.extend(ArtifactMaterial(artifact=artifact, asset=item.asset, title=item.title, kind=item.kind, position=n)
+                                 for n, item in enumerate(i for i in existing_materials if i.url is None))
+        if links_changed:
+            offset = len(material_rows)
+            material_rows.extend(ArtifactMaterial(artifact=artifact, title=l["title"], url=l["url"], kind=l.get("kind", "reference"), position=offset+n) for n, l in enumerate(links))
+        else:
+            offset = len(material_rows)
+            material_rows.extend(ArtifactMaterial(artifact=artifact, title=item.title, url=item.url, kind=item.kind, position=offset+n)
+                                 for n, item in enumerate(i for i in existing_materials if i.url is not None))
+        artifact.materials.all().delete()
+        ArtifactMaterial.objects.bulk_create(material_rows)
 
 
 @transaction.atomic
