@@ -612,6 +612,49 @@ class ArtifactLifecycleTests(TestCase):
         self.assertEqual(response.status_code, 413)
         converter.assert_not_called()
 
+    def test_draft_preview_paths_preserve_context_and_all_responses_allow_same_origin_frames(self):
+        from django.urls import resolve
+        created = self.request("post", self.owner, self.payload())
+        artifact_id = created.data["id"]
+        asset = FileAsset.objects.create(workspace=self.workspace, user=self.owner,
+            entity_type=FileAsset.EntityTypeContext.ARTIFACT_ATTACHMENT, entity_identifier=artifact_id,
+            is_uploaded=True, asset="preview.md", attributes={"name": "preview.md", "size": 32, "type": "text/markdown"}, size=32)
+        saved = self.request("patch", self.owner, self.payload(version=1, assets=[{"id": str(asset.id)}]), artifact_id)
+        base = saved.data["attachments"][0]["file_url"]
+        self.assertTrue(base.endswith("/draft/"), base)
+        self.assertEqual(saved.data["attachments"][0]["source_url"], base + "source/")
+
+        def preview(path, upstream_status, resource_type="text/html", user=None):
+            match = resolve(path)
+            request = APIRequestFactory().get(path)
+            force_authenticate(request, user=user or self.owner)
+            upstream = Mock(status_code=upstream_status)
+            upstream.headers = {"Content-Type": resource_type}
+            upstream.text = "<html><head><title>preview</title></head><body>文件内容</body></html>"
+            upstream.iter_content.return_value = iter([b"body{}"])
+            with patch("plane.app.views.attachment_preview.requests.get", return_value=upstream) as converter:
+                response = match.func(request, **match.kwargs)
+            return response, converter
+
+        for resource, content_type in [("onlinePreview", "text/html"), ("css/style.css", "text/css")]:
+            for status in (200, 500):
+                response, converter = preview(base + "preview/" + resource, status, content_type)
+                self.assertEqual(response.status_code, 200 if status == 200 else 502)
+                self.assertEqual(response["X-Frame-Options"], "SAMEORIGIN")
+                self.assertEqual(response["Content-Security-Policy"], "frame-ancestors 'self'")
+                self.assertEqual(response["Cache-Control"], "private, no-store")
+                self.assertIn("/draft/preview/", converter.call_args.kwargs["headers"]["X-Base-Url"])
+                if status == 500:
+                    self.assertIn("下载".encode(), response.content)
+        # The published resource route never borrows draft authorization.
+        response, converter = preview(base.replace("draft/", "") + "preview/css/style.css", 200)
+        self.assertEqual(response.status_code, 404)
+        converter.assert_not_called()
+        response, converter = preview(base + "preview/css/style.css", 200, user=self.member)
+        self.assertEqual(response.status_code, 404)
+        converter.assert_not_called()
+        self.assertEqual(response["X-Frame-Options"], "SAMEORIGIN")
+
     def test_converter_source_origin_is_configured_and_server_controlled(self):
         from plane.app.views.gallery import ArtifactAssetEndpoint
         created = self.request("post", self.owner, self.payload(source_issue_ids=[str(self.issue.id)]))

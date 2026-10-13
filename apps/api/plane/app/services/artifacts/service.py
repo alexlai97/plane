@@ -366,6 +366,8 @@ def render_authorized_asset(user, artifact, revision, asset_id):
         raise NotFound()
     if artifact.status == Artifact.Status.PUBLISHED and artifact.access == Artifact.Access.PRIVATE and not can_edit(user, artifact):
         raise NotFound()
+    if getattr(revision, "id", None) is None:
+        authorize_existing_sources(user, artifact)
     authorize_snapshot_sources(user, artifact.workspace, revision.snapshot)
     sources = []
     for source in revision.snapshot.get("sources", []):
@@ -489,10 +491,10 @@ def serialize_artifact(artifact, user, view="published"):
     for item in snap.get("materials", []):
         if item.get("asset_id"):
             base_url = f"/api/workspaces/{artifact.workspace.slug}/artifacts/{artifact.id}/assets/{item['asset_id']}/"
-            file_url = base_url + ("?view=draft" if view == "draft" else "")
+            file_url = base_url + ("draft/" if view == "draft" else "")
             attachments.append({"id": item["asset_id"], "name": item.get("name", item["title"]), "size": item.get("size", 0),
                                 "mime": item.get("mime", "application/octet-stream"), "file_url": file_url,
-                                "source_url": base_url + "source/" + ("?view=draft" if view == "draft" else ""), "can_preview": is_previewable_asset(item.get("name", item.get("title", "")), item.get("size", 0))})
+                                "source_url": file_url + "source/", "can_preview": is_previewable_asset(item.get("name", item.get("title", "")), item.get("size", 0))})
         elif item.get("url"):
             links.append({"title": item["title"], "url": item["url"], "kind": item.get("kind", "reference")})
     cover = snap.get("cover")

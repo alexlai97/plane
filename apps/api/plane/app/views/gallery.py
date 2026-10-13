@@ -8,6 +8,7 @@ from rest_framework.response import Response
 
 from plane.app.services.artifacts import can_edit, render_authorized_asset, serialize_artifact, snapshot
 from plane.app.views.base import BaseAPIView
+from plane.app.views.attachment_preview import AttachmentPreviewResponseMixin
 from plane.app.permissions import ROLE, allow_permission
 from rest_framework.exceptions import NotFound, PermissionDenied
 from plane.db.models import Artifact, ArtifactRevision, FileAsset, Workspace
@@ -36,11 +37,11 @@ class WorkspaceGalleryEndpoint(BaseAPIView):
         return Response({"categories": categories, "stats": {"total": len(cards), "with_demo": len(demos)}, "cards": cards})
 
 
-class ArtifactAssetEndpoint(BaseAPIView):
-    def get(self, request, slug, pk, asset_id, resource=""):
+class ArtifactAssetEndpoint(AttachmentPreviewResponseMixin, BaseAPIView):
+    def get(self, request, slug, pk, asset_id, resource="", view=None):
         workspace = get_object_or_404(Workspace, slug=slug, deleted_at__isnull=True)
         artifact = get_object_or_404(Artifact, id=pk, workspace=workspace, deleted_at__isnull=True)
-        if request.query_params.get("view") == "draft":
+        if view == "draft" or request.query_params.get("view") == "draft":
             from rest_framework.exceptions import NotFound
             if not can_edit(request.user, artifact):
                 raise NotFound()

@@ -133,7 +133,7 @@ class ArtifactPreviewSourceEndpoint(APIView):
         return source_response(asset, request)
 
 
-class AttachmentPreviewEndpoint(BaseAPIView):
+class AttachmentPreviewResponseMixin:
     def finalize_response(self, request, response, *args, **kwargs):
         response = super().finalize_response(request, response, *args, **kwargs)
         response["X-Frame-Options"] = "SAMEORIGIN"
@@ -141,6 +141,7 @@ class AttachmentPreviewEndpoint(BaseAPIView):
         response["Cache-Control"] = "private, no-store"
         return response
 
+class AttachmentPreviewEndpoint(AttachmentPreviewResponseMixin, BaseAPIView):
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST])
     def get(self, request, slug, project_id, issue_id, pk, resource="onlinePreview"):
         asset = get_object_or_404(FileAsset, pk=pk, workspace__slug=slug, project_id=project_id,
