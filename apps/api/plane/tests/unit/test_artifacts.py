@@ -169,6 +169,24 @@ class ArtifactLifecycleTests(TestCase):
         self.assertEqual(denied.status_code, 403)
         self.assertEqual(Artifact.objects.get(id=artifact_id).sources.count(), 0)
 
+    def test_metadata_patch_rechecks_merged_source_access_and_owner_can_explicitly_repair(self):
+        asset = FileAsset.objects.create(workspace=self.workspace, user=self.owner, issue=self.issue, project=self.project,
+                                         entity_type=FileAsset.EntityTypeContext.ISSUE_ATTACHMENT, is_uploaded=True,
+                                         asset="membership.pdf", attributes={"name": "membership.pdf", "size": 64, "type": "application/pdf"}, size=64)
+        created = self.request("post", self.owner, self.payload(source_issue_ids=[str(self.issue.id)], assets=[{"id": str(asset.id)}]))
+        artifact_id = created.data["id"]
+        self.assertEqual(self.request("post", self.owner, {"version": 1}, artifact_id, "publish").status_code, 200)
+        ProjectMember.objects.filter(project=self.project, member=self.member).delete()
+        denied = self.request("patch", self.member, {"version": 2, "summary": "unauthorized"}, artifact_id)
+        self.assertEqual(denied.status_code, 403)
+        artifact = Artifact.objects.get(id=artifact_id)
+        self.assertEqual(artifact.version, 2)
+        self.assertEqual(artifact.summary, "简介")
+        repaired = self.request("patch", self.owner, {"version": 2, "source_issue_ids": [], "assets": [], "summary": "repaired"}, artifact_id)
+        self.assertEqual(repaired.status_code, 200, repaired.data)
+        self.assertEqual(repaired.data["source_issue_ids"], [])
+        self.assertEqual(repaired.data["assets"], [])
+
     def test_api_key_url_resolves_to_api_key_view_and_authenticates(self):
         token = APIToken.objects.create(user=self.owner, workspace=self.workspace, token="artifact-test-api-key")
         client = APIClient()
@@ -244,6 +262,14 @@ class ArtifactLifecycleTests(TestCase):
         card = next(item for item in gallery.data["cards"] if item["id"] == artifact_id)
         self.assertEqual(card["category"], "新分类")
         self.assertFalse(card["has_unpublished_changes"])
+        duplicate = ArtifactCategory.objects.create(workspace=self.workspace, name="同名分类")
+        req = APIRequestFactory().patch("/categories/", {"version": 1, "name": "新分类"}, format="json")
+        force_authenticate(req, user=self.owner)
+        conflict = ArtifactCategoryEndpoint.as_view()(req, slug=self.workspace.slug, pk=duplicate.id)
+        self.assertEqual(conflict.status_code, 400)
+        duplicate.refresh_from_db()
+        self.assertEqual(duplicate.name, "同名分类")
+        self.assertEqual(duplicate.version, 1)
 
     def test_deleted_source_and_material_are_reported_and_owner_can_repair(self):
         shared = FileAsset.objects.create(workspace=self.workspace, user=self.owner, issue=self.issue, project=self.project,

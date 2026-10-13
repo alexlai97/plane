@@ -133,20 +133,32 @@ def _apply_body(artifact, user, data, create=False):
     sources_changed = create or "source_issue_ids" in data
     assets_changed = create or "assets" in data
     links_changed = create or "links" in data
-    issues = _source_rows(user, artifact.workspace, data.get("source_issue_ids", [])) if sources_changed else None
-    assets = ([_asset(user, artifact.workspace, entry["id"] if isinstance(entry, dict) else entry, artifact)
-               for entry in data.get("assets", [])] if assets_changed else
-              [item.asset for item in existing_materials if item.url is None and item.asset is not None])
+    if sources_changed:
+        source_ids = data.get("source_issue_ids", [])
+    else:
+        source_ids = list(artifact.sources.values_list("issue_id", flat=True))
+        if any(issue_id is None for issue_id in source_ids):
+            raise ValidationError({"source_issue_ids": "来源已失效，请显式替换或移除后再保存。"})
+    issues = _source_rows(user, artifact.workspace, source_ids)
+    if assets_changed:
+        asset_ids = [entry["id"] if isinstance(entry, dict) else entry for entry in data.get("assets", [])]
+    else:
+        asset_ids = [item.asset_id for item in existing_materials if item.url is None]
+        if any(asset_id is None for asset_id in asset_ids):
+            raise ValidationError({"assets": "附件已失效，请显式替换或移除后再保存。"})
+    assets = [_asset(user, artifact.workspace, asset_id, artifact) for asset_id in asset_ids]
     links = data.get("links", []) if links_changed else [
         {"title": item.title, "url": item.url, "kind": item.kind}
         for item in existing_materials if item.url is not None
     ]
-    for link in links if links_changed else []:
+    for link in links:
         _validate_url(link.get("url"))
     if "cover_asset_id" in data:
         cover = _asset(user, artifact.workspace, data["cover_asset_id"], artifact) if data.get("cover_asset_id") else None
     else:
         cover = artifact.cover_asset
+        if artifact.cover_asset_id:
+            cover = _asset(user, artifact.workspace, artifact.cover_asset_id, artifact)
     if "category_id" in data:
         category = None
         if data.get("category_id"):
@@ -155,18 +167,16 @@ def _apply_body(artifact, user, data, create=False):
                 raise ValidationError({"category_id": "分类不存在。"})
     else:
         category = artifact.category
-    action_changed = create or "primary_action" in data
     action = data.get("primary_action") if "primary_action" in data else artifact.primary_action
     action = action or {"type": "detail", "label": "查看详情"}
-    if action_changed or assets_changed or links_changed:
-        if action.get("type") not in ("detail", "attachment", "link"):
-            raise ValidationError({"primary_action": "操作类型无效。"})
-        if action.get("type") == "link":
-            _validate_url(action.get("url"))
-            if not any(l.get("url") == action["url"] for l in links):
-                raise ValidationError({"primary_action": "主链接必须出现在链接材料中。"})
-        if action.get("type") == "attachment" and str(action.get("attachment_id")) not in {str(a.id) for a in assets}:
-            raise ValidationError({"primary_action": "主附件必须在所选材料中。"})
+    if not isinstance(action, dict) or action.get("type") not in ("detail", "attachment", "link"):
+        raise ValidationError({"primary_action": "操作类型无效。"})
+    if action.get("type") == "link":
+        _validate_url(action.get("url"))
+        if not any(l.get("url") == action["url"] for l in links):
+            raise ValidationError({"primary_action": "主链接必须出现在链接材料中。"})
+    if action.get("type") == "attachment" and str(action.get("attachment_id")) not in {str(a.id) for a in assets}:
+        raise ValidationError({"primary_action": "主附件必须在所选材料中。"})
     artifact.title = str(data.get("title", artifact.title)).strip()
     artifact.summary = data.get("summary", artifact.summary)
     artifact.kind = str(data.get("kind", artifact.kind)).strip()

@@ -153,21 +153,24 @@ class ArtifactCategoryEndpoint(BaseAPIView):
         category = get_object_or_404(ArtifactCategory, id=pk, workspace=ws, deleted_at__isnull=True)
         if request.data.get("version") is None:
             return Response({"version": "必须提供分类版本号。"}, status=400)
-        with transaction.atomic():
-            category = ArtifactCategory.objects.select_for_update().get(pk=category.pk)
-            try:
-                supplied_version = int(request.data["version"])
-            except (TypeError, ValueError):
-                return Response({"version": "分类版本号必须是整数。"}, status=400)
-            if supplied_version != category.version:
-                from plane.app.services.artifacts.service import Conflict
-                raise Conflict()
-            name = str(request.data.get("name", "")).strip()
-            if not name or len(name) > 120:
-                return Response({"name": "分类名称必填且不能超过 120 个字符。"}, status=400)
-            category.name = name
-            category.version += 1
-            category.save(update_fields=["name", "version", "updated_at"])
+        try:
+            with transaction.atomic():
+                category = ArtifactCategory.objects.select_for_update().get(pk=category.pk)
+                try:
+                    supplied_version = int(request.data["version"])
+                except (TypeError, ValueError):
+                    return Response({"version": "分类版本号必须是整数。"}, status=400)
+                if supplied_version != category.version:
+                    from plane.app.services.artifacts.service import Conflict
+                    raise Conflict()
+                name = str(request.data.get("name", "")).strip()
+                if not name or len(name) > 120:
+                    return Response({"name": "分类名称必填且不能超过 120 个字符。"}, status=400)
+                category.name = name
+                category.version += 1
+                category.save(update_fields=["name", "version", "updated_at"])
+        except IntegrityError:
+            return Response({"name": "该分类名称已存在。"}, status=400)
         return Response(self._serialize(category))
 
     def delete(self, request, slug, pk):
