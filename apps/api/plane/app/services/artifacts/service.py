@@ -307,6 +307,9 @@ def _apply_body(artifact, user, data, create=False):
     if sources_changed:
         artifact.sources.all().delete()
         ArtifactSource.objects.bulk_create([ArtifactSource(artifact=artifact, issue=i, project_id=i.project_id) for i in issues])
+    else:
+        for issue in issues:
+            artifact.sources.filter(issue_id=issue.id).update(project_id=issue.project_id)
     if assets_changed or links_changed:
         material_rows = []
         if assets_changed:

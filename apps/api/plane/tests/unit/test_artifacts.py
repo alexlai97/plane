@@ -228,6 +228,35 @@ class ArtifactLifecycleTests(TestCase):
         self.assertEqual(self.request("patch", self.owner, self.payload(version=4), artifact_id).status_code, 403)
         self.assertEqual(Artifact.objects.get(id=artifact_id).version, 4)
 
+    def test_partial_patch_refreshes_retained_source_scope_after_issue_project_move(self):
+        from plane.db.models import ArtifactSource
+        issue = Issue.objects.create(project=self.project, name="moving source")
+        created = self.request("post", self.owner, self.payload(source_issue_ids=[str(issue.id)]))
+        artifact_id = created.data["id"]
+        self.request("post", self.owner, {"version": 1}, artifact_id, "publish")
+        source = ArtifactSource.objects.get(artifact_id=artifact_id)
+        original_identity = (source.id, source.created_at)
+        Issue.all_objects.filter(id=issue.id).update(project_id=self.private_project.id)
+        saved = self.request("patch", self.owner, {"version": 2, "summary": "private moved draft"}, artifact_id)
+        self.assertEqual(saved.status_code, 200, saved.data)
+        source.refresh_from_db()
+        self.assertEqual(source.project_id, self.private_project.id)
+        self.assertEqual((source.id, source.created_at), original_identity)
+        Issue.all_objects.filter(id=issue.id).delete()
+        self.assertEqual(self.request("get", self.member, pk=artifact_id, query="view=draft").status_code, 404)
+        for method, body, action in [
+            ("patch", self.payload(version=3), None),
+            ("post", {"version": 3}, "withdraw"),
+            ("delete", {"version": 3}, None),
+        ]:
+            self.assertEqual(self.request(method, self.member, body, artifact_id, action).status_code, 403)
+            artifact = Artifact.objects.get(id=artifact_id)
+            self.assertEqual(artifact.version, 3)
+            self.assertEqual(artifact.summary, "private moved draft")
+            self.assertEqual(artifact.status, Artifact.Status.PUBLISHED)
+            self.assertIsNone(artifact.deleted_at)
+        self.assertEqual(self.request("get", self.owner, pk=artifact_id, query="view=draft").status_code, 200)
+
     def test_restore_published_changes_only_draft_and_preserves_served_revision(self):
         created = self.request("post", self.owner, self.payload(summary="first"))
         artifact_id = created.data["id"]
