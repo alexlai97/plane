@@ -115,6 +115,24 @@ class ArtifactLifecycleTests(TestCase):
         # The private-source rejection leaves the valid draft untouched.
         self.assertEqual(Artifact.objects.get(id=artifact_id).sources.count(), 1)
 
+    def test_source_order_is_stable_and_null_source_draft_remains_repairable(self):
+        second = Issue.objects.create(project=self.project, name="第二任务")
+        ids = [str(second.id), str(self.issue.id)]
+        created = self.request("post", self.owner, self.payload(source_issue_ids=ids))
+        artifact_id = created.data["id"]
+        self.assertEqual(created.data["source_issue_ids"], ids)
+        published = self.request("post", self.owner, {"version": 1}, artifact_id, "publish")
+        self.assertEqual(published.status_code, 200, published.data)
+        detail = self.request("get", self.owner, pk=artifact_id)
+        self.assertEqual(detail.data["source_issue_ids"], ids)
+        self.assertFalse(detail.data["has_unpublished_changes"])
+        # SET_NULL rows remain visible as unavailable references rather than crashing the editor.
+        from plane.db.models import ArtifactSource
+        ArtifactSource.objects.filter(artifact_id=artifact_id, issue_id=second.id).update(issue=None)
+        draft = self.request("get", self.owner, pk=artifact_id, query="view=draft")
+        self.assertEqual(draft.status_code, 200, draft.data)
+        self.assertEqual(draft.data["unavailable_reference_count"], 1)
+
     def test_workspace_admin_without_project_membership_cannot_read_private_project_material(self):
         created = self.request("post", self.owner, self.payload())
         artifact_id = created.data["id"]

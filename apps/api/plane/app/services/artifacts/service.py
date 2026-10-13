@@ -59,7 +59,8 @@ def _source_rows(user, workspace, issue_ids):
     issues = list(Issue.issue_objects.filter(id__in=ids, workspace=workspace, deleted_at__isnull=True).select_related("project"))
     if len(issues) != len(ids) or any(not can_project(user, issue) for issue in issues):
         raise PermissionDenied("来源任务不存在或不可访问。")
-    return issues
+    by_id = {str(issue.id): issue for issue in issues}
+    return [by_id[str(issue_id)] for issue_id in ids]
 
 
 def _asset(user, workspace, asset_id, artifact=None):
@@ -95,7 +96,7 @@ def _serialize_source(issue, slug):
 def snapshot(artifact, slug):
     sources = []
     unavailable = 0
-    for row in artifact.sources.select_related("issue__project"):
+    for row in artifact.sources.select_related("issue__project").order_by("created_at", "id"):
         issue = row.issue
         if issue is None or issue.deleted_at is not None:
             unavailable += 1
@@ -310,7 +311,7 @@ def serialize_artifact(artifact, user, view="published"):
     draft_snap = snapshot(artifact, artifact.workspace.slug)
     if view == "draft" and can_edit(user, artifact):
         for row in artifact.sources.select_related("issue__project"):
-            if row.issue.deleted_at is None and not can_project(user, row.issue):
+            if row.issue is not None and row.issue.deleted_at is None and not can_project(user, row.issue):
                 raise NotFound()
         snap = draft_snap
     else:

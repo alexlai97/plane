@@ -47,6 +47,8 @@ class Command(BaseCommand):
                 issues = list(Issue.issue_objects.filter(id__in=issue_ids, workspace=workspace, deleted_at__isnull=True).select_related("project"))
                 if len(issues) != len(set(issue_ids)):
                     raise ValueError("one or more source issues are missing or outside the workspace")
+                issues_by_id = {str(issue.id): issue for issue in issues}
+                issues = [issues_by_id[str(issue_id)] for issue_id in issue_ids]
                 assets = []
                 for entry in card.get("assets", []):
                     asset = FileAsset.objects.filter(id=entry["id"], workspace=workspace, is_uploaded=True, is_deleted=False, deleted_at__isnull=True).first()
@@ -116,6 +118,8 @@ class Command(BaseCommand):
                 assets = [FileAsset.objects.get(id=item["id"], workspace=workspace, is_uploaded=True, is_deleted=False, deleted_at__isnull=True) for item in card.get("assets", [])]
                 if len(issues) != len(set(card.get("sources", []))):
                     raise CommandError("Source references changed since validation")
+                issues_by_id = {str(issue.id): issue for issue in issues}
+                issues = [issues_by_id[str(issue_id)] for issue_id in card.get("sources", [])]
                 cover = FileAsset.objects.get(id=card["cover_asset_id"], workspace=workspace, is_uploaded=True, is_deleted=False, deleted_at__isnull=True) if card.get("cover_asset_id") else None
                 artifact = Artifact(id=artifact_id, workspace=workspace, owner=owner, access=Artifact.Access.WORKSPACE, title=card["title"], summary=card.get("summary", ""), kind=card["kind"], category=category, cover_asset=cover,
                                     primary_action=card.get("primary_action", {"type": "detail", "label": "查看详情"}), status=Artifact.Status.PUBLISHED)
