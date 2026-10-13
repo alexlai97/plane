@@ -68,8 +68,12 @@ def validate_artifact_payload(data, create=False):
     if create and (not str(data.get("title", "")).strip() or not str(data.get("kind", "")).strip()):
         raise ValidationError({"title": "名称和类型必填。"})
 
-    def check_uuid(value, field, allow_empty=False):
-        if value is None or (allow_empty and value == ""):
+    def check_uuid(value, field, allow_empty=False, nullable=False):
+        if value is None:
+            if nullable:
+                return
+            raise ValidationError({field: "必须是有效的 UUID。"})
+        if allow_empty and value == "":
             return
         try:
             uuid.UUID(str(value))
@@ -78,7 +82,7 @@ def validate_artifact_payload(data, create=False):
 
     for field in ("category_id", "cover_asset_id"):
         if field in data:
-            check_uuid(data[field], field, allow_empty=True)
+            check_uuid(data[field], field, allow_empty=True, nullable=True)
     if "source_issue_ids" in data:
         values = data["source_issue_ids"]
         if not isinstance(values, list):

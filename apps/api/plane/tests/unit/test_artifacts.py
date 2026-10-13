@@ -165,11 +165,14 @@ class ArtifactLifecycleTests(TestCase):
         before = Artifact.objects.count()
         malformed_create = self.request("post", self.owner, self.payload(source_issue_ids={"bad": "shape"}))
         self.assertEqual(malformed_create.status_code, 400)
+        malformed_asset = self.request("post", self.owner, self.payload(assets=[{"id": None}]))
+        self.assertEqual(malformed_asset.status_code, 400)
         self.assertEqual(Artifact.objects.count(), before)
         created = self.request("post", self.owner, self.payload())
         artifact_id = created.data["id"]
         invalid_patches = [
             {"source_issue_ids": {"bad": "shape"}},
+            {"source_issue_ids": [None]},
             {"links": [None]},
             {"category_id": "not-a-uuid"},
             {"summary": {"unexpected": "object"}},
