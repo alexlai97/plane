@@ -3,7 +3,7 @@ import json
 import base64
 import tempfile
 import uuid
-from urllib.parse import unquote
+from urllib.parse import unquote, urlparse
 from pathlib import Path
 
 from django.core.management import call_command, CommandError
@@ -337,7 +337,7 @@ class ArtifactLifecycleTests(TestCase):
                                           entity_type=FileAsset.EntityTypeContext.ISSUE_ATTACHMENT, is_uploaded=True,
                                           attributes={"name": "shared.pdf", "size": 30, "type": "application/pdf"}, size=30)
         # The owner can select the shared task attachment on the next draft version.
-        self.assertEqual(self.request("patch", self.owner, self.payload(version=2, assets=[{"id": str(shared.id)}], primary_action={"type": "attachment", "label": "材料", "attachment_id": str(shared.id)}), artifact_id).status_code, 200)
+        self.assertEqual(self.request("patch", self.owner, self.payload(version=2, source_issue_ids=[str(self.issue.id)], assets=[{"id": str(shared.id)}], primary_action={"type": "attachment", "label": "材料", "attachment_id": str(shared.id)}), artifact_id).status_code, 200)
         self.assertEqual(self.request("delete", self.owner, {"version": 3}, artifact_id).status_code, 204)
         shared.refresh_from_db()
         self.assertFalse(shared.is_deleted)
@@ -485,7 +485,9 @@ class ArtifactLifecycleTests(TestCase):
         self.assertEqual(response.status_code, 502)
         source = unquote(base64.b64decode(converter.call_args.kwargs["params"]["url"]).decode())
         self.assertTrue(source.startswith("http://stage-api.internal:8000/api/artifact-preview-source/"))
-        self.assertIn(str(asset.id), source)
+        self.assertIn(f"{asset.id.hex}-attachment.pdf", source)
+        token = urlparse(source).path.split("/api/artifact-preview-source/", 1)[1].split("/", 1)[0]
+        self.assertEqual(signing.loads(token, salt=ARTIFACT_SOURCE_SALT)["asset"], str(asset.id))
         self.assertNotIn("attacker.invalid", source)
 
 
