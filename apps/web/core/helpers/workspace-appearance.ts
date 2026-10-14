@@ -17,7 +17,7 @@ export function getWorkspaceAppearance(value: unknown): TWorkspaceAppearance {
     if (
       !url.startsWith("//") &&
       !url.includes("\\") &&
-      !/[\u0000-\u001f\u007f]/.test(url) &&
+      !Array.from(url).some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127) &&
       (!url || url.startsWith("/") || /^https?:\/\//i.test(url))
     ) {
       result.organization_logo_url = url;
