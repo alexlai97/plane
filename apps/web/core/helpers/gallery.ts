@@ -126,7 +126,7 @@ export function serializeGalleryViewState(state: GalleryViewState): string {
   const params = new URLSearchParams();
   if (state.category !== ALL_GALLERY_CATEGORY) params.set("category", state.category);
   if (state.query) params.set("q", state.query);
-  if (state.layout !== "gallery") params.set("layout", state.layout);
+  params.set("layout", state.layout);
   if (state.sort !== "curated") params.set("sort", state.sort);
   if (state.group !== "none") params.set("group", state.group);
   return params.toString();

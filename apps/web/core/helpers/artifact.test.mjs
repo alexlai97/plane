@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { artifactToWrite, removeArtifactAsset, artifactError } from "./artifact.ts";
+import { artifactToWrite, removeArtifactAsset, artifactError, getArtifactShareUrl } from "./artifact.ts";
 import { getAttachmentPreviewUrl } from "./gallery.ts";
 
 const artifact = {
@@ -27,6 +27,20 @@ test("edit payload carries current version and category id, without read-only me
   assert.equal(form.owner_id, undefined);
   assert.equal(form.status, undefined);
   assert.equal(artifactToWrite().version, undefined);
+});
+
+test("share URL removes gallery return context and marks a real draft view", () => {
+  assert.equal(
+    getArtifactShareUrl("https://plane.example/acme/gallery/a1/?from=%2Facme%2Fgallery%2F%3Fq%3Dx&view=draft", "draft"),
+    "https://plane.example/acme/gallery/a1/?view=draft"
+  );
+  assert.equal(
+    getArtifactShareUrl(
+      "https://plane.example/acme/gallery/a1/?from=%2Facme%2Fgallery%2F%3Fq%3Dx&view=draft",
+      "published"
+    ),
+    "https://plane.example/acme/gallery/a1/"
+  );
 });
 test("removing material clears its cover and primary action without mutating local input", () => {
   const form = artifactToWrite(artifact);

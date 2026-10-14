@@ -102,19 +102,36 @@ test("view state uses stable category IDs and round trips only supported control
     "category=category-uuid&q=BOM&layout=list&sort=recent&group=category"
   );
   assert.equal(parseGalleryViewState("?category=unknown", categories).category, ALL_GALLERY_CATEGORY);
+  assert.deepEqual(parseGalleryViewState(""), {
+    category: ALL_GALLERY_CATEGORY,
+    query: "",
+    layout: "gallery",
+    sort: "curated",
+    group: "none",
+  });
+  assert.equal(
+    serializeGalleryViewState({
+      category: ALL_GALLERY_CATEGORY,
+      query: "",
+      layout: "gallery",
+      sort: "curated",
+      group: "none",
+    }),
+    "layout=gallery"
+  );
 });
 
 test("gallery return URL rejects paths outside the same workspace gallery and strips unsupported parameters", () => {
   assert.equal(
     sanitizeGalleryReturnUrl("/acme/gallery/?category=c1&q=readme&admin=1#materials", "acme"),
-    "/acme/gallery/?category=c1&q=readme#materials"
+    "/acme/gallery/?category=c1&q=readme&layout=gallery#materials"
   );
   assert.equal(sanitizeGalleryReturnUrl("https://attacker.example/acme/gallery/", "acme"), "/acme/gallery/");
   assert.equal(sanitizeGalleryReturnUrl("/other/gallery/?q=x", "acme"), "/acme/gallery/");
   assert.equal(sanitizeGalleryReturnUrl("/acme/gallery/manage/", "acme"), "/acme/gallery/");
   assert.equal(
     sanitizeGalleryReturnUrl("/acme/gallery/?layout=unknown&sort=wrong&group=bad", "acme"),
-    "/acme/gallery/"
+    "/acme/gallery/?layout=gallery"
   );
 });
 

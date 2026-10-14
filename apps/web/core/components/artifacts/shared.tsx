@@ -25,7 +25,7 @@ export const ArtifactButton = forwardRef<HTMLButtonElement, ComponentProps<typeo
   );
 });
 
-export function CopyLinkButton() {
+export function CopyLinkButton({ getValue }: { getValue: () => string }) {
   const [manualValue, setManualValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -35,7 +35,7 @@ export function CopyLinkButton() {
     }
   }, [manualValue]);
   const copy = async () => {
-    const value = window.location.href;
+    const value = getValue();
     try {
       if (!navigator.clipboard?.writeText) throw new Error("clipboard unavailable");
       await navigator.clipboard.writeText(value);

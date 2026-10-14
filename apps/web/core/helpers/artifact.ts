@@ -35,6 +35,14 @@ export type ArtifactSnapshot = Omit<ArtifactWrite, "assets"> & {
   category: string;
 };
 export const artifactStatus = { draft: "草稿", published: "已发布", withdrawn: "已撤下" };
+export function getArtifactShareUrl(value: string, view: "draft" | "published"): string {
+  const url = new URL(value, "https://artifact.local");
+  url.searchParams.delete("from");
+  if (view === "draft") url.searchParams.set("view", "draft");
+  else url.searchParams.delete("view");
+  return value.startsWith("/") ? `${url.pathname}${url.search}${url.hash}` : url.toString();
+}
+
 export function artifactToWrite(artifact?: Artifact): ArtifactWrite {
   return {
     title: artifact?.title ?? "",

@@ -4,7 +4,7 @@ import { ArrowDownToLine, ArrowUpRight, Eye, FileText, Images, Link2 } from "luc
 import { Button } from "@plane/propel/button";
 import type { GalleryAttachment, GalleryCard, GalleryActionTarget } from "../../helpers/gallery";
 
-function Cover({ card }: { card: GalleryCard }) {
+export function GalleryCover({ card, compact = false }: { card: GalleryCard; compact?: boolean }) {
   const [failed, setFailed] = useState(false);
   return card.cover?.source_url && !failed ? (
     <img
@@ -13,6 +13,10 @@ function Cover({ card }: { card: GalleryCard }) {
       className="h-full w-full bg-surface-2 object-contain"
       onError={() => setFailed(true)}
     />
+  ) : compact ? (
+    <div className="grid h-full w-full place-items-center text-tertiary">
+      <Images className="size-5" />
+    </div>
   ) : (
     <div className="mx-5 max-w-full rounded-lg border border-subtle bg-surface-1 px-4 py-3 text-center text-13 text-secondary">
       <span className="mb-1 block text-11 text-tertiary">{card.kind}</span>
@@ -110,7 +114,7 @@ export function GalleryResult({
         aria-label={`查看${card.title}详情`}
         className="group focus-visible:ring-accent-primary relative flex h-36 shrink-0 items-center justify-center overflow-hidden bg-surface-2 outline-none focus-visible:ring-2 focus-visible:ring-inset"
       >
-        <Cover card={card} />
+        <GalleryCover card={card} />
         <span
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 flex items-center justify-center bg-accent-primary/0 text-on-color opacity-0 transition group-hover:bg-accent-primary/10 group-hover:opacity-100 group-focus-visible:bg-accent-primary/10 group-focus-visible:opacity-100"
@@ -194,11 +198,7 @@ export function GalleryListRow({
         className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded border border-subtle bg-surface-2"
         aria-label={`查看${card.title}详情`}
       >
-        {card.cover?.source_url ? (
-          <img src={card.cover.source_url} alt="" className="h-full w-full object-contain" />
-        ) : (
-          <Images className="size-5 text-tertiary" />
-        )}
+        <GalleryCover card={card} compact />
       </a>
       <div className="min-w-0 flex-1 basis-56">
         <h3 className="truncate text-14 font-semibold text-primary">

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { ArrowDownToLine, Eye, FileText } from "lucide-react";
 import { artifactService } from "@/services/artifact.service";
-import { artifactError } from "../../helpers/artifact";
+import { artifactError, getArtifactShareUrl } from "../../helpers/artifact";
 import type { Artifact } from "../../helpers/artifact";
 import type { GalleryAttachment } from "../../helpers/gallery";
 import {
@@ -64,7 +64,7 @@ export default function ArtifactDetailPage() {
               编辑成果
             </a>
           )}
-          {artifact && <CopyLinkButton />}
+          {artifact && <CopyLinkButton getValue={() => getArtifactShareUrl(window.location.href, view)} />}
         </>
       }
     >
