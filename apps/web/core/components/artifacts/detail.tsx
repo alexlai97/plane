@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
-import { ArrowDownToLine, Eye, FileText } from "lucide-react";
+import { Dialog } from "@headlessui/react";
+import { ArrowDownToLine, Eye, FileText, X } from "lucide-react";
 import { artifactService } from "@/services/artifact.service";
-import { artifactError, getArtifactShareUrl } from "../../helpers/artifact";
+import { artifactError, getArtifactShareUrl, resolveArtifactCoverPreview } from "../../helpers/artifact";
 import type { Artifact } from "../../helpers/artifact";
 import type { GalleryAttachment } from "../../helpers/gallery";
 import {
@@ -28,6 +29,8 @@ export default function ArtifactDetailPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [preview, setPreview] = useState<GalleryAttachment>();
+  const [coverImagePreview, setCoverImagePreview] = useState<GalleryAttachment>();
+  const [failedCoverId, setFailedCoverId] = useState<string>();
   const load = useCallback(async () => {
     setError("");
     setLoading(true);
@@ -51,6 +54,13 @@ export default function ArtifactDetailPage() {
     const action = resolveGalleryAction(artifact);
     if (action.type === "link") window.open(action.url, "_blank", "noopener,noreferrer");
     else if (action.type === "attachment") openAttachment(action.attachment);
+  };
+  const coverPreview = resolveArtifactCoverPreview(artifact?.cover, artifact?.attachments ?? []);
+  const coverImageFailed = Boolean(artifact?.cover && failedCoverId === artifact.cover.asset_id);
+  const openCoverPreview = () => {
+    if (!coverPreview) return;
+    if (coverPreview.type === "image") setCoverImagePreview(coverPreview.attachment);
+    else openAttachment(coverPreview.attachment);
   };
   return (
     <ArtifactShell
@@ -89,30 +99,38 @@ export default function ArtifactDetailPage() {
               <span>更新于 {new Date(artifact.updated_at).toLocaleString("zh-CN")}</span>
             </div>
             <p className="text-sm leading-7 whitespace-pre-wrap text-secondary">{artifact.summary}</p>
-            {artifact.cover && (
+            {artifact.cover && !coverImageFailed && (
               <button
                 type="button"
-                onClick={() =>
-                  setPreview({
-                    id: artifact.cover!.asset_id,
-                    name: artifact.cover!.name,
-                    size: 0,
-                    mime: "image/*",
-                    issue_id: "",
-                    file_url: artifact.cover!.file_url,
-                    source_url: artifact.cover!.source_url,
-                    can_preview: true,
-                  })
-                }
-                aria-label="放大封面图片"
-                className="focus-visible:ring-accent-primary block rounded-md outline-none focus-visible:ring-2"
+                onClick={openCoverPreview}
+                aria-label={coverPreview?.type === "image" ? "放大封面图片" : "预览封面材料"}
+                disabled={!coverPreview}
+                className="focus-visible:ring-accent-primary block rounded-md outline-none focus-visible:ring-2 disabled:cursor-default"
               >
                 <img
                   src={artifact.cover.source_url}
-                  alt={`${artifact.title}封面，点击放大`}
+                  alt={`${artifact.title}封面${coverPreview ? "，点击查看" : ""}`}
+                  onError={() => setFailedCoverId(artifact.cover!.asset_id)}
                   className="max-h-80 max-w-full rounded-md object-contain"
                 />
               </button>
+            )}
+            {artifact.cover && coverImageFailed && coverPreview && (
+              <button
+                type="button"
+                onClick={openCoverPreview}
+                className="flex items-center gap-2 rounded-md border border-subtle p-3 text-sm text-link-primary hover:bg-surface-2"
+              >
+                {coverPreview.type === "image" ? <Eye className="size-4" /> : <FileText className="size-4" />}
+                {coverPreview.attachment.name}
+                {coverPreview.type === "image" ? " · 查看图片" : coverPreview.attachment.can_preview ? " · 预览材料" : " · 下载材料"}
+              </button>
+            )}
+            {artifact.cover && coverImageFailed && !coverPreview && (
+              <p className="flex items-center gap-2 rounded-md border border-subtle p-3 text-sm text-secondary">
+                <FileText className="size-4" />
+                {artifact.cover.name} · 封面材料当前不可预览
+              </p>
             )}
             {artifact.primary_action.type !== "detail" && (
               <button type="button" className={primaryClass} onClick={primary}>
@@ -205,6 +223,31 @@ export default function ArtifactDetailPage() {
           fileURL={preview.file_url}
           onClose={() => setPreview(undefined)}
         />
+      )}
+      {coverImagePreview && (
+        <Dialog open onClose={() => setCoverImagePreview(undefined)} className="relative z-[100]">
+          <div className="fixed inset-0 bg-black/80" aria-hidden="true" />
+          <Dialog.Panel className="fixed inset-0 flex flex-col bg-black/80 p-3 sm:p-5">
+            <div className="flex items-center justify-between gap-3 pb-3 text-white">
+              <Dialog.Title className="truncate text-sm font-medium">{coverImagePreview.name}</Dialog.Title>
+              <button
+                type="button"
+                aria-label="关闭封面图片预览"
+                onClick={() => setCoverImagePreview(undefined)}
+                className="rounded p-2 hover:bg-white/10"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+            <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto">
+              <img
+                src={coverImagePreview.source_url}
+                alt={coverImagePreview.name}
+                className="max-h-full max-w-full object-contain"
+              />
+            </div>
+          </Dialog.Panel>
+        </Dialog>
       )}
     </ArtifactShell>
   );

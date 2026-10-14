@@ -1,4 +1,4 @@
-import type { GalleryCard, GalleryAction, GalleryLink, GallerySource } from "./gallery";
+import type { GalleryAttachment, GalleryCard, GalleryAction, GalleryLink, GallerySource } from "./gallery";
 
 export type ArtifactAsset = { id: string; name: string; size: number; type: string };
 export type Artifact = GalleryCard & {
@@ -14,6 +14,22 @@ export type Artifact = GalleryCard & {
   unavailable_reference_count: number;
   cover: (NonNullable<GalleryCard["cover"]> & { asset_id: string }) | null;
 };
+export type ArtifactCoverPreview =
+  | { type: "image"; attachment: GalleryAttachment }
+  | { type: "attachment"; attachment: GalleryAttachment };
+
+export function resolveArtifactCoverPreview(
+  cover: { asset_id: string } | null | undefined,
+  attachments: GalleryAttachment[]
+): ArtifactCoverPreview | null {
+  if (!cover) return null;
+  const attachment = attachments.find((item) => item.id === cover.asset_id);
+  if (!attachment) return null;
+  if (attachment.mime.toLowerCase().startsWith("image/") && attachment.can_preview)
+    return { type: "image", attachment };
+  return { type: "attachment", attachment };
+}
+
 export type ArtifactCategory = { id: string; name: string; usage_count: number; version: number };
 export type ArtifactSource = { id: string; identifier: string; name: string; project_id: string };
 export type ArtifactRevision = { id: string; version: number; actor_name: string; created_at: string };

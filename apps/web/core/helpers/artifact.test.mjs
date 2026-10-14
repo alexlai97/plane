@@ -1,6 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { artifactToWrite, removeArtifactAsset, artifactError, getArtifactShareUrl } from "./artifact.ts";
+import {
+  artifactToWrite,
+  removeArtifactAsset,
+  artifactError,
+  getArtifactShareUrl,
+  resolveArtifactCoverPreview,
+} from "./artifact.ts";
 import { getAttachmentPreviewUrl, getSafeGalleryLinks } from "./gallery.ts";
 
 const artifact = {
@@ -83,6 +89,45 @@ test("gallery material links skip unsafe URLs and keep the next safe link visibl
 
   assert.deepEqual(getSafeGalleryLinks([...unsafeLinks, safe]), [safe]);
   assert.deepEqual(getSafeGalleryLinks(unsafeLinks), []);
+});
+
+test("cover preview resolves through its actual attachment, including PDF fallback thumbs", () => {
+  const attachment = {
+    id: "cover-pdf",
+    name: "产品说明书.pdf",
+    size: 500,
+    mime: "application/pdf",
+    issue_id: "",
+    file_url: "/api/artifacts/a1/assets/cover-pdf/",
+    source_url: "/api/artifacts/a1/assets/cover-pdf/source/",
+    can_preview: true,
+  };
+  const cover = { asset_id: attachment.id, name: attachment.name, source_url: "/covers/cover-pdf.png" };
+  const unrelated = { ...attachment, id: "other", name: "other.pdf" };
+
+  assert.deepEqual(resolveArtifactCoverPreview(cover, [unrelated, attachment]), {
+    type: "attachment",
+    attachment,
+  });
+  assert.equal(resolveArtifactCoverPreview(cover, [unrelated]), null);
+});
+
+test("real image cover previews the authorized attachment source", () => {
+  const attachment = {
+    id: "cover-image",
+    name: "封面.png",
+    size: 500,
+    mime: "image/png",
+    issue_id: "",
+    file_url: "/api/artifacts/a1/assets/cover-image/",
+    source_url: "/api/artifacts/a1/assets/cover-image/source/",
+    can_preview: true,
+  };
+
+  assert.deepEqual(resolveArtifactCoverPreview({ asset_id: attachment.id }, [attachment]), {
+    type: "image",
+    attachment,
+  });
 });
 
 test("three-way merge preserves independent local and remote edits and uses newest version", async () => {
