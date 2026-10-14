@@ -5,7 +5,12 @@ import {
   filterGalleryCards,
   getGalleryCategoryCounts,
   getGallerySourceHref,
+  groupGalleryCards,
+  orderGalleryCards,
+  parseGalleryViewState,
   resolveGalleryAction,
+  sanitizeGalleryReturnUrl,
+  serializeGalleryViewState,
 } from "../../apps/web/core/helpers/gallery.ts";
 
 const attachment = {
@@ -77,4 +82,65 @@ test("primary action resolves only a real linked attachment and falls back to de
 test("source links prefer the server route and otherwise use the workspace browse route", () => {
   assert.equal(getGallerySourceHref("ai-strategy", card.sources[0]), "/ai-strategy/browse/AISTRAT-3");
   assert.equal(getGallerySourceHref("ai-strategy", { ...card.sources[0], url: "" }), "/ai-strategy/browse/AISTRAT-3");
+});
+
+test("view state uses stable category IDs and round trips only supported controls", () => {
+  const categories = [{ id: "category-uuid", name: "产品与研发" }];
+  const parsed = parseGalleryViewState(
+    "?category=category-uuid&q=BOM&layout=list&sort=recent&group=category&unexpected=1",
+    categories
+  );
+  assert.deepEqual(parsed, {
+    category: "category-uuid",
+    query: "BOM",
+    layout: "list",
+    sort: "recent",
+    group: "category",
+  });
+  assert.equal(
+    serializeGalleryViewState(parsed),
+    "category=category-uuid&q=BOM&layout=list&sort=recent&group=category"
+  );
+  assert.equal(parseGalleryViewState("?category=unknown", categories).category, ALL_GALLERY_CATEGORY);
+});
+
+test("gallery return URL rejects paths outside the same workspace gallery and strips unsupported parameters", () => {
+  assert.equal(
+    sanitizeGalleryReturnUrl("/acme/gallery/?category=c1&q=readme&admin=1#materials", "acme"),
+    "/acme/gallery/?category=c1&q=readme#materials"
+  );
+  assert.equal(sanitizeGalleryReturnUrl("https://attacker.example/acme/gallery/", "acme"), "/acme/gallery/");
+  assert.equal(sanitizeGalleryReturnUrl("/other/gallery/?q=x", "acme"), "/acme/gallery/");
+  assert.equal(sanitizeGalleryReturnUrl("/acme/gallery/manage/", "acme"), "/acme/gallery/");
+  assert.equal(
+    sanitizeGalleryReturnUrl("/acme/gallery/?layout=unknown&sort=wrong&group=bad", "acme"),
+    "/acme/gallery/"
+  );
+});
+
+test("sorting is deterministic and grouping preserves first-seen category order", () => {
+  const later = { ...card, id: "later", title: "Zeta", category: "生产与质量", updated_at: "2026-10-13T00:00:00Z" };
+  const earlierTie = { ...card, id: "a-id", title: "Alpha", updated_at: "2026-10-12T00:00:00Z" };
+  assert.deepEqual(
+    orderGalleryCards([card, later, earlierTie], "curated").map((item) => item.id),
+    [card.id, "later", "a-id"]
+  );
+  assert.deepEqual(
+    orderGalleryCards([card, later, earlierTie], "recent").map((item) => item.id),
+    ["later", "a-id", card.id]
+  );
+  assert.deepEqual(
+    orderGalleryCards([card, later, earlierTie], "title").map((item) => item.id),
+    [card.id, "a-id", "later"]
+  );
+  assert.deepEqual(
+    groupGalleryCards([card, later, earlierTie], "category").map((item) => [
+      item.name,
+      item.cards.map((entry) => entry.id),
+    ]),
+    [
+      ["产品与研发", [card.id, "a-id"]],
+      ["生产与质量", ["later"]],
+    ]
+  );
 });

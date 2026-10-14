@@ -21,7 +21,7 @@ import type {
   ArtifactWrite,
 } from "../../helpers/artifact";
 import { isSafeHttpUrl } from "../../helpers/gallery";
-import { ArtifactShell, buttonClass, Field, inputClass, Message, primaryClass, Section } from "./shared";
+import { ArtifactShell, buttonClass, ConfirmDialog, Field, inputClass, Message, primaryClass, Section } from "./shared";
 
 export default function ArtifactEditorPage() {
   const uploadInput = useRef<HTMLInputElement>(null);
@@ -49,6 +49,12 @@ export default function ArtifactEditorPage() {
   const [message, setMessage] = useState("");
   const [conflict, setConflict] = useState(false);
   const [latest, setLatest] = useState<Artifact>();
+  const [confirmation, setConfirmation] = useState<{
+    title: string;
+    description: string;
+    label: string;
+    action: () => Promise<void> | void;
+  }>();
   const apply = useCallback(
     (item: Artifact) => {
       appliedArtifactRoute.current = `${slug}/${item.id}`;
@@ -136,7 +142,7 @@ export default function ArtifactEditorPage() {
     setError(artifactError(e));
     if ((e as { response?: { status?: number } })?.response?.status === 409) setConflict(true);
   };
-  const run = async (action: () => Promise<void>) => {
+  const run = async (action: () => Promise<void>, propagateError = false) => {
     setBusy(true);
     setError("");
     setMessage("");
@@ -144,6 +150,7 @@ export default function ArtifactEditorPage() {
       await action();
     } catch (e) {
       fail(e);
+      if (propagateError) throw e;
     } finally {
       setBusy(false);
     }
@@ -255,15 +262,15 @@ export default function ArtifactEditorPage() {
           {artifact && (
             <div className="text-sm mb-5 flex flex-wrap items-center gap-3">
               <span>{artifactStatus[artifact.status]}</span>
-              <span className="text-[#718399]">当前草稿版本 {artifact.version}</span>
-              {artifact.has_unpublished_changes && <span className="text-amber-700">有未发布修改</span>}
+              <span className="text-tertiary">当前草稿版本 {artifact.version}</span>
+              {artifact.has_unpublished_changes && <span className="text-warning-primary">有未发布修改</span>}
               {artifact.status === "published" && (
-                <a className="text-[#2d628b] underline" href={`/${slug}/gallery/${artifact.id}/`}>
+                <a className="text-link-primary underline" href={`/${slug}/gallery/${artifact.id}/`}>
                   查看发布成果
                 </a>
               )}
               {artifact.unavailable_reference_count > 0 && (
-                <span className="text-red-700">
+                <span className="text-danger-primary">
                   有 {artifact.unavailable_reference_count} 项来源或材料已不可用，请修复后发布。
                 </span>
               )}
@@ -273,6 +280,7 @@ export default function ArtifactEditorPage() {
             <Section title="保留本地编辑，处理版本冲突">
               <p className="text-sm">先查看最新内容，再将需要保留的修改合并到当前表单。</p>
               <button
+                type="button"
                 className={buttonClass}
                 disabled={busy}
                 onClick={() =>
@@ -292,11 +300,14 @@ export default function ArtifactEditorPage() {
                     最新版本 {latest.version}。未在本地修改的字段会自动采用最新内容；双方修改了同一字段时，请逐项选择。
                   </p>
                   {mergeResult?.conflicts.map((field) => (
-                    <div key={field} className="border-amber-200 bg-amber-50 text-sm space-y-3 rounded-md border p-4">
+                    <div
+                      key={field}
+                      className="text-sm space-y-3 rounded-md border border-warning-strong/30 bg-warning-subtle p-4"
+                    >
                       <h3 className="font-semibold">{artifactFieldLabels[field]}</h3>
                       <div className="grid gap-3 md:grid-cols-2">
                         {(["local", "latest"] as const).map((side) => (
-                          <label key={side} className="space-y-2 rounded-md border border-[#dce5ef] bg-white p-3">
+                          <label key={side} className="space-y-2 rounded-md border border-subtle bg-surface-1 p-3">
                             <span className="flex items-center gap-2">
                               <input
                                 type="radio"
@@ -315,10 +326,11 @@ export default function ArtifactEditorPage() {
                     </div>
                   ))}
                   {mergeResult && mergeResult.conflicts.length === 0 && (
-                    <p className="text-sm text-green-800">修改涉及不同字段，可自动合并并保留双方改动。</p>
+                    <p className="text-sm text-success-primary">修改涉及不同字段，可自动合并并保留双方改动。</p>
                   )}
                   <div className="flex flex-wrap gap-3">
                     <button
+                      type="button"
                       className={buttonClass}
                       disabled={!mergeResult || mergeResult.unresolved.length > 0}
                       onClick={() => {
@@ -344,13 +356,19 @@ export default function ArtifactEditorPage() {
                       应用合并结果，继续编辑
                     </button>
                     <button
+                      type="button"
                       className={buttonClass}
-                      onClick={() => {
-                        if (window.confirm("放弃当前本地输入，载入最新草稿？")) {
-                          apply(latest);
-                          setError("");
-                        }
-                      }}
+                      onClick={() =>
+                        setConfirmation({
+                          title: "载入最新草稿？",
+                          description: "当前本地输入将被放弃，并替换为服务器上的最新草稿。",
+                          label: "放弃本地输入并载入",
+                          action: () => {
+                            apply(latest);
+                            setError("");
+                          },
+                        })
+                      }
                     >
                       放弃本地输入并载入最新草稿
                     </button>
@@ -362,7 +380,7 @@ export default function ArtifactEditorPage() {
           <fieldset disabled={busy} className="mt-5 space-y-5 disabled:opacity-70">
             <Section title="基本信息">
               {!artifact && (
-                <p className="text-sm text-[#718399]">
+                <p className="text-sm text-tertiary">
                   新建草稿仅你和工作区管理员可维护；首次发布后，工作区成员可协作维护。
                 </p>
               )}
@@ -416,32 +434,33 @@ export default function ArtifactEditorPage() {
                 onChange={(e) => setSearch(e.target.value)}
               />
               {search.trim() && (
-                <div className="max-h-60 overflow-y-auto rounded-md border border-[#dce5ef]">
+                <div className="max-h-60 overflow-y-auto rounded-md border border-subtle">
                   {matches
                     .filter((item) => !form.source_issue_ids.includes(item.id))
                     .map((item) => (
                       <button
                         type="button"
-                        className="text-sm block w-full border-b border-[#e6edf4] p-3 text-left hover:bg-[#edf3f9]"
+                        className="text-sm block w-full border-b border-subtle p-3 text-left hover:bg-surface-2"
                         key={item.id}
                         onClick={() => addSource(item)}
                       >
                         {item.identifier} · {item.name} <span className="float-right">添加</span>
                       </button>
                     ))}
-                  {!matches.length && <p className="text-sm p-3 text-[#718399]">暂无匹配工作项</p>}
+                  {!matches.length && <p className="text-sm p-3 text-tertiary">暂无匹配工作项</p>}
                 </div>
               )}
               {sources
                 .filter((source) => form.source_issue_ids.includes(source.id))
                 .map((source) => (
-                  <div key={source.id} className="rounded-lg border border-[#dce5ef] p-3">
+                  <div key={source.id} className="rounded-lg border border-subtle p-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <span className="text-sm">
                         {source.identifier} · {source.name}
                       </span>
                       <div className="flex gap-2">
                         <button
+                          type="button"
                           className={buttonClass}
                           onClick={() =>
                             void run(async () => {
@@ -453,6 +472,7 @@ export default function ArtifactEditorPage() {
                           选择工作项材料
                         </button>
                         <button
+                          type="button"
                           className={buttonClass}
                           onClick={() => {
                             change(
@@ -482,7 +502,7 @@ export default function ArtifactEditorPage() {
                           </label>
                         ))}
                         {!materials[source.id].length && (
-                          <p className="text-sm text-[#718399]">该工作项没有可用材料。</p>
+                          <p className="text-sm text-tertiary">该工作项没有可用材料。</p>
                         )}
                       </div>
                     )}
@@ -494,10 +514,11 @@ export default function ArtifactEditorPage() {
                 {selectedAssets.map((asset) => (
                   <div
                     key={asset.id}
-                    className="text-sm flex items-center justify-between gap-3 rounded-md bg-[#f5f8fc] p-3"
+                    className="text-sm flex items-center justify-between gap-3 rounded-md bg-layer-1 p-3"
                   >
                     <span className="break-all">{asset.name}</span>
                     <button
+                      type="button"
                       className={buttonClass}
                       onClick={() => setForm((previous) => removeArtifactAsset(previous, asset.id))}
                     >
@@ -533,7 +554,7 @@ export default function ArtifactEditorPage() {
                 />
               </div>
               {!artifact && (
-                <p className="text-sm text-[#718399]">首次保存草稿后即可上传文件；现在可先选择工作项材料或添加链接。</p>
+                <p className="text-sm text-tertiary">首次保存草稿后即可上传文件；现在可先选择工作项材料或添加链接。</p>
               )}
             </Section>
             <Section title="应用与演示链接">
@@ -541,7 +562,7 @@ export default function ArtifactEditorPage() {
                 <div
                   // oxlint-disable-next-line react/no-array-index-key
                   key={index}
-                  className="grid items-end gap-3 rounded-md bg-[#f5f8fc] p-3 md:grid-cols-[1fr_2fr_130px_auto]"
+                  className="grid items-end gap-3 rounded-md bg-layer-1 p-3 md:grid-cols-[1fr_2fr_130px_auto]"
                 >
                   <Field label="链接标题">
                     <input
@@ -593,6 +614,7 @@ export default function ArtifactEditorPage() {
                     </select>
                   </Field>
                   <button
+                    type="button"
                     className={buttonClass}
                     onClick={() => {
                       change(
@@ -608,6 +630,7 @@ export default function ArtifactEditorPage() {
                 </div>
               ))}
               <button
+                type="button"
                 className={buttonClass}
                 onClick={() => change("links", [...form.links, { title: "", url: "", kind: "application" }])}
               >
@@ -680,26 +703,41 @@ export default function ArtifactEditorPage() {
               </div>
             </Section>
           </fieldset>
-          <div className="shadow-sm sticky bottom-0 z-10 mt-6 flex flex-wrap gap-3 rounded-xl border border-[#dce5ef] bg-white/95 p-4">
-            <button disabled={busy || conflict} className={buttonClass} onClick={() => void saveAction("save")}>
+          <div className="shadow-sm sticky bottom-0 z-10 mt-6 flex flex-wrap gap-3 rounded-xl border border-subtle bg-surface-1/95 p-4">
+            <button
+              type="button"
+              disabled={busy || conflict}
+              className={buttonClass}
+              onClick={() => void saveAction("save")}
+            >
               {busy ? "正在处理…" : "保存草稿"}
             </button>
-            <button disabled={busy || conflict} className={buttonClass} onClick={() => void saveAction("preview")}>
+            <button
+              type="button"
+              disabled={busy || conflict}
+              className={buttonClass}
+              onClick={() => void saveAction("preview")}
+            >
               预览草稿
             </button>
-            <button disabled={busy || conflict} className={primaryClass} onClick={() => void saveAction("publish")}>
+            <button
+              type="button"
+              disabled={busy || conflict}
+              className={primaryClass}
+              onClick={() => void saveAction("publish")}
+            >
               发布
             </button>
-            <p className="text-xs self-center text-[#718399]">预览和发布会先保存当前修改。</p>
+            <p className="text-xs self-center text-tertiary">预览和发布会先保存当前修改。</p>
           </div>
           {artifact && (
             <div className="mt-6 space-y-5">
               <Section title="修订历史">
-                <p className="text-sm text-[#718399]">恢复仅更新草稿，需再次发布才会改变展厅。</p>
+                <p className="text-sm text-tertiary">恢复仅更新草稿，需再次发布才会改变展厅。</p>
                 {revisions.map((revision) => (
                   <div
                     key={revision.id}
-                    className="text-sm flex flex-wrap items-center justify-between gap-3 border-b border-[#e6edf4] py-3"
+                    className="text-sm flex flex-wrap items-center justify-between gap-3 border-b border-subtle py-3"
                   >
                     <span>
                       版本 {revision.version} · {new Date(revision.created_at).toLocaleString("zh-CN")} ·{" "}
@@ -707,6 +745,7 @@ export default function ArtifactEditorPage() {
                     </span>
                     <div className="flex gap-2">
                       <button
+                        type="button"
                         disabled={busy}
                         className={buttonClass}
                         onClick={() =>
@@ -718,28 +757,30 @@ export default function ArtifactEditorPage() {
                         查看
                       </button>
                       <button
+                        type="button"
                         disabled={busy || conflict}
                         className={buttonClass}
-                        onClick={() => {
-                          if (
-                            window.confirm(
-                              `将「${artifact.title}」恢复为版本 ${revision.version} 的草稿？当前未保存修改将被替换，恢复后仍需发布。`
-                            )
-                          )
-                            void run(async () => {
-                              apply(await artifactService.restore(slug, artifact.id, revision.id, artifact.version));
-                              setMessage("修订已恢复为草稿，请检查后再次发布。");
-                            });
-                        }}
+                        onClick={() =>
+                          setConfirmation({
+                            title: `恢复为版本 ${revision.version}？`,
+                            description: `成果「${artifact.title}」将恢复为所选草稿，当前未保存修改会被替换。恢复后仍需发布才会更新展厅。`,
+                            label: "恢复为草稿",
+                            action: () =>
+                              run(async () => {
+                                apply(await artifactService.restore(slug, artifact.id, revision.id, artifact.version));
+                                setMessage("修订已恢复为草稿，请检查后再次发布。");
+                              }, true),
+                          })
+                        }
                       >
                         恢复为草稿
                       </button>
                     </div>
                   </div>
                 ))}
-                {!revisions.length && <p className="text-sm text-[#718399]">发布成果后会生成修订。</p>}
+                {!revisions.length && <p className="text-sm text-tertiary">发布成果后会生成修订。</p>}
                 {revisionView && (
-                  <div className="text-sm rounded-md bg-[#f5f8fc] p-4">
+                  <div className="text-sm rounded-md bg-layer-1 p-4">
                     <h3 className="font-semibold">{revisionView.title}</h3>
                     <p className="mt-2 whitespace-pre-wrap">{revisionView.summary}</p>
                     <p className="mt-2">类型：{revisionView.kind}</p>
@@ -765,7 +806,7 @@ export default function ArtifactEditorPage() {
                     <p className="mt-2">
                       材料 {revisionView.assets.length} 项 · 关联工作项 {revisionView.source_issue_ids.length} 项
                     </p>
-                    <button className={`${buttonClass} mt-3`} onClick={() => setRevisionView(undefined)}>
+                    <button type="button" className={`${buttonClass} mt-3`} onClick={() => setRevisionView(undefined)}>
                       关闭修订内容
                     </button>
                   </div>
@@ -775,32 +816,44 @@ export default function ArtifactEditorPage() {
                 <div className="flex flex-wrap gap-3">
                   {artifact.status === "published" && (
                     <button
+                      type="button"
                       disabled={busy || conflict}
                       className={buttonClass}
-                      onClick={() => {
-                        if (window.confirm(`撤下「${artifact.title}」？展厅将不再展示此成果，草稿与修订仍保留。`))
-                          void run(async () => {
-                            const withdrawn = await artifactService.withdraw(slug, artifact.id, artifact.version);
-                            setArtifact((previous) => (previous ? { ...previous, ...withdrawn } : previous));
-                            setForm((previous) => ({ ...previous, version: withdrawn.version }));
-                            setBaseline((previous) => ({ ...previous, version: withdrawn.version }));
-                            setMessage("成果已撤下，本地未保存修改已保留，可保存草稿后重新发布。");
-                          });
-                      }}
+                      onClick={() =>
+                        setConfirmation({
+                          title: `撤下「${artifact.title}」？`,
+                          description: "展厅将不再展示此成果，草稿与修订仍保留。",
+                          label: "撤下成果",
+                          action: () =>
+                            run(async () => {
+                              const withdrawn = await artifactService.withdraw(slug, artifact.id, artifact.version);
+                              setArtifact((previous) => (previous ? { ...previous, ...withdrawn } : previous));
+                              setForm((previous) => ({ ...previous, version: withdrawn.version }));
+                              setBaseline((previous) => ({ ...previous, version: withdrawn.version }));
+                              setMessage("成果已撤下，本地未保存修改已保留，可保存草稿后重新发布。");
+                            }, true),
+                        })
+                      }
                     >
                       撤下成果
                     </button>
                   )}
                   <button
+                    type="button"
                     disabled={busy || conflict}
-                    className={`${buttonClass} text-red-700`}
-                    onClick={() => {
-                      if (window.confirm(`删除「${artifact.title}」？成果将不再可见，关联工作项和共享文件会保留。`))
-                        void run(async () => {
-                          await artifactService.remove(slug, artifact.id, artifact.version);
-                          router.push(`/${slug}/gallery/manage/`);
-                        });
-                    }}
+                    className={`${buttonClass} text-danger-primary`}
+                    onClick={() =>
+                      setConfirmation({
+                        title: `删除「${artifact.title}」？`,
+                        description: "成果将不再可见；关联工作项和共享文件会保留。",
+                        label: "删除成果",
+                        action: () =>
+                          run(async () => {
+                            await artifactService.remove(slug, artifact.id, artifact.version);
+                            router.push(`/${slug}/gallery/manage/`);
+                          }, true),
+                      })
+                    }
                   >
                     删除成果
                   </button>
@@ -810,6 +863,17 @@ export default function ArtifactEditorPage() {
           )}
         </>
       )}
+      <ConfirmDialog
+        open={Boolean(confirmation)}
+        title={confirmation?.title ?? "确认操作"}
+        description={confirmation?.description ?? ""}
+        confirmLabel={confirmation?.label}
+        onCancel={() => setConfirmation(undefined)}
+        onConfirm={async () => {
+          await confirmation?.action();
+          setConfirmation(undefined);
+        }}
+      />
     </ArtifactShell>
   );
 }

@@ -3,7 +3,8 @@ import { useParams } from "next/navigation";
 import { artifactService } from "@/services/artifact.service";
 import { artifactError, artifactStatus } from "../../helpers/artifact";
 import type { Artifact, ArtifactCategory } from "../../helpers/artifact";
-import { ArtifactShell, buttonClass, inputClass, Message, primaryClass, Section } from "./shared";
+import { ArtifactShell, buttonClass, ConfirmDialog, inputClass, Message, primaryClass, Section } from "./shared";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@plane/propel/table";
 
 export default function ArtifactManagePage() {
   const slug = useParams().workspaceSlug?.toString() ?? "";
@@ -19,6 +20,7 @@ export default function ArtifactManagePage() {
   const [newName, setNewName] = useState("");
   const [names, setNames] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [confirmCategory, setConfirmCategory] = useState<ArtifactCategory>();
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -62,7 +64,7 @@ export default function ArtifactManagePage() {
       actions={
         <>
           {canManageCategories && (
-            <button className={buttonClass} onClick={() => setShowCategories(!showCategories)}>
+            <button type="button" className={buttonClass} onClick={() => setShowCategories(!showCategories)}>
               分类管理
             </button>
           )}
@@ -86,8 +88,9 @@ export default function ArtifactManagePage() {
                   value={names[cat.id] ?? cat.name}
                   onChange={(e) => setNames({ ...names, [cat.id]: e.target.value })}
                 />
-                <span className="text-xs text-[#718399]">{cat.usage_count} 项成果或修订使用</span>
+                <span className="text-xs text-tertiary">{cat.usage_count} 项成果或修订使用</span>
                 <button
+                  type="button"
                   disabled={busy || !names[cat.id]?.trim()}
                   className={buttonClass}
                   onClick={() => void categoryAction(() => artifactService.saveCategory(slug, names[cat.id], cat))}
@@ -95,12 +98,12 @@ export default function ArtifactManagePage() {
                   保存名称
                 </button>
                 <button
+                  type="button"
                   disabled={busy || cat.usage_count > 0}
                   title={cat.usage_count ? "仍被成果或修订使用，不能删除" : undefined}
                   className={buttonClass}
                   onClick={() => {
-                    if (window.confirm(`删除分类「${cat.name}」？`))
-                      void categoryAction(() => artifactService.removeCategory(slug, cat));
+                    setConfirmCategory(cat);
                   }}
                 >
                   删除
@@ -116,6 +119,7 @@ export default function ArtifactManagePage() {
                 className={`${inputClass} max-w-xs`}
               />
               <button
+                type="button"
                 disabled={busy || !newName.trim()}
                 className={buttonClass}
                 onClick={() => void categoryAction(() => artifactService.saveCategory(slug, newName))}
@@ -151,55 +155,66 @@ export default function ArtifactManagePage() {
       {loading ? (
         <p role="status">正在加载成果…</p>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-[#dce5ef] bg-white">
-          <table className="text-sm w-full text-left">
-            <thead className="bg-[#edf3f9]">
-              <tr>
+        <div className="overflow-x-auto rounded-xl border border-subtle bg-surface-1">
+          <Table>
+            <TableHeader>
+              <TableRow>
                 {["成果", "分类", "状态", "更新日期", "操作"].map((heading) => (
-                  <th key={heading} className="p-4">
-                    {heading}
-                  </th>
+                  <TableHead key={heading}>{heading}</TableHead>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {visible.map((row) => (
-                <tr key={row.id} className="border-t border-[#e6edf4]">
-                  <td className="p-4 font-medium">{row.title}</td>
-                  <td className="p-4">{row.category || "未分类"}</td>
-                  <td className="p-4">
+                <TableRow key={row.id}>
+                  <TableCell className="font-medium">{row.title}</TableCell>
+                  <TableCell>{row.category || "未分类"}</TableCell>
+                  <TableCell>
                     {artifactStatus[row.status]}
                     {row.has_unpublished_changes && (
-                      <span className="text-xs text-amber-700 mt-1 block">有未发布修改</span>
+                      <span className="text-xs mt-1 block text-warning-primary">有未发布修改</span>
                     )}
-                  </td>
-                  <td className="p-4">{new Date(row.updated_at).toLocaleDateString("zh-CN")}</td>
-                  <td className="p-4">
+                  </TableCell>
+                  <TableCell>{new Date(row.updated_at).toLocaleDateString("zh-CN")}</TableCell>
+                  <TableCell>
                     <div className="flex gap-4">
                       {row.can_edit && (
-                        <a href={`/${slug}/gallery/${row.id}/edit/`} className="text-[#2d628b] underline">
+                        <a href={`/${slug}/gallery/${row.id}/edit/`} className="text-link-primary underline">
                           编辑
                         </a>
                       )}
                       <a
                         href={`/${slug}/gallery/${row.id}/${row.can_edit ? "?view=draft" : ""}`}
-                        className="text-[#2d628b] underline"
+                        className="text-link-primary underline"
                       >
                         {row.can_edit ? "预览草稿" : "查看成果"}
                       </a>
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
           {!visible.length && (
-            <p className="p-10 text-center text-[#718399]">
+            <p className="p-10 text-center text-tertiary">
               {search ? "没有匹配的成果，试试其他关键词。" : "暂无成果，可通过新建成果开始整理。"}
             </p>
           )}
         </div>
       )}
+      <ConfirmDialog
+        open={Boolean(confirmCategory)}
+        title={`删除分类「${confirmCategory?.name ?? ""}」？`}
+        description="确认后会删除这个工作区类别。该类别不会影响成果材料。"
+        confirmLabel="删除分类"
+        onCancel={() => setConfirmCategory(undefined)}
+        onConfirm={async () => {
+          if (!confirmCategory) return;
+          await artifactService.removeCategory(slug, confirmCategory);
+          setConfirmCategory(undefined);
+          await load();
+        }}
+      />
     </ArtifactShell>
   );
 }

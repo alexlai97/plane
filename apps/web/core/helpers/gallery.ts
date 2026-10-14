@@ -33,6 +33,7 @@ export type GalleryAction =
 
 export type GalleryCard = {
   id: string;
+  category_id?: string | null;
   title: string;
   summary: string;
   category: string;
@@ -68,7 +69,7 @@ export function getGalleryCategoryCounts(cards: GalleryCard[], categories: strin
 export function filterGalleryCards(cards: GalleryCard[], category: string, query: string): GalleryCard[] {
   const normalizedQuery = query.trim().toLocaleLowerCase();
   return cards.filter((card) => {
-    if (category !== ALL_GALLERY_CATEGORY && card.category !== category) return false;
+    if (category !== ALL_GALLERY_CATEGORY && card.category !== category && card.category_id !== category) return false;
     if (!normalizedQuery) return true;
     const searchable = [
       card.title,
@@ -83,6 +84,90 @@ export function filterGalleryCards(cards: GalleryCard[], category: string, query
       .toLocaleLowerCase();
     return searchable.includes(normalizedQuery);
   });
+}
+
+export type GalleryLayout = "gallery" | "list";
+export type GallerySort = "curated" | "recent" | "title";
+export type GalleryGroup = "none" | "category";
+export type GalleryViewState = {
+  category: string;
+  query: string;
+  layout: GalleryLayout;
+  sort: GallerySort;
+  group: GalleryGroup;
+};
+
+/** The gallery URL is the shareable source of truth; unknown parameters are discarded. */
+export function parseGalleryViewState(
+  search: string,
+  categories: { id: string; name: string }[] = []
+): GalleryViewState {
+  const params = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
+  const rawCategory = params.get("category") ?? ALL_GALLERY_CATEGORY;
+  const category =
+    rawCategory === ALL_GALLERY_CATEGORY ||
+    categories.length === 0 ||
+    categories.some((item) => item.id === rawCategory)
+      ? rawCategory
+      : ALL_GALLERY_CATEGORY;
+  const layout = params.get("layout");
+  const sort = params.get("sort");
+  const group = params.get("group");
+  return {
+    category,
+    query: params.get("q") ?? "",
+    layout: layout === "list" ? "list" : "gallery",
+    sort: sort === "recent" || sort === "title" ? sort : "curated",
+    group: group === "category" ? "category" : "none",
+  };
+}
+
+export function serializeGalleryViewState(state: GalleryViewState): string {
+  const params = new URLSearchParams();
+  if (state.category !== ALL_GALLERY_CATEGORY) params.set("category", state.category);
+  if (state.query) params.set("q", state.query);
+  if (state.layout !== "gallery") params.set("layout", state.layout);
+  if (state.sort !== "curated") params.set("sort", state.sort);
+  if (state.group !== "none") params.set("group", state.group);
+  return params.toString();
+}
+
+export function sanitizeGalleryReturnUrl(value: string | null | undefined, workspaceSlug: string): string {
+  const base = `/${encodeURIComponent(workspaceSlug)}/gallery/`;
+  if (!value) return base;
+  try {
+    const candidate = new URL(value, "https://gallery.local");
+    if (candidate.origin !== "https://gallery.local" || candidate.pathname !== base) return base;
+    // Normalize enum values and retain only the gallery's shareable filter controls.
+    const query = serializeGalleryViewState(parseGalleryViewState(candidate.search));
+    return `${base}${query ? `?${query}` : ""}${candidate.hash === "#materials" ? "#materials" : ""}`;
+  } catch {
+    return base;
+  }
+}
+
+export function orderGalleryCards(cards: GalleryCard[], sort: GallerySort): GalleryCard[] {
+  if (sort === "curated") return [...cards];
+  const ordered = [...cards];
+  // oxlint-disable-next-line unicorn/no-array-sort -- Web target library predates Array#toSorted.
+  return ordered.sort((a, b) => {
+    if (sort === "title") return a.title.localeCompare(b.title, "zh-CN") || a.id.localeCompare(b.id);
+    return (Date.parse(b.updated_at) || 0) - (Date.parse(a.updated_at) || 0) || a.id.localeCompare(b.id);
+  });
+}
+
+export function groupGalleryCards(cards: GalleryCard[], group: GalleryGroup): { name: string; cards: GalleryCard[] }[] {
+  if (group === "none") return [{ name: "", cards }];
+  const names: string[] = [];
+  const byName = new Map<string, GalleryCard[]>();
+  for (const card of cards) {
+    if (!byName.has(card.category)) {
+      names.push(card.category);
+      byName.set(card.category, []);
+    }
+    byName.get(card.category)?.push(card);
+  }
+  return names.map((name) => ({ name, cards: byName.get(name) ?? [] }));
 }
 
 export function resolveGalleryAction(card: GalleryCard): GalleryActionTarget {
