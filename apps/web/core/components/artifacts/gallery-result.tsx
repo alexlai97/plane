@@ -117,6 +117,7 @@ export function GalleryResult({
       <a
         href={href}
         aria-label={`查看${card.title}详情`}
+        onClick={onOpenDetail}
         className="group focus-visible:ring-accent-primary relative flex h-36 shrink-0 items-center justify-center overflow-hidden bg-surface-2 outline-none focus-visible:ring-2 focus-visible:ring-inset"
       >
         <GalleryCover card={card} />
