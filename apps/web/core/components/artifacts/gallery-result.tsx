@@ -2,7 +2,12 @@ import { useState } from "react";
 import type { MouseEvent } from "react";
 import { ArrowDownToLine, ArrowUpRight, Eye, FileText, Images, Link2 } from "lucide-react";
 import { Button } from "@plane/propel/button";
-import { getSafeGalleryLinks, type GalleryAttachment, type GalleryCard, type GalleryActionTarget } from "../../helpers/gallery";
+import {
+  getSafeGalleryLinks,
+  type GalleryAttachment,
+  type GalleryCard,
+  type GalleryActionTarget,
+} from "../../helpers/gallery";
 
 export function GalleryCover({ card, compact = false }: { card: GalleryCard; compact?: boolean }) {
   const [failed, setFailed] = useState(false);
@@ -227,18 +232,20 @@ export function GalleryListRow({
             {item.name}
           </button>
         ))}
-        {getSafeGalleryLinks(card.links).slice(0, 1).map((item) => (
-          <a
-            key={item.url}
-            href={item.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex max-w-40 items-center gap-1 truncate text-11 text-link-primary hover:underline"
-          >
-            <Link2 className="size-3.5" />
-            {item.title}
-          </a>
-        ))}
+        {getSafeGalleryLinks(card.links)
+          .slice(0, 1)
+          .map((item) => (
+            <a
+              key={item.url}
+              href={item.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex max-w-40 items-center gap-1 truncate text-11 text-link-primary hover:underline"
+            >
+              <Link2 className="size-3.5" />
+              {item.title}
+            </a>
+          ))}
       </div>
       <GalleryPrimaryAction
         card={card}

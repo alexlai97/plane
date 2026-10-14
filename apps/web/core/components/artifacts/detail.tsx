@@ -119,15 +119,19 @@ export default function ArtifactDetailPage() {
               <button
                 type="button"
                 onClick={openCoverPreview}
-                className="flex items-center gap-2 rounded-md border border-subtle p-3 text-sm text-link-primary hover:bg-surface-2"
+                className="text-sm flex items-center gap-2 rounded-md border border-subtle p-3 text-link-primary hover:bg-surface-2"
               >
                 {coverPreview.type === "image" ? <Eye className="size-4" /> : <FileText className="size-4" />}
                 {coverPreview.attachment.name}
-                {coverPreview.type === "image" ? " · 查看图片" : coverPreview.attachment.can_preview ? " · 预览材料" : " · 下载材料"}
+                {coverPreview.type === "image"
+                  ? " · 查看图片"
+                  : coverPreview.attachment.can_preview
+                    ? " · 预览材料"
+                    : " · 下载材料"}
               </button>
             )}
             {artifact.cover && coverImageFailed && !coverPreview && (
-              <p className="flex items-center gap-2 rounded-md border border-subtle p-3 text-sm text-secondary">
+              <p className="text-sm flex items-center gap-2 rounded-md border border-subtle p-3 text-secondary">
                 <FileText className="size-4" />
                 {artifact.cover.name} · 封面材料当前不可预览
               </p>
@@ -229,7 +233,7 @@ export default function ArtifactDetailPage() {
           <div className="fixed inset-0 bg-black/80" aria-hidden="true" />
           <Dialog.Panel className="fixed inset-0 flex flex-col bg-black/80 p-3 sm:p-5">
             <div className="flex items-center justify-between gap-3 pb-3 text-white">
-              <Dialog.Title className="truncate text-sm font-medium">{coverImagePreview.name}</Dialog.Title>
+              <Dialog.Title className="text-sm truncate font-medium">{coverImagePreview.name}</Dialog.Title>
               <button
                 type="button"
                 aria-label="关闭封面图片预览"
