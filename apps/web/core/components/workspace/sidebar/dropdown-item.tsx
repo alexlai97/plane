@@ -15,7 +15,6 @@ import { useTranslation } from "@plane/i18n";
 import { CheckIcon } from "@plane/propel/icons";
 import type { IWorkspace } from "@plane/types";
 import { cn, getFileURL, getUserRole } from "@plane/utils";
-import { getWorkspaceAppearance } from "../../../helpers/workspace-appearance";
 
 type TProps = {
   workspace: IWorkspace;
@@ -30,8 +29,7 @@ const SidebarDropdownItem = observer(function SidebarDropdownItem(props: TProps)
   const { workspaceSlug } = useParams();
   // hooks
   const { t } = useTranslation();
-  const organizationLogoUrl = getWorkspaceAppearance(workspace.appearance).organization_logo_url;
-  const logo = organizationLogoUrl || workspace.logo_url;
+  const logo = workspace.logo_url;
 
   return (
     <Link
@@ -60,7 +58,7 @@ const SidebarDropdownItem = observer(function SidebarDropdownItem(props: TProps)
             >
               {logo ? (
                 <img
-                  src={organizationLogoUrl || getFileURL(logo)}
+                  src={getFileURL(logo)}
                   className="absolute top-0 left-0 h-full w-full rounded-sm object-cover"
                   alt={workspace.name || t("workspace_logo")}
                 />
