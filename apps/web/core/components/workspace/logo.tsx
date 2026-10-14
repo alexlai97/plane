@@ -10,7 +10,6 @@ import { useTranslation } from "@plane/i18n";
 import { cn, getFileURL } from "@plane/utils";
 
 type Props = {
-  workspaceId?: string;
   logo: string | null | undefined;
   name: string | undefined;
   classNames?: string;
@@ -20,8 +19,7 @@ export const WorkspaceLogo = observer(function WorkspaceLogo(props: Props) {
   // translation
   const { t } = useTranslation();
 
-  const departmentLogo = props.workspaceId === "bb96243d-e9cd-424e-8fb6-6117ae54f621" ? "/ai-strategy-icon.png" : null;
-  const logo = departmentLogo ?? (props.logo ? getFileURL(props.logo) : null);
+  const logo = props.logo ? getFileURL(props.logo) : null;
 
   return (
     <div

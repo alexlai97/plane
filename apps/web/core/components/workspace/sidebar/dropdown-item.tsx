@@ -15,6 +15,7 @@ import { useTranslation } from "@plane/i18n";
 import { CheckIcon } from "@plane/propel/icons";
 import type { IWorkspace } from "@plane/types";
 import { cn, getFileURL, getUserRole } from "@plane/utils";
+import { getWorkspaceAppearance } from "../../../helpers/workspace-appearance";
 
 type TProps = {
   workspace: IWorkspace;
@@ -29,6 +30,8 @@ const SidebarDropdownItem = observer(function SidebarDropdownItem(props: TProps)
   const { workspaceSlug } = useParams();
   // hooks
   const { t } = useTranslation();
+  const organizationLogoUrl = getWorkspaceAppearance(workspace.appearance).organization_logo_url;
+  const logo = organizationLogoUrl || workspace.logo_url;
 
   return (
     <Link
@@ -52,18 +55,14 @@ const SidebarDropdownItem = observer(function SidebarDropdownItem(props: TProps)
           <div className="relative flex w-[80%] items-center justify-start gap-2.5">
             <span
               className={`relative flex h-8 w-8 flex-shrink-0 items-center justify-center border-subtle p-2 text-14 font-medium uppercase ${
-                !workspace?.logo_url && "rounded-md bg-[#026292] text-on-color"
+                !logo && "rounded-md bg-[#026292] text-on-color"
               }`}
             >
-              {workspace.id === "bb96243d-e9cd-424e-8fb6-6117ae54f621" || workspace?.logo_url ? (
+              {logo ? (
                 <img
-                  src={
-                    workspace.id === "bb96243d-e9cd-424e-8fb6-6117ae54f621"
-                      ? "/ai-strategy-icon.png"
-                      : getFileURL(workspace.logo_url ?? "")
-                  }
+                  src={organizationLogoUrl || getFileURL(logo)}
                   className="absolute top-0 left-0 h-full w-full rounded-sm object-cover"
-                  alt={t("workspace_logo")}
+                  alt={workspace.name || t("workspace_logo")}
                 />
               ) : (
                 (workspace?.name?.[0] ?? "...")

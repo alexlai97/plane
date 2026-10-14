@@ -44,6 +44,49 @@ class WorkSpaceSerializer(DynamicBaseSerializer):
     total_members = serializers.IntegerField(read_only=True)
     logo_url = serializers.CharField(read_only=True)
     role = serializers.IntegerField(read_only=True)
+    appearance = serializers.JSONField(required=False, allow_null=True)
+
+    APPEARANCE_KEYS = {"theme", "organization_logo_url"}
+
+    def validate_appearance(self, value):
+        """Validate stable workspace presentation settings without accepting arbitrary JSON."""
+        if value is None:
+            return None
+        if not isinstance(value, dict):
+            raise serializers.ValidationError("Appearance must be an object or null.")
+        unknown = set(value) - self.APPEARANCE_KEYS
+        if unknown:
+            raise serializers.ValidationError({key: "Unknown appearance setting." for key in unknown})
+
+        result = {}
+        if "theme" in value:
+            theme = value["theme"]
+            if theme not in (None, "", "blue-gray"):
+                raise serializers.ValidationError({"theme": "Unsupported workspace theme."})
+            result["theme"] = theme
+
+        if "organization_logo_url" in value:
+            logo_url = value["organization_logo_url"]
+            if logo_url is None:
+                result["organization_logo_url"] = None
+                return result
+            if not isinstance(logo_url, str):
+                raise serializers.ValidationError({"organization_logo_url": "Must be a string."})
+            if any(ord(char) < 32 or ord(char) == 127 for char in logo_url):
+                raise serializers.ValidationError({"organization_logo_url": "Control characters are not allowed."})
+            if logo_url and (
+                logo_url.startswith("//")
+                or "\\" in logo_url
+                or not (logo_url.startswith("/") or logo_url.startswith("http://") or logo_url.startswith("https://"))
+            ):
+                raise serializers.ValidationError({"organization_logo_url": "Use an HTTP(S) or root-relative URL."})
+            if logo_url.startswith(("http://", "https://")):
+                try:
+                    URLValidator(schemes=["http", "https"])(logo_url)
+                except ValidationError:
+                    raise serializers.ValidationError({"organization_logo_url": "Invalid HTTP(S) URL."})
+            result["organization_logo_url"] = logo_url
+        return result
 
     def validate_name(self, value):
         # Check if the name contains a URL
@@ -81,6 +124,20 @@ class WorkSpaceSerializer(DynamicBaseSerializer):
             "owner",
             "logo_url",
         ]
+
+    def update(self, instance, validated_data):
+        # PATCHing one appearance key preserves its sibling; null clears all settings.
+        if "appearance" in validated_data and self.instance is not None:
+            incoming = validated_data["appearance"]
+            validated_data["appearance"] = (
+                {} if incoming is None else {**(instance.appearance or {}), **incoming}
+            )
+        return super().update(instance, validated_data)
+
+    def create(self, validated_data):
+        if validated_data.get("appearance", {}) is None:
+            validated_data["appearance"] = {}
+        return super().create(validated_data)
 
 
 class WorkspaceLiteSerializer(BaseSerializer):

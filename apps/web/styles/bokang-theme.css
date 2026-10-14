@@ -1,6 +1,6 @@
-/* Bokang AI Strategy department: approved A / blue-gray reporting theme.
+/* Workspace-configured Bokang blue-gray reporting theme.
  * Semantic palette only: preserve task status colors, layout and interaction.
- * Scoped by workspace UUID in WorkspaceLayout; other departments keep upstream.
+ * Scoped by validated workspace appearance settings; other workspaces keep upstream.
  */
 :root:not([data-theme*="dark"]):not([data-theme="custom"]) [data-bokang-theme="blue-gray"] {
   --bg-canvas: #f7f9fc;

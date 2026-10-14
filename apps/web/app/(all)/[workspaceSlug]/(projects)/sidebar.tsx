@@ -18,10 +18,11 @@ import { SidebarMenuItems } from "@/components/workspace/sidebar/sidebar-menu-it
 import { useWorkspace } from "@/hooks/store/use-workspace";
 import { useFavorite } from "@/hooks/store/use-favorite";
 import { useUserPermissions } from "@/hooks/store/user";
+import { getWorkspaceAppearance } from "../../../../core/helpers/workspace-appearance";
 
 export const AppSidebar = observer(function AppSidebar() {
   const { currentWorkspace } = useWorkspace();
-  const isAIStrategy = currentWorkspace?.id === "bb96243d-e9cd-424e-8fb6-6117ae54f621";
+  const appearance = getWorkspaceAppearance(currentWorkspace?.appearance);
   // store hooks
   const { allowPermissions } = useUserPermissions();
   const { groupedFavorites } = useFavorite();
@@ -38,11 +39,15 @@ export const AppSidebar = observer(function AppSidebar() {
     <SidebarWrapper
       title="Projects"
       brand={
-        isAIStrategy ? (
+        appearance.organization_logo_url ? (
           <div className="bokang-department-brand">
-            <img src="/bokang-logo.png" alt="泊康" className="size-9 shrink-0 rounded-md bg-white object-contain p-1" />
+            <img
+              src={appearance.organization_logo_url}
+              alt={currentWorkspace?.name ?? "Workspace"}
+              className="size-9 shrink-0 rounded-md bg-white object-contain p-1"
+            />
             <div className="min-w-0">
-              <div className="truncate text-16 font-semibold text-primary">AI战略部</div>
+              <div className="truncate text-16 font-semibold text-primary">{currentWorkspace?.name}</div>
               <div className="text-11 text-tertiary">项目与工作协作</div>
             </div>
           </div>

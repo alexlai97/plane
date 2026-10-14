@@ -34,6 +34,10 @@ export interface IWorkspace {
   total_projects?: number;
   role: number;
   timezone: string;
+  appearance?: {
+    theme?: "" | "blue-gray" | null;
+    organization_logo_url?: string | null;
+  };
 }
 
 export interface IWorkspaceLite {

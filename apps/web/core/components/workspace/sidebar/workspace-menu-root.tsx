@@ -101,7 +101,6 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
                   item={{
                     icon: (
                       <WorkspaceLogo
-                        workspaceId={activeWorkspace?.id}
                         logo={activeWorkspace?.logo_url}
                         name={activeWorkspace?.name}
                         classNames="size-8 rounded-md border border-subtle"
@@ -123,7 +122,6 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
               >
                 <div className="flex flex-grow items-center gap-2 truncate">
                   <WorkspaceLogo
-                    workspaceId={activeWorkspace?.id}
                     logo={activeWorkspace?.logo_url}
                     name={activeWorkspace?.name}
                     classNames="border border-subtle rounded-md size-7"
