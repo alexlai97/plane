@@ -537,8 +537,62 @@ class ArtifactLifecycleTests(TestCase):
         created = self.request("post", self.owner, self.payload(links=[] , primary_action={"type": "detail", "label": "详情"}))
         self.assertEqual(created.status_code, 201, created.data)
         self.assertEqual(self.request("post", self.owner, {"version": 1}, created.data["id"], "publish").status_code, 400)
-        bad = self.request("post", self.owner, self.payload(links=[{"title": "坏链接", "url": "javascript:alert(1)", "kind": "reference"}], primary_action={"type": "detail", "label": "详情"}))
-        self.assertEqual(bad.status_code, 400)
+        valid_link = {"title": "主链接", "url": "https://example.invalid/", "kind": "demo"}
+        unsafe_urls = [
+            "javascript:alert(1)",
+            "data:text/html,unsafe",
+            "file:///etc/passwd",
+            "//example.invalid/path",
+            "http:///missing-host",
+            "http://[broken",
+        ]
+        initial_count = Artifact.objects.count()
+        for unsafe_url in unsafe_urls:
+            with self.subTest(url=unsafe_url):
+                bad = self.request(
+                    "post",
+                    self.owner,
+                    self.payload(
+                        links=[valid_link, {"title": "坏链接", "url": unsafe_url, "kind": "reference"}],
+                        primary_action={"type": "detail", "label": "详情"},
+                    ),
+                )
+                self.assertEqual(bad.status_code, 400)
+                self.assertEqual(Artifact.objects.count(), initial_count)
+
+        created_safe = self.request("post", self.owner, self.payload(primary_action={"type": "detail", "label": "详情"}))
+        artifact_id = created_safe.data["id"]
+        before_materials = list(Artifact.objects.get(id=artifact_id).materials.values_list("title", "url", "kind", "position"))
+        patched = self.request(
+            "patch",
+            self.owner,
+            {
+                "version": 1,
+                "links": [valid_link, {"title": "坏链接", "url": "javascript:alert(1)", "kind": "reference"}],
+                "primary_action": {"type": "detail", "label": "详情"},
+            },
+            artifact_id,
+        )
+        self.assertEqual(patched.status_code, 400)
+        unchanged = Artifact.objects.get(id=artifact_id)
+        self.assertEqual(unchanged.version, 1)
+        self.assertEqual(list(unchanged.materials.values_list("title", "url", "kind", "position")), before_materials)
+
+    def test_publish_revalidates_all_effective_material_urls(self):
+        created = self.request("post", self.owner, self.payload(primary_action={"type": "detail", "label": "详情"}))
+        artifact_id = created.data["id"]
+        published = self.request("post", self.owner, {"version": 1}, artifact_id, "publish")
+        self.assertEqual(published.status_code, 200, published.data)
+        artifact = Artifact.objects.get(id=artifact_id)
+        prior_revision_id = artifact.published_revision_id
+        artifact.materials.filter(url__isnull=False).update(url="javascript:alert(1)")
+
+        rejected = self.request("post", self.owner, {"version": artifact.version}, artifact_id, "publish")
+        self.assertEqual(rejected.status_code, 400)
+        artifact.refresh_from_db()
+        self.assertEqual(artifact.published_revision_id, prior_revision_id)
+        self.assertEqual(artifact.version, 2)
+        self.assertEqual(artifact.revisions.count(), 1)
 
     def test_upload_uses_configured_limit_storage_failure_and_owner_binding(self):
         created = self.request("post", self.owner, self.payload())

@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { artifactToWrite, removeArtifactAsset, artifactError, getArtifactShareUrl } from "./artifact.ts";
-import { getAttachmentPreviewUrl } from "./gallery.ts";
+import { getAttachmentPreviewUrl, getSafeGalleryLinks } from "./gallery.ts";
 
 const artifact = {
   title: "成果",
@@ -71,6 +71,18 @@ test("preview path retains draft and revision parameters after path insertion", 
     "/api/artifacts/one/assets/file/preview/onlinePreview?view=draft&revision=two"
   );
   assert.equal(getAttachmentPreviewUrl("https://example.com/file/"), "https://example.com/file/preview/onlinePreview");
+});
+
+test("gallery material links skip unsafe URLs and keep the next safe link visible", () => {
+  const safe = { title: "安全链接", url: "https://example.com", kind: "reference" };
+  const unsafeLinks = ["javascript:alert(1)", "data:text/html,unsafe", "file:///etc/passwd", "//example.com/path", "http://[broken"].map((url) => ({
+    title: "不安全链接",
+    url,
+    kind: "reference",
+  }));
+
+  assert.deepEqual(getSafeGalleryLinks([...unsafeLinks, safe]), [safe]);
+  assert.deepEqual(getSafeGalleryLinks(unsafeLinks), []);
 });
 
 test("three-way merge preserves independent local and remote edits and uses newest version", async () => {

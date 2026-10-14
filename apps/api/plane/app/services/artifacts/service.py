@@ -86,8 +86,13 @@ def active_artifact(user, workspace, artifact_id, write=False):
 
 
 def _validate_url(url):
-    parsed = urlparse(url or "")
-    if parsed.scheme not in ("http", "https") or not parsed.netloc or parsed.username or parsed.password:
+    try:
+        parsed = urlparse(url or "")
+        hostname = parsed.hostname
+        invalid = parsed.scheme not in ("http", "https") or not parsed.netloc or not hostname or parsed.username or parsed.password
+    except (AttributeError, TypeError, ValueError):
+        invalid = True
+    if invalid:
         raise ValidationError({"links": "链接必须是安全的 http 或 https 地址。"})
     return url
 
@@ -441,6 +446,8 @@ def publish_artifact(user, artifact, version):
         selected_assets.append(_asset(user, artifact.workspace, artifact.cover_asset_id, artifact))
     _validate_asset_sources(selected_assets, [issue.id for issue in issues])
     snap = snapshot(artifact, artifact.workspace.slug)
+    for link in snap.get("links", []):
+        _validate_url(link.get("url"))
     if snap["unavailable_reference_count"]:
         raise ValidationError({"materials": "存在已失效的来源或材料，请先修复草稿。"})
     if not snap["materials"]:

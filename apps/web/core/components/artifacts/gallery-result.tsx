@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { MouseEvent } from "react";
 import { ArrowDownToLine, ArrowUpRight, Eye, FileText, Images, Link2 } from "lucide-react";
 import { Button } from "@plane/propel/button";
-import type { GalleryAttachment, GalleryCard, GalleryActionTarget } from "../../helpers/gallery";
+import { getSafeGalleryLinks, type GalleryAttachment, type GalleryCard, type GalleryActionTarget } from "../../helpers/gallery";
 
 export function GalleryCover({ card, compact = false }: { card: GalleryCard; compact?: boolean }) {
   const [failed, setFailed] = useState(false);
@@ -227,7 +227,7 @@ export function GalleryListRow({
             {item.name}
           </button>
         ))}
-        {card.links.slice(0, 1).map((item) => (
+        {getSafeGalleryLinks(card.links).slice(0, 1).map((item) => (
           <a
             key={item.url}
             href={item.url}

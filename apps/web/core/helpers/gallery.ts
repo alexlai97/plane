@@ -183,10 +183,14 @@ export function resolveGalleryAction(card: GalleryCard): GalleryActionTarget {
 export function isSafeHttpUrl(value: string): boolean {
   try {
     const url = new URL(value);
-    return url.protocol === "http:" || url.protocol === "https:";
+    return (url.protocol === "http:" || url.protocol === "https:") && Boolean(url.hostname);
   } catch {
     return false;
   }
+}
+
+export function getSafeGalleryLinks<T extends { url: string }>(links: T[]): T[] {
+  return links.filter((link) => isSafeHttpUrl(link.url));
 }
 
 export function getGallerySourceHref(workspaceSlug: string, source: GallerySource): string {
