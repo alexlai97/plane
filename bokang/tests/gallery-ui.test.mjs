@@ -1,12 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  ALL_GALLERY_CATEGORY,
-  filterGalleryCards,
-  getGalleryCategoryCounts,
+  buildGalleryOverview,
+  getGalleryResultIcon,
   getGallerySourceHref,
-  groupGalleryCards,
-  orderGalleryCards,
   parseGalleryViewState,
   resolveGalleryAction,
   sanitizeGalleryReturnUrl,
@@ -18,25 +15,26 @@ const attachment = {
   name: "操作演示.mp4",
   size: 1024,
   mime: "video/mp4",
-  issue_id: "issue-1",
-  file_url: "/api/assets/file-1",
-  source_url: "/api/assets/file-1/preview/source",
+  issue_id: "i1",
+  file_url: "/api/assets/f1",
+  source_url: "/api/assets/f1/source",
   can_preview: true,
 };
 const card = {
-  id: "gallery-1",
+  id: "c1",
+  category_id: "cat1",
   title: "机型资料录入工具",
-  summary: "导入 BOM 表，辅助录入机型资料。",
+  summary: "导入 BOM 表",
   category: "产品与研发",
   kind: "内网应用",
   updated_at: "2026-10-12T00:00:00Z",
   sources: [
     {
-      id: "issue-1",
+      id: "i1",
       sequence_id: 3,
       name: "机型资料录入",
       project_id: "p1",
-      project_name: "AI战略部项目",
+      project_name: "项目",
       identifier: "AISTRAT-3",
       url: "/ai-strategy/browse/AISTRAT-3",
     },
@@ -47,117 +45,117 @@ const card = {
   primary_action: { type: "attachment", label: "看演示", attachment_id: "file-1" },
 };
 
-test("gallery counts use unique cards and report category totals", () => {
-  assert.deepEqual(getGalleryCategoryCounts([card], ["产品与研发", "生产与质量"]), {
-    [ALL_GALLERY_CATEGORY]: 1,
-    产品与研发: 1,
-    生产与质量: 0,
+test("unfiltered overview includes each result exactly once under its actual category", () => {
+  const second = { ...card, id: "c2", category_id: "cat2", category: "新增业务板块", title: "新成果" };
+  const third = { ...card, id: "c3" };
+  const groups = buildGalleryOverview([card, second, third], "");
+  assert.deepEqual(
+    groups.map((g) => [g.id, g.name, g.cards.map((c) => c.id)]),
+    [
+      ["cat1", "产品与研发", ["c1", "c3"]],
+      ["cat2", "新增业务板块", ["c2"]],
+    ]
+  );
+  assert.equal(new Set(groups.flatMap((g) => g.cards.map((c) => c.id))).size, 3);
+  assert.equal(buildGalleryOverview([], "").length, 0);
+});
+
+test("same-name distinct categories remain distinct; uncategorized results are retained", () => {
+  const groups = buildGalleryOverview(
+    [card, { ...card, id: "c2", category_id: "cat2" }, { ...card, id: "c3", category_id: null, category: "" }],
+    ""
+  );
+  assert.equal(groups.length, 3);
+  assert.equal(groups[2].name, "未分类");
+});
+
+test("search finds original titles, sources and materials without hiding category context", () => {
+  assert.deepEqual(buildGalleryOverview([card], "AISTRAT-3")[0].cards, [card]);
+  assert.deepEqual(buildGalleryOverview([card], "演示.mp4")[0].cards, [card]);
+  assert.equal(buildGalleryOverview([card], "不存在").length, 0);
+});
+
+test("default is expanded tree; explicit sections round trips; old layouts map to sections", () => {
+  assert.deepEqual(parseGalleryViewState(""), { query: "", layout: "tree" });
+  assert.equal(parseGalleryViewState("layout=unknown").layout, "tree");
+  for (const layout of ["gallery", "list", "sections"])
+    assert.equal(parseGalleryViewState(`layout=${layout}`).layout, "sections");
+  assert.equal(serializeGalleryViewState({ layout: "tree", query: "" }), "layout=tree");
+  assert.deepEqual(parseGalleryViewState(serializeGalleryViewState({ layout: "sections", query: "BOM" })), {
+    layout: "sections",
+    query: "BOM",
+  });
+  assert.deepEqual(parseGalleryViewState("category=old&group=category&sort=title&layout=tree"), {
+    layout: "tree",
+    query: "",
   });
 });
 
-test("search finds source identifiers and attachment names, category narrows results", () => {
-  assert.deepEqual(filterGalleryCards([card], ALL_GALLERY_CATEGORY, "AISTRAT-3"), [card]);
-  assert.deepEqual(filterGalleryCards([card], ALL_GALLERY_CATEGORY, "演示.mp4"), [card]);
-  assert.deepEqual(filterGalleryCards([card], "生产与质量", ""), []);
+test("return URLs retain overview layout/search and reject cross-workspace/external paths", () => {
+  assert.equal(
+    sanitizeGalleryReturnUrl("/acme/gallery/?layout=sections&q=BOM&category=old", "acme"),
+    "/acme/gallery/?q=BOM&layout=sections"
+  );
+  for (const url of ["https://attacker.example/acme/gallery/", "/other/gallery/", "/acme/gallery/manage/"])
+    assert.equal(sanitizeGalleryReturnUrl(url, "acme"), "/acme/gallery/");
 });
 
-test("primary action resolves only a real linked attachment and falls back to detail", () => {
+test("icons reflect primary material, never a hardcoded business title", () => {
+  assert.equal(getGalleryResultIcon(card), "video");
+  assert.equal(
+    getGalleryResultIcon({ ...card, primary_action: { type: "link", label: "打开", url: "https://example.com" } }),
+    "application"
+  );
+  assert.equal(
+    getGalleryResultIcon({ ...card, attachments: [{ ...attachment, mime: "application/pdf" }] }),
+    "document"
+  );
+  assert.equal(getGalleryResultIcon({ ...card, attachments: [{ ...attachment, mime: "image/png" }] }), "image");
+});
+
+test("primary actions preserve real attachment resolution and unsafe link fallback", () => {
   assert.deepEqual(resolveGalleryAction(card), { type: "attachment", attachment });
   assert.deepEqual(
-    resolveGalleryAction({
-      ...card,
-      primary_action: { type: "attachment", label: "看演示", attachment_id: "missing" },
-    }),
+    resolveGalleryAction({ ...card, primary_action: { type: "attachment", label: "查看", attachment_id: "missing" } }),
     { type: "detail" }
   );
   assert.deepEqual(
     resolveGalleryAction({ ...card, primary_action: { type: "link", label: "打开", url: "javascript:alert(1)" } }),
     { type: "detail" }
   );
-  assert.deepEqual(resolveGalleryAction({ ...card, primary_action: { type: "detail", label: "查看详情" } }), {
-    type: "detail",
-  });
-});
-
-test("source links prefer the server route and otherwise use the workspace browse route", () => {
   assert.equal(getGallerySourceHref("ai-strategy", card.sources[0]), "/ai-strategy/browse/AISTRAT-3");
-  assert.equal(getGallerySourceHref("ai-strategy", { ...card.sources[0], url: "" }), "/ai-strategy/browse/AISTRAT-3");
 });
 
-test("view state uses stable category IDs and round trips only supported controls", () => {
-  const categories = [{ id: "category-uuid", name: "产品与研发" }];
-  const parsed = parseGalleryViewState(
-    "?category=category-uuid&q=BOM&layout=list&sort=recent&group=category&unexpected=1",
-    categories
+test("tree layout keeps every leaf reachable and categories aligned without data-specific positions", async () => {
+  const { layoutGalleryTree } = await import("../../apps/web/core/helpers/gallery.ts");
+  const groups = buildGalleryOverview(
+    [card, { ...card, id: "c2" }, { ...card, id: "c3", category_id: "cat2", category: "新板块" }],
+    ""
   );
-  assert.deepEqual(parsed, {
-    category: "category-uuid",
-    query: "BOM",
-    layout: "list",
-    sort: "recent",
-    group: "category",
-  });
-  assert.equal(
-    serializeGalleryViewState(parsed),
-    "category=category-uuid&q=BOM&layout=list&sort=recent&group=category"
-  );
-  assert.equal(parseGalleryViewState("?category=unknown", categories).category, ALL_GALLERY_CATEGORY);
-  assert.deepEqual(parseGalleryViewState(""), {
-    category: ALL_GALLERY_CATEGORY,
-    query: "",
-    layout: "gallery",
-    sort: "curated",
-    group: "none",
-  });
-  assert.equal(
-    serializeGalleryViewState({
-      category: ALL_GALLERY_CATEGORY,
-      query: "",
-      layout: "gallery",
-      sort: "curated",
-      group: "none",
-    }),
-    "layout=gallery"
-  );
+  const graph = layoutGalleryTree(groups, 900);
+  assert.equal(graph.nodes.length, 6);
+  assert.equal(graph.edges.length, 5);
+  const leaves = graph.nodes.filter((n) => n.kind === "result");
+  assert.equal(new Set(leaves.map((n) => n.card.id)).size, 3);
+  assert.ok(leaves.every((n) => n.x + n.width <= 900 && n.y >= 0 && n.y + n.height <= graph.height));
+  for (let i = 1; i < leaves.length; i++) assert.ok(leaves[i].y >= leaves[i - 1].y + leaves[i - 1].height);
+  assert.equal(layoutGalleryTree([], 900).nodes.length, 0);
 });
 
-test("gallery return URL rejects paths outside the same workspace gallery and strips unsupported parameters", () => {
-  assert.equal(
-    sanitizeGalleryReturnUrl("/acme/gallery/?category=c1&q=readme&admin=1#materials", "acme"),
-    "/acme/gallery/?category=c1&q=readme&layout=gallery#materials"
+test("long category and result titles grow rather than overlap or escape a narrow tree", async () => {
+  const { layoutGalleryTree } = await import("../../apps/web/core/helpers/gallery.ts");
+  const groups = buildGalleryOverview(
+    [{ ...card, category: "非常长的业务板块名称".repeat(5), title: "长成果名称".repeat(15) }],
+    ""
   );
-  assert.equal(sanitizeGalleryReturnUrl("https://attacker.example/acme/gallery/", "acme"), "/acme/gallery/");
-  assert.equal(sanitizeGalleryReturnUrl("/other/gallery/?q=x", "acme"), "/acme/gallery/");
-  assert.equal(sanitizeGalleryReturnUrl("/acme/gallery/manage/", "acme"), "/acme/gallery/");
-  assert.equal(
-    sanitizeGalleryReturnUrl("/acme/gallery/?layout=unknown&sort=wrong&group=bad", "acme"),
-    "/acme/gallery/?layout=gallery"
-  );
-});
-
-test("sorting is deterministic and grouping preserves first-seen category order", () => {
-  const later = { ...card, id: "later", title: "Zeta", category: "生产与质量", updated_at: "2026-10-13T00:00:00Z" };
-  const earlierTie = { ...card, id: "a-id", title: "Alpha", updated_at: "2026-10-12T00:00:00Z" };
-  assert.deepEqual(
-    orderGalleryCards([card, later, earlierTie], "curated").map((item) => item.id),
-    [card.id, "later", "a-id"]
-  );
-  assert.deepEqual(
-    orderGalleryCards([card, later, earlierTie], "recent").map((item) => item.id),
-    ["later", "a-id", card.id]
-  );
-  assert.deepEqual(
-    orderGalleryCards([card, later, earlierTie], "title").map((item) => item.id),
-    [card.id, "a-id", "later"]
-  );
-  assert.deepEqual(
-    groupGalleryCards([card, later, earlierTie], "category").map((item) => [
-      item.name,
-      item.cards.map((entry) => entry.id),
-    ]),
-    [
-      ["产品与研发", [card.id, "a-id"]],
-      ["生产与质量", ["later"]],
-    ]
-  );
+  const graph = layoutGalleryTree(groups, 640);
+  const category = graph.nodes.find((n) => n.kind === "category");
+  const leaf = graph.nodes.find((n) => n.kind === "result");
+  assert.ok(category.height > 38);
+  assert.ok(leaf.height > 32);
+  for (const n of graph.nodes) {
+    assert.ok(n.y >= 0);
+    assert.ok(n.y + n.height <= graph.height);
+    assert.ok(n.x + n.width <= 640);
+  }
 });

@@ -57,78 +57,48 @@ export type GalleryActionTarget =
   | { type: "attachment"; attachment: GalleryAttachment }
   | { type: "detail" };
 
-export const ALL_GALLERY_CATEGORY = "全部";
+export type GalleryLayout = "tree" | "sections";
+export type GalleryViewState = { query: string; layout: GalleryLayout };
+export type GalleryOverviewGroup = { id: string; name: string; cards: GalleryCard[] };
 
-export function getGalleryCategoryCounts(cards: GalleryCard[], categories: string[]): Record<string, number> {
-  return Object.fromEntries([
-    [ALL_GALLERY_CATEGORY, cards.length],
-    ...categories.map((category) => [category, cards.filter((card) => card.category === category).length]),
-  ]);
-}
-
-export function filterGalleryCards(cards: GalleryCard[], category: string, query: string): GalleryCard[] {
-  const normalizedQuery = query.trim().toLocaleLowerCase();
-  return cards.filter((card) => {
-    if (category !== ALL_GALLERY_CATEGORY && card.category !== category && card.category_id !== category) return false;
-    if (!normalizedQuery) return true;
+/** One canonical result per category; no category-name or workspace-specific presentation rules. */
+export function buildGalleryOverview(cards: GalleryCard[], query: string): GalleryOverviewGroup[] {
+  const groups = new Map<string, GalleryOverviewGroup>();
+  const normalized = query.trim().toLocaleLowerCase();
+  for (const card of cards) {
     const searchable = [
       card.title,
       card.summary,
       card.category,
       card.kind,
       ...card.sources.flatMap((source) => [source.identifier, source.name, source.project_name]),
-      ...card.attachments.map((attachment) => attachment.name),
-      ...card.links.map((link) => link.title),
+      ...card.attachments.map((item) => item.name),
+      ...card.links.map((item) => item.title),
     ]
       .join(" ")
       .toLocaleLowerCase();
-    return searchable.includes(normalizedQuery);
-  });
+    if (normalized && !searchable.includes(normalized)) continue;
+    const name = card.category || "未分类";
+    const id = card.category_id || `name:${name}`;
+    if (!groups.has(id)) groups.set(id, { id, name, cards: [] });
+    groups.get(id)!.cards.push(card);
+  }
+  return [...groups.values()];
 }
 
-export type GalleryLayout = "gallery" | "list";
-export type GallerySort = "curated" | "recent" | "title";
-export type GalleryGroup = "none" | "category";
-export type GalleryViewState = {
-  category: string;
-  query: string;
-  layout: GalleryLayout;
-  sort: GallerySort;
-  group: GalleryGroup;
-};
-
-/** The gallery URL is the shareable source of truth; unknown parameters are discarded. */
-export function parseGalleryViewState(
-  search: string,
-  categories: { id: string; name: string }[] = []
-): GalleryViewState {
+export function parseGalleryViewState(search: string): GalleryViewState {
   const params = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
-  const rawCategory = params.get("category") ?? ALL_GALLERY_CATEGORY;
-  const category =
-    rawCategory === ALL_GALLERY_CATEGORY ||
-    categories.length === 0 ||
-    categories.some((item) => item.id === rawCategory)
-      ? rawCategory
-      : ALL_GALLERY_CATEGORY;
   const layout = params.get("layout");
-  const sort = params.get("sort");
-  const group = params.get("group");
   return {
-    category,
     query: params.get("q") ?? "",
-    layout: layout === "list" ? "list" : "gallery",
-    sort: sort === "recent" || sort === "title" ? sort : "curated",
-    group: group === "category" ? "category" : "none",
+    layout: layout === "sections" || layout === "gallery" || layout === "list" ? "sections" : "tree",
   };
 }
 
 export function serializeGalleryViewState(state: GalleryViewState): string {
   const params = new URLSearchParams();
-  if (state.category !== ALL_GALLERY_CATEGORY) params.set("category", state.category);
   if (state.query) params.set("q", state.query);
   params.set("layout", state.layout);
-  if (state.sort !== "curated") params.set("sort", state.sort);
-  if (state.group !== "none") params.set("group", state.group);
   return params.toString();
 }
 
@@ -138,36 +108,21 @@ export function sanitizeGalleryReturnUrl(value: string | null | undefined, works
   try {
     const candidate = new URL(value, "https://gallery.local");
     if (candidate.origin !== "https://gallery.local" || candidate.pathname !== base) return base;
-    // Normalize enum values and retain only the gallery's shareable filter controls.
     const query = serializeGalleryViewState(parseGalleryViewState(candidate.search));
-    return `${base}${query ? `?${query}` : ""}${candidate.hash === "#materials" ? "#materials" : ""}`;
+    return `${base}?${query}`;
   } catch {
     return base;
   }
 }
 
-export function orderGalleryCards(cards: GalleryCard[], sort: GallerySort): GalleryCard[] {
-  if (sort === "curated") return [...cards];
-  const ordered = [...cards];
-  // oxlint-disable-next-line unicorn/no-array-sort -- Web target library predates Array#toSorted.
-  return ordered.sort((a, b) => {
-    if (sort === "title") return a.title.localeCompare(b.title, "zh-CN") || a.id.localeCompare(b.id);
-    return (Date.parse(b.updated_at) || 0) - (Date.parse(a.updated_at) || 0) || a.id.localeCompare(b.id);
-  });
-}
-
-export function groupGalleryCards(cards: GalleryCard[], group: GalleryGroup): { name: string; cards: GalleryCard[] }[] {
-  if (group === "none") return [{ name: "", cards }];
-  const names: string[] = [];
-  const byName = new Map<string, GalleryCard[]>();
-  for (const card of cards) {
-    if (!byName.has(card.category)) {
-      names.push(card.category);
-      byName.set(card.category, []);
-    }
-    byName.get(card.category)?.push(card);
-  }
-  return names.map((name) => ({ name, cards: byName.get(name) ?? [] }));
+export function getGalleryResultIcon(card: GalleryCard): "application" | "video" | "audio" | "image" | "document" {
+  const action = resolveGalleryAction(card);
+  if (action.type === "link") return "application";
+  const mime = (action.type === "attachment" ? action.attachment : card.attachments[0])?.mime ?? "";
+  if (mime.startsWith("video/")) return "video";
+  if (mime.startsWith("audio/")) return "audio";
+  if (mime.startsWith("image/")) return "image";
+  return "document";
 }
 
 export function resolveGalleryAction(card: GalleryCard): GalleryActionTarget {
@@ -203,4 +158,90 @@ export function getAttachmentPreviewUrl(fileUrl: string): string {
   const url = new URL(fileUrl, "http://attachment.local");
   url.pathname = `${url.pathname.replace(/\/$/, "")}/preview/onlinePreview`;
   return fileUrl.startsWith("/") ? `${url.pathname}${url.search}${url.hash}` : url.toString();
+}
+
+export type GalleryTreeNode = {
+  id: string;
+  kind: "root" | "category" | "result";
+  title: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  count?: number;
+  card?: GalleryCard;
+};
+
+/** The three-column overview is fixed, read-only and grows with content rather than shrinking labels. */
+export function layoutGalleryTree(
+  groups: GalleryOverviewGroup[],
+  width: number
+): {
+  nodes: GalleryTreeNode[];
+  edges: { id: string; source: string; target: string }[];
+  height: number;
+} {
+  if (!groups.length) return { nodes: [], edges: [], height: 0 };
+  const nodes: GalleryTreeNode[] = [];
+  const edges: { id: string; source: string; target: string }[] = [];
+  const compact = width < 800;
+  const categoryX = compact ? 120 : 160;
+  const categoryWidth = compact ? 150 : 190;
+  const resultX = categoryX + categoryWidth + 44;
+  const resultWidth = Math.max(160, width - resultX - 4);
+  let y = 4;
+  for (const group of groups) {
+    const start = y;
+    const categoryLabelWidth = Array.from(group.name).reduce(
+      (sum, char) => sum + (char.charCodeAt(0) > 255 ? 14 : 8),
+      0
+    );
+    const categoryHeight = Math.max(38, Math.ceil(categoryLabelWidth / (categoryWidth - 60)) * 20 + 12);
+    const leaves: GalleryTreeNode[] = [];
+    for (const card of group.cards) {
+      // Conservative width budget preserves wrapped titles, including narrow canvases and long names.
+      const labelWidth = Array.from(card.title).reduce((sum, char) => sum + (char.charCodeAt(0) > 255 ? 14 : 8), 0);
+      const height = Math.max(32, Math.ceil(labelWidth / Math.max(80, resultWidth - 64)) * 20 + 12);
+      const node: GalleryTreeNode = {
+        id: `result:${card.id}`,
+        kind: "result",
+        title: card.title,
+        card,
+        x: resultX,
+        y,
+        width: resultWidth,
+        height,
+      };
+      nodes.push(node);
+      leaves.push(node);
+      y += height + 2;
+    }
+    const groupHeight = Math.max(categoryHeight, 40, y - start - 2);
+    const categoryId = `category:${group.id}`;
+    nodes.push({
+      id: categoryId,
+      kind: "category",
+      title: group.name,
+      count: group.cards.length,
+      x: categoryX,
+      y: start + (groupHeight - categoryHeight) / 2,
+      width: categoryWidth,
+      height: categoryHeight,
+    });
+    edges.push({ id: `root:${categoryId}`, source: "root", target: categoryId });
+    for (const leaf of leaves) edges.push({ id: `${categoryId}:${leaf.id}`, source: categoryId, target: leaf.id });
+    y = start + groupHeight + 10;
+  }
+  const height = Math.max(84, y - 6);
+  nodes.unshift({
+    id: "root",
+    kind: "root",
+    title: "成果与应用",
+    count: groups.reduce((count, g) => count + g.cards.length, 0),
+    x: 0,
+    y: (height - 76) / 2,
+    width: compact ? 90 : 112,
+    height: 76,
+  });
+  return { nodes, edges, height };
 }
