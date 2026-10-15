@@ -1,3 +1,5 @@
+import { useParams } from "next/navigation";
+import { EntityFavoriteControl } from "@/components/favorites/entity-favorite-control";
 import { ArtifactAssignees } from "./assignees";
 import { useState } from "react";
 import { ArrowUpRight, Eye, FileText, Images } from "lucide-react";
@@ -18,6 +20,7 @@ function ResultCard({
   onOpenDetail: GalleryDetailLinkHandler;
   onPreview: (attachment: GalleryAttachment) => void;
 }) {
+  const { workspaceSlug } = useParams();
   const [failedCover, setFailedCover] = useState(false);
   const action = resolveGalleryAction(card);
   return (
@@ -60,6 +63,15 @@ function ResultCard({
           <span>{card.category || "未分类"}</span>
           <span>·</span>
           <span>{card.kind}</span>
+          <span className="ml-auto">
+            <EntityFavoriteControl
+              variant="icon"
+              workspaceSlug={workspaceSlug?.toString() ?? ""}
+              entityType="artifact"
+              entityId={card.id}
+              name={card.title}
+            />
+          </span>
         </div>
         <h2 className="text-16 font-semibold">
           <a

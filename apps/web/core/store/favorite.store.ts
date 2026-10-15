@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { orderBy, uniqBy, set } from "lodash-es";
+import { orderBy, set } from "lodash-es";
 import { action, observable, makeObservable, runInAction, computed } from "mobx";
 import { v4 as uuidv4 } from "uuid";
 import type { IFavorite } from "@plane/types";
@@ -20,6 +20,7 @@ export interface IFavoriteStore {
   entityMap: {
     [entityId: string]: IFavorite;
   };
+  favoritePendingKeys: string[];
   // computed actions
   existingFolders: string[];
   groupedFavorites: { [favoriteId: string]: IFavorite };
@@ -31,7 +32,7 @@ export interface IFavoriteStore {
   deleteFavorite: (workspaceSlug: string, favoriteId: string) => Promise<void>;
   fetchGroupedFavorites: (workspaceSlug: string, favoriteId: string) => Promise<IFavorite[]>;
   moveFavoriteToFolder: (workspaceSlug: string, favoriteId: string, data: Partial<IFavorite>) => Promise<void>;
-  removeFavoriteEntity: (workspaceSlug: string, entityId: string) => Promise<void>;
+  removeFavoriteEntity: (workspaceSlug: string, entityId: string, entityType?: string) => Promise<void>;
   reOrderFavorite: (
     workspaceSlug: string,
     favoriteId: string,
@@ -40,7 +41,13 @@ export interface IFavoriteStore {
   ) => Promise<void>;
   removeFromFavoriteFolder: (workspaceSlug: string, favoriteId: string) => Promise<void>;
   removeFavoriteFromStore: (entity_identifier: string) => void;
+  getFavorite: (entityType: string, entityId: string, workspaceId?: string) => IFavorite | undefined;
+  isFavorite: (entityType: string, entityId: string, workspaceId?: string) => boolean;
+  isFavoritePending: (entityType: string, entityId: string, workspaceId?: string) => boolean;
 }
+
+const favoriteEntityKey = (workspaceId: string, entityType: string, entityId: string) =>
+  `${workspaceId}:${entityType}:${entityId}`;
 
 export class FavoriteStore implements IFavoriteStore {
   // observables
@@ -51,6 +58,11 @@ export class FavoriteStore implements IFavoriteStore {
   entityMap: {
     [entityId: string]: IFavorite;
   } = {};
+  favoritePendingKeys: string[] = [];
+  private favoriteAddRequests = new Map<string, Promise<IFavorite>>();
+  private favoriteRevisions = new Map<string, number>();
+  private favoriteFetchTokens = new Map<string, number>();
+  private groupedFavoriteFetchTokens = new Map<string, number>();
   // service
   favoriteService;
   rootStore;
@@ -66,6 +78,7 @@ export class FavoriteStore implements IFavoriteStore {
       favoriteMap: observable,
       entityMap: observable,
       favoriteIds: observable,
+      favoritePendingKeys: observable,
       //computed
       currentWorkspaceFavorites: computed,
       existingFolders: computed,
@@ -90,6 +103,61 @@ export class FavoriteStore implements IFavoriteStore {
     this.pageStore = _rootStore.projectPages;
   }
 
+  private workspaceId(workspaceId?: string) {
+    return workspaceId ?? this.rootStore.workspaceRoot.currentWorkspace?.id ?? "";
+  }
+
+  private markFavoritesChanged(workspaceId: string) {
+    if (!workspaceId) return;
+    this.favoriteRevisions.set(workspaceId, (this.favoriteRevisions.get(workspaceId) ?? 0) + 1);
+  }
+
+  private nextFetchToken(tokens: Map<string, number>, key: string) {
+    const token = (tokens.get(key) ?? 0) + 1;
+    tokens.set(key, token);
+    return token;
+  }
+
+  getFavorite = (entityType: string, entityId: string, workspaceId?: string) => {
+    const workspace = this.workspaceId(workspaceId);
+    if (!workspace || !entityId) return undefined;
+    const exactKey = favoriteEntityKey(workspace, entityType, entityId);
+    const direct = this.entityMap[exactKey];
+    if (direct) return direct;
+    return Object.values(this.favoriteMap).find(
+      (favorite) =>
+        favorite.workspace_id === workspace &&
+        favorite.entity_type === entityType &&
+        favorite.entity_identifier === entityId
+    );
+  };
+
+  isFavorite = (entityType: string, entityId: string, workspaceId?: string) =>
+    Boolean(this.getFavorite(entityType, entityId, workspaceId));
+
+  isFavoritePending = (entityType: string, entityId: string, workspaceId?: string) => {
+    const workspace = this.workspaceId(workspaceId);
+    return Boolean(workspace && this.favoritePendingKeys.includes(favoriteEntityKey(workspace, entityType, entityId)));
+  };
+
+  private indexFavorite(favorite: IFavorite) {
+    if (!favorite.entity_identifier) return;
+    const key = favoriteEntityKey(favorite.workspace_id, favorite.entity_type, favorite.entity_identifier);
+    set(this.entityMap, [key], favorite);
+    // Keep the old unscoped key for existing project/page/cycle/view stores.
+    if (["project", "page", "cycle", "module", "view"].includes(favorite.entity_type)) {
+      set(this.entityMap, [favorite.entity_identifier], favorite);
+    }
+  }
+
+  private unindexFavorite(favorite: IFavorite) {
+    if (!favorite.entity_identifier) return;
+    const key = favoriteEntityKey(favorite.workspace_id, favorite.entity_type, favorite.entity_identifier);
+    if (this.entityMap[key]?.id === favorite.id) delete this.entityMap[key];
+    if (this.entityMap[favorite.entity_identifier]?.id === favorite.id)
+      delete this.entityMap[favorite.entity_identifier];
+  }
+
   get currentWorkspaceFavorites() {
     const currentWorkspace = this.rootStore.workspaceRoot.currentWorkspace;
     if (!currentWorkspace) return {};
@@ -105,7 +173,7 @@ export class FavoriteStore implements IFavoriteStore {
   }
 
   get existingFolders() {
-    return Object.values(this.favoriteMap).map((fav) => fav.name);
+    return Object.values(this.currentWorkspaceFavorites).map((favorite) => favorite.name);
   }
 
   get groupedFavorites() {
@@ -132,43 +200,62 @@ export class FavoriteStore implements IFavoriteStore {
    * @returns Promise<IFavorite>
    */
   addFavorite = async (workspaceSlug: string, data: Partial<IFavorite>) => {
-    data = { ...data, parent: null, is_folder: data.entity_type === "folder" };
-
-    if (data.entity_identifier && this.entityMap[data.entity_identifier]) return this.entityMap[data.entity_identifier];
+    data = {
+      ...data,
+      workspace_id: data.workspace_id ?? this.rootStore.workspaceRoot.currentWorkspace?.id,
+      parent: null,
+      is_folder: data.entity_type === "folder",
+    };
+    const workspaceId = data.workspace_id ?? "";
+    const entityKey =
+      data.entity_identifier && data.entity_type && workspaceId
+        ? favoriteEntityKey(workspaceId, data.entity_type, data.entity_identifier)
+        : undefined;
+    if (entityKey && this.favoriteAddRequests.has(entityKey)) return this.favoriteAddRequests.get(entityKey)!;
+    if (entityKey && this.entityMap[entityKey]) return this.entityMap[entityKey];
     const id = uuidv4();
-    try {
-      // optimistic addition
-      runInAction(() => {
-        set(this.favoriteMap, [id], data);
-        if (data.entity_identifier) {
-          set(this.entityMap, [data.entity_identifier], data);
-        }
-        this.favoriteIds = [id, ...this.favoriteIds];
-      });
-      const response = await this.favoriteService.addFavorite(workspaceSlug, data);
+    const request = (async () => {
+      try {
+        this.markFavoritesChanged(workspaceId);
+        // optimistic addition
+        runInAction(() => {
+          const optimisticFavorite = { ...data, id } as IFavorite;
+          set(this.favoriteMap, [id], optimisticFavorite);
+          this.indexFavorite(optimisticFavorite);
+          this.favoriteIds = [id, ...this.favoriteIds];
+          if (entityKey) this.favoritePendingKeys = [...this.favoritePendingKeys, entityKey];
+        });
+        const response = await this.favoriteService.addFavorite(workspaceSlug, data);
 
-      // overwrite the temp id
-      runInAction(() => {
-        delete this.favoriteMap[id];
-        set(this.favoriteMap, [response.id], response);
-        if (response.entity_identifier) {
-          set(this.entityMap, [response.entity_identifier], response);
-        }
-        this.favoriteIds = [response.id, ...this.favoriteIds.filter((favId) => favId !== id)];
-      });
-      return response;
-    } catch (error) {
-      runInAction(() => {
-        delete this.favoriteMap[id];
-        if (data.entity_identifier) {
-          delete this.entityMap[data.entity_identifier];
-        }
-      });
-      this.favoriteIds = this.favoriteIds.filter((favId) => favId !== id);
+        // overwrite the temp id
+        runInAction(() => {
+          delete this.favoriteMap[id];
+          set(this.favoriteMap, [response.id], response);
+          this.indexFavorite(response);
+          this.favoriteIds = [response.id, ...this.favoriteIds.filter((favId) => favId !== id)];
+        });
+        return response;
+      } catch (error) {
+        runInAction(() => {
+          delete this.favoriteMap[id];
+          const optimisticFavorite = { ...data, id } as IFavorite;
+          this.unindexFavorite(optimisticFavorite);
+          this.favoriteIds = this.favoriteIds.filter((favId) => favId !== id);
+        });
 
-      console.error("Failed to create favorite from favorite store");
-      throw error;
-    }
+        console.error("Failed to create favorite from favorite store");
+        throw error;
+      } finally {
+        if (entityKey) {
+          runInAction(() => {
+            this.favoritePendingKeys = this.favoritePendingKeys.filter((key) => key !== entityKey);
+          });
+          this.favoriteAddRequests.delete(entityKey);
+        }
+      }
+    })();
+    if (entityKey) this.favoriteAddRequests.set(entityKey, request);
+    return request;
   };
 
   /**
@@ -180,6 +267,7 @@ export class FavoriteStore implements IFavoriteStore {
    */
   updateFavorite = async (workspaceSlug: string, favoriteId: string, data: Partial<IFavorite>) => {
     const initialState = this.favoriteMap[favoriteId];
+    if (initialState) this.markFavoritesChanged(initialState.workspace_id);
     try {
       runInAction(() => {
         set(this.favoriteMap, [favoriteId], { ...this.favoriteMap[favoriteId], ...data });
@@ -205,6 +293,8 @@ export class FavoriteStore implements IFavoriteStore {
    */
   moveFavoriteToFolder = async (workspaceSlug: string, favoriteId: string, data: Partial<IFavorite>) => {
     try {
+      const workspaceId = this.favoriteMap[favoriteId]?.workspace_id;
+      if (workspaceId) this.markFavoritesChanged(workspaceId);
       await this.favoriteService.updateFavorite(workspaceSlug, favoriteId, data);
       runInAction(() => {
         // add parent of the favorite
@@ -223,9 +313,13 @@ export class FavoriteStore implements IFavoriteStore {
     edge: string | undefined
   ) => {
     try {
+      const workspaceId = this.favoriteMap[favoriteId]?.workspace_id;
+      if (workspaceId) this.markFavoritesChanged(workspaceId);
       let resultSequence = 10000;
       if (edge) {
-        const sortedIds = orderBy(Object.values(this.favoriteMap), "sequence", "desc").map((fav: IFavorite) => fav.id);
+        const sortedIds = orderBy(Object.values(this.currentWorkspaceFavorites), "sequence", "desc").map(
+          (favorite: IFavorite) => favorite.id
+        );
         const destinationSequence = this.favoriteMap[destinationId]?.sequence || undefined;
         if (destinationSequence) {
           const destinationIndex = sortedIds.findIndex((id) => id === destinationId);
@@ -255,6 +349,8 @@ export class FavoriteStore implements IFavoriteStore {
 
   removeFromFavoriteFolder = async (workspaceSlug: string, favoriteId: string) => {
     try {
+      const workspaceId = this.favoriteMap[favoriteId]?.workspace_id;
+      if (workspaceId) this.markFavoritesChanged(workspaceId);
       await this.favoriteService.updateFavorite(workspaceSlug, favoriteId, { parent: null });
       runInAction(() => {
         //remove parent
@@ -302,42 +398,54 @@ export class FavoriteStore implements IFavoriteStore {
    */
   deleteFavorite = async (workspaceSlug: string, favoriteId: string) => {
     if (!this.favoriteMap[favoriteId]) return;
-    const parent = this.favoriteMap[favoriteId].parent;
-    const children = this.groupedFavorites[favoriteId].children;
-    const entity_identifier = this.favoriteMap[favoriteId].entity_identifier;
     const initialState = this.favoriteMap[favoriteId];
+    const deletedFavorites: IFavorite[] = [initialState];
+    if (initialState.is_folder) {
+      const descendants = Object.values(this.favoriteMap).filter(
+        (favorite) => favorite.workspace_id === initialState.workspace_id
+      );
+      const pendingParents = new Set([initialState.id]);
+      while (pendingParents.size) {
+        const next = descendants.filter((favorite) => favorite.parent && pendingParents.has(favorite.parent));
+        next.forEach((favorite) => {
+          pendingParents.delete(favorite.parent!);
+          pendingParents.add(favorite.id);
+          if (!deletedFavorites.some((item) => item.id === favorite.id)) deletedFavorites.push(favorite);
+        });
+        if (!next.length) break;
+      }
+    }
+    const pendingKeys = deletedFavorites
+      .filter((favorite) => favorite.entity_identifier)
+      .map((favorite) => favoriteEntityKey(favorite.workspace_id, favorite.entity_type, favorite.entity_identifier!));
+    runInAction(() => {
+      this.favoritePendingKeys = [...new Set([...this.favoritePendingKeys, ...pendingKeys])];
+    });
 
     try {
+      this.markFavoritesChanged(initialState.workspace_id);
       await this.favoriteService.deleteFavorite(workspaceSlug, favoriteId);
       runInAction(() => {
-        delete this.favoriteMap[favoriteId];
-        if (entity_identifier) {
-          delete this.entityMap[entity_identifier];
-        }
-        this.favoriteIds = this.favoriteIds.filter((id) => id !== favoriteId);
-      });
-      runInAction(() => {
-        if (entity_identifier) {
-          this.removeFavoriteEntityFromStore(entity_identifier, initialState.entity_type);
-        }
-        if (children) {
-          children.forEach((child) => {
-            if (!child.entity_identifier) return;
-            this.removeFavoriteEntityFromStore(child.entity_identifier, child.entity_type);
-          });
-        }
+        deletedFavorites.forEach((favorite) => {
+          delete this.favoriteMap[favorite.id];
+          this.unindexFavorite(favorite);
+          if (favorite.entity_identifier) {
+            this.removeFavoriteEntityFromStore(favorite.entity_identifier, favorite.entity_type);
+          }
+        });
+        const deletedIds = new Set(deletedFavorites.map((favorite) => favorite.id));
+        this.favoriteIds = this.favoriteIds.filter((id) => !deletedIds.has(id));
       });
     } catch (error) {
       console.error("Failed to delete favorite from favorite store", error);
-      runInAction(() => {
-        if (parent) set(this.favoriteMap, [parent, "children"], [...this.favoriteMap[parent].children, initialState]);
-        set(this.favoriteMap, [favoriteId], initialState);
-        if (entity_identifier) {
-          set(this.entityMap, [entity_identifier], initialState);
-        }
-        this.favoriteIds = [favoriteId, ...this.favoriteIds];
-      });
       throw error;
+    } finally {
+      if (pendingKeys.length) {
+        runInAction(() => {
+          const pending = new Set(pendingKeys);
+          this.favoritePendingKeys = this.favoritePendingKeys.filter((key) => !pending.has(key));
+        });
+      }
     }
   };
 
@@ -347,44 +455,52 @@ export class FavoriteStore implements IFavoriteStore {
    * @param entityId
    * @returns Promise<void>
    */
-  removeFavoriteEntity = async (workspaceSlug: string, entityId: string) => {
-    const initialState = this.entityMap[entityId];
+  removeFavoriteEntity = async (workspaceSlug: string, entityId: string, entityType?: string) => {
+    const workspaceId = this.workspaceId();
+    const initialState = entityType
+      ? this.getFavorite(entityType, entityId)
+      : ((this.entityMap[entityId]?.workspace_id === workspaceId ? this.entityMap[entityId] : undefined) ??
+        Object.values(this.favoriteMap).find(
+          (favorite) => favorite.workspace_id === workspaceId && favorite.entity_identifier === entityId
+        ));
+    if (!initialState) return;
     try {
-      const favoriteId = this.entityMap[entityId].id;
+      const favoriteId = initialState.id;
       await this.deleteFavorite(workspaceSlug, favoriteId);
     } catch (error) {
       console.error("Failed to remove favorite entity from favorite store", error);
-      runInAction(() => {
-        set(this.entityMap, [entityId], initialState);
-      });
       throw error;
     }
   };
 
   removeFavoriteFromStore = (entity_identifier: string) => {
     try {
-      const favoriteId = this.entityMap[entity_identifier]?.id;
-      const oldData = this.favoriteMap[favoriteId];
+      const workspaceId = this.workspaceId();
+      const oldData =
+        (this.entityMap[entity_identifier]?.workspace_id === workspaceId
+          ? this.entityMap[entity_identifier]
+          : undefined) ??
+        Object.values(this.favoriteMap).find(
+          (favorite) => favorite.workspace_id === workspaceId && favorite.entity_identifier === entity_identifier
+        );
       const projectData = Object.values(this.favoriteMap).filter(
-        (fav) => fav.project_id === entity_identifier && fav.entity_type !== "project"
+        (favorite) =>
+          favorite.workspace_id === workspaceId &&
+          favorite.project_id === entity_identifier &&
+          favorite.entity_type !== "project"
       );
+      const toRemove = [oldData, ...projectData].filter((favorite): favorite is IFavorite => Boolean(favorite));
+      toRemove.forEach((favorite) => this.markFavoritesChanged(favorite.workspace_id));
       runInAction(() => {
-        if (projectData) {
-          projectData.forEach(async (fav) => {
-            if (fav.entity_identifier) {
-              this.removeFavoriteFromStore(fav.entity_identifier);
-              this.removeFavoriteEntityFromStore(fav.entity_identifier, fav.entity_type);
-            }
-          });
-        }
-
-        if (!favoriteId) return;
-        delete this.favoriteMap[favoriteId];
-        if (entity_identifier) {
-          this.removeFavoriteEntityFromStore(entity_identifier, oldData.entity_type);
-        }
-        delete this.entityMap[entity_identifier];
-        this.favoriteIds = this.favoriteIds.filter((id) => id !== favoriteId);
+        const removeIds = new Set(toRemove.map((favorite) => favorite.id));
+        toRemove.forEach((favorite) => {
+          delete this.favoriteMap[favorite.id];
+          this.unindexFavorite(favorite);
+          if (favorite.entity_identifier) {
+            this.removeFavoriteEntityFromStore(favorite.entity_identifier, favorite.entity_type);
+          }
+        });
+        this.favoriteIds = this.favoriteIds.filter((id) => !removeIds.has(id));
       });
     } catch (error) {
       console.error("Failed to remove favorite from favorite store", error);
@@ -399,15 +515,34 @@ export class FavoriteStore implements IFavoriteStore {
    */
   fetchGroupedFavorites = async (workspaceSlug: string, favoriteId: string) => {
     if (!favoriteId) return [];
+    const workspaceId = this.favoriteMap[favoriteId]?.workspace_id ?? this.workspaceId();
+    const fetchKey = favoriteEntityKey(workspaceId, "folder", favoriteId);
+    const fetchToken = this.nextFetchToken(this.groupedFavoriteFetchTokens, fetchKey);
+    const revision = this.favoriteRevisions.get(workspaceId) ?? 0;
     try {
       const response = await this.favoriteService.getGroupedFavorites(workspaceSlug, favoriteId);
+      if (
+        this.groupedFavoriteFetchTokens.get(fetchKey) !== fetchToken ||
+        (this.favoriteRevisions.get(workspaceId) ?? 0) !== revision ||
+        !this.favoriteMap[favoriteId]
+      )
+        return response;
       runInAction(() => {
-        // add the favorites to the map
+        const responseIds = new Set(response.map((favorite) => favorite.id));
+        const existingChildren = Object.values(this.favoriteMap).filter(
+          (favorite) =>
+            favorite.parent === favoriteId && favorite.workspace_id === this.favoriteMap[favoriteId]?.workspace_id
+        );
+        existingChildren.forEach((favorite) => {
+          if (responseIds.has(favorite.id)) return;
+          delete this.favoriteMap[favorite.id];
+          this.unindexFavorite(favorite);
+          this.favoriteIds = this.favoriteIds.filter((id) => id !== favorite.id);
+        });
         response.forEach((favorite) => {
           set(this.favoriteMap, [favorite.id], favorite);
-          this.favoriteIds.push(favorite.id);
-          this.favoriteIds = uniqBy(this.favoriteIds, (id) => id);
-          if (favorite.entity_identifier) set(this.entityMap, [favorite.entity_identifier], favorite);
+          if (!this.favoriteIds.includes(favorite.id)) this.favoriteIds.push(favorite.id);
+          this.indexFavorite(favorite);
         });
       });
 
@@ -425,15 +560,31 @@ export class FavoriteStore implements IFavoriteStore {
    *
    */
   fetchFavorite = async (workspaceSlug: string) => {
+    const requestedWorkspaceId = this.workspaceId();
+    const fetchKey = requestedWorkspaceId || `slug:${workspaceSlug}`;
+    const fetchToken = this.nextFetchToken(this.favoriteFetchTokens, fetchKey);
+    const revision = requestedWorkspaceId ? (this.favoriteRevisions.get(requestedWorkspaceId) ?? 0) : 0;
     try {
       const favorites = await this.favoriteService.getFavorites(workspaceSlug);
+      const workspaceId = favorites[0]?.workspace_id ?? requestedWorkspaceId;
+      if (
+        this.favoriteFetchTokens.get(fetchKey) !== fetchToken ||
+        (workspaceId && (this.favoriteRevisions.get(workspaceId) ?? 0) !== revision)
+      )
+        return favorites;
       runInAction(() => {
+        const responseIds = new Set(favorites.map((favorite) => favorite.id));
+        Object.values(this.favoriteMap)
+          .filter((favorite) => favorite.workspace_id === workspaceId && !responseIds.has(favorite.id))
+          .forEach((favorite) => {
+            delete this.favoriteMap[favorite.id];
+            this.unindexFavorite(favorite);
+            this.favoriteIds = this.favoriteIds.filter((id) => id !== favorite.id);
+          });
         favorites.forEach((favorite) => {
           set(this.favoriteMap, [favorite.id], favorite);
-          this.favoriteIds.push(favorite.id);
-          if (favorite.entity_identifier) {
-            set(this.entityMap, [favorite.entity_identifier], favorite);
-          }
+          if (!this.favoriteIds.includes(favorite.id)) this.favoriteIds.push(favorite.id);
+          this.indexFavorite(favorite);
         });
       });
       return favorites;

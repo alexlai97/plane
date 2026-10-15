@@ -6,15 +6,38 @@
 
 import type { TLogoProps } from "../common";
 
+export type TFavoriteEntityType =
+  | "project"
+  | "cycle"
+  | "module"
+  | "view"
+  | "page"
+  | "issue"
+  | "artifact"
+  | "workspace_view"
+  | "folder"
+  | (string & {});
+
+export type IFavoriteEntityData = {
+  id?: string;
+  name: string;
+  logo_props?: TLogoProps;
+  /** Additional live metadata used by entity-specific favorite actions. */
+  project_id?: string | null;
+  sequence_id?: number | null;
+  project_identifier?: string | null;
+  identifier?: string | null;
+  [key: string]: unknown;
+};
+
 export type IFavorite = {
   id: string;
   name: string;
-  entity_type: string;
-  entity_data: {
-    id?: string;
-    name: string;
-    logo_props?: TLogoProps | undefined;
-  };
+  entity_type: TFavoriteEntityType;
+  /** Null means the entity is unavailable to the current user. */
+  entity_data: IFavoriteEntityData | null;
+  /** Older favorite payloads omit this; new entity types always set it. */
+  is_available?: boolean;
   is_folder: boolean;
   sort_order: number;
   parent: string | null;

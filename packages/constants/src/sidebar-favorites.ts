@@ -32,4 +32,16 @@ export const FAVORITE_ITEM_LINKS: {
     itemLevel: "project",
     getLink: (favorite) => `pages/${favorite.entity_identifier}`,
   },
+  issue: {
+    itemLevel: "project",
+    getLink: (favorite) => `issues/${favorite.entity_identifier}`,
+  },
+  artifact: {
+    itemLevel: "workspace",
+    getLink: (favorite) => `gallery/?peekArtifact=${encodeURIComponent(favorite.entity_identifier ?? "")}`,
+  },
+  workspace_view: {
+    itemLevel: "workspace",
+    getLink: (favorite) => `workspace-views/${favorite.entity_identifier}`,
+  },
 };

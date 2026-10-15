@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+import { Image, ListTodo, PanelsTopLeft } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 // plane imports
 import type { TLogoProps } from "@plane/types";
@@ -18,6 +19,9 @@ const ICON_MAP: Record<string, React.FC<ISvgIcons> | LucideIcon> = {
   module: ModuleIcon,
   cycle: CycleIcon,
   folder: FavoriteFolderIcon,
+  issue: ListTodo,
+  artifact: Image,
+  workspace_view: PanelsTopLeft,
 };
 
 type Props = {

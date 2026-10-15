@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 import type {
   DragLocationHistory,
@@ -35,6 +35,7 @@ import { FavoriteRoot } from "./favorite-items";
 import type { TargetData } from "./favorites.helpers";
 import { getInstructionFromPayload } from "./favorites.helpers";
 import { NewFavoriteFolder } from "./new-fav-folder";
+import { ArtifactFavoritePeekProvider } from "./artifact-peek-provider";
 import { IconButton } from "@plane/propel/icon-button";
 
 export const SidebarFavoritesMenu = observer(function SidebarFavoritesMenu() {
@@ -179,7 +180,7 @@ export const SidebarFavoritesMenu = observer(function SidebarFavoritesMenu() {
   }, [elementRef.current, isDragging]);
 
   return (
-    <>
+    <ArtifactFavoritePeekProvider workspaceSlug={workspaceSlug.toString()}>
       <Disclosure as="div" defaultOpen ref={containerRef}>
         <div
           ref={elementRef}
@@ -202,6 +203,7 @@ export const SidebarFavoritesMenu = observer(function SidebarFavoritesMenu() {
                 ? "aria_labels.projects_sidebar.close_favorites_menu"
                 : "aria_labels.projects_sidebar.open_favorites_menu"
             )}
+            data-testid="sidebar-favorites-toggle"
           >
             <span className="text-13 font-semibold">{t("favorites")}</span>
           </Disclosure.Button>
@@ -257,7 +259,7 @@ export const SidebarFavoritesMenu = observer(function SidebarFavoritesMenu() {
                 orderBy(Object.values(groupedFavorites), "sequence", "desc")
                   .filter((fav) => !fav.parent)
                   .map((fav, index, { length }) => (
-                    <>
+                    <Fragment key={fav.id}>
                       {fav?.is_folder ? (
                         <FavoriteFolder
                           favorite={fav}
@@ -276,13 +278,13 @@ export const SidebarFavoritesMenu = observer(function SidebarFavoritesMenu() {
                           handleDrop={handleDrop}
                         />
                       )}
-                    </>
+                    </Fragment>
                   ))
               )}
             </Disclosure.Panel>
           )}
         </Transition>
       </Disclosure>
-    </>
+    </ArtifactFavoritePeekProvider>
   );
 });

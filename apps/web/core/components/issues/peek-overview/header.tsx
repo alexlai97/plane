@@ -28,6 +28,7 @@ import { IssueSubscription } from "../issue-detail/subscription";
 import { WorkItemDetailQuickActions } from "../issue-layouts/quick-action-dropdowns";
 import { NameDescriptionUpdateStatus } from "../issue-update-status";
 import { IconButton } from "@plane/propel/icon-button";
+import { EntityFavoriteControl } from "@/components/favorites/entity-favorite-control";
 
 export type TPeekModes = "side-peek" | "modal" | "full-screen";
 
@@ -215,6 +216,15 @@ export const IssuePeekOverviewHeader = observer(function IssuePeekOverviewHeader
       <div className="flex items-center gap-x-4">
         <NameDescriptionUpdateStatus isSubmitting={isSubmitting} />
         <div className="flex items-center gap-2">
+          {issueDetails && (
+            <EntityFavoriteControl
+              workspaceSlug={workspaceSlug}
+              entityType="issue"
+              entityId={issueId}
+              projectId={projectId}
+              name={issueDetails.name}
+            />
+          )}
           {currentUser && !isArchived && (
             <IssueSubscription workspaceSlug={workspaceSlug} projectId={projectId} issueId={issueId} />
           )}

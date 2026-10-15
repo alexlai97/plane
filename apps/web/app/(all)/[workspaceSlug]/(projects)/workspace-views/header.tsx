@@ -1,3 +1,4 @@
+import { EntityFavoriteControl } from "@/components/favorites/entity-favorite-control";
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -156,6 +157,15 @@ export const GlobalIssuesHeader = observer(function GlobalIssuesHeader() {
           >
             {t("workspace_views.add_view")}
           </Button>
+          {viewDetails && (
+            <EntityFavoriteControl
+              variant="icon"
+              workspaceSlug={workspaceSlug?.toString() ?? ""}
+              entityType="workspace_view"
+              entityId={viewDetails.id}
+              name={viewDetails.name}
+            />
+          )}
           <div className="hidden md:block">
             {viewDetails && <WorkspaceViewQuickActions workspaceSlug={workspaceSlug?.toString()} view={viewDetails} />}
             {isDefaultView && defaultViewDetails && (

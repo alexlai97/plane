@@ -74,6 +74,10 @@ function ContextMenuWithoutPortal(props: ContextMenuProps) {
   const [activeItemIndex, setActiveItemIndex] = useState<number>(0);
   // refs
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (overlayRef.current) overlayRef.current.inert = !isOpen;
+  }, [isOpen]);
   const submenuClosersRef = useRef<Set<() => void>>(new Set());
   // derived values
   const renderedItems = items.filter((item) => item.shouldRender !== false);
@@ -90,11 +94,11 @@ function ContextMenuWithoutPortal(props: ContextMenuProps) {
     };
   }, []);
 
-  const handleClose = () => {
+  const handleClose = React.useCallback(() => {
     closeAllSubmenus();
     setIsOpen(false);
     setActiveItemIndex(0);
-  };
+  }, [closeAllSubmenus]);
 
   // calculate position of context menu
   useEffect(() => {
@@ -137,7 +141,7 @@ function ContextMenuWithoutPortal(props: ContextMenuProps) {
       parentElement.removeEventListener("contextmenu", handleContextMenu);
       window.removeEventListener("keydown", hideContextMenu);
     };
-  }, [contextMenuRef, isMobile, isOpen, parentRef, setIsOpen, setPosition]);
+  }, [contextMenuRef, handleClose, isMobile, isOpen, parentRef, setIsOpen, setPosition]);
 
   // handle keyboard navigation
   useEffect(() => {
@@ -167,7 +171,7 @@ function ContextMenuWithoutPortal(props: ContextMenuProps) {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [activeItemIndex, isOpen, renderedItems, setIsOpen]);
+  }, [activeItemIndex, handleClose, isOpen, renderedItems, setIsOpen]);
 
   // Custom handler for nested menu portal clicks
   React.useEffect(() => {
@@ -201,8 +205,14 @@ function ContextMenuWithoutPortal(props: ContextMenuProps) {
     }
   }, [isOpen, handleClose]);
 
+  const contextValue = React.useMemo(
+    () => ({ closeAllSubmenus, registerSubmenu, portalContainer }),
+    [closeAllSubmenus, registerSubmenu, portalContainer]
+  );
   return (
     <div
+      ref={overlayRef}
+      aria-hidden={!isOpen}
       className={cn(
         "pointer-events-none fixed top-0 left-0 z-30 h-screen w-screen cursor-default opacity-0 transition-opacity",
         {
@@ -219,7 +229,7 @@ function ContextMenuWithoutPortal(props: ContextMenuProps) {
         }}
         data-context-menu="true"
       >
-        <ContextMenuContext.Provider value={{ closeAllSubmenus, registerSubmenu, portalContainer }}>
+        <ContextMenuContext.Provider value={contextValue}>
           {renderedItems.map((item, index) => (
             <ContextMenuItem
               key={item.key}

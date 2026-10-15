@@ -1,83 +1,32 @@
-/**
- * Copyright (c) 2023-present Plane Software, Inc. and contributors
- * SPDX-License-Identifier: AGPL-3.0-only
- * See the LICENSE file for details.
- */
-
-import { useState } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-// plane imports
-import { EditIcon, TrashIcon } from "@plane/propel/icons";
-import { CustomMenu } from "@plane/ui";
-import { truncateText } from "@plane/utils";
-// hooks
+import { EntityFavoriteControl } from "@/components/favorites/entity-favorite-control";
 import { useGlobalView } from "@/hooks/store/use-global-view";
-// local imports
-import { DeleteGlobalViewModal } from "./delete-view-modal";
-import { CreateUpdateWorkspaceViewModal } from "./modal";
+import { WorkspaceViewQuickActions } from "./quick-action";
 
 type Props = { viewId: string };
 
-export const GlobalViewListItem = observer(function GlobalViewListItem(props: Props) {
-  const { viewId } = props;
-  // states
-  const [updateViewModal, setUpdateViewModal] = useState(false);
-  const [deleteViewModal, setDeleteViewModal] = useState(false);
-  // router
+export const GlobalViewListItem = observer(function GlobalViewListItem({ viewId }: Props) {
   const { workspaceSlug } = useParams();
-  // store hooks
   const { getViewDetailsById } = useGlobalView();
-  // derived data
   const view = getViewDetailsById(viewId);
-
-  if (!view) return null;
-
+  if (!view || !workspaceSlug) return null;
+  const slug = workspaceSlug.toString();
   return (
-    <>
-      <CreateUpdateWorkspaceViewModal data={view} isOpen={updateViewModal} onClose={() => setUpdateViewModal(false)} />
-      <DeleteGlobalViewModal data={view} isOpen={deleteViewModal} onClose={() => setDeleteViewModal(false)} />
-      <div className="group border-b border-subtle hover:bg-surface-2">
-        <Link href={`/${workspaceSlug}/workspace-views/${view.id}`}>
-          <div className="relative flex h-[52px] w-full items-center justify-between rounded-sm p-4">
-            <div className="flex w-full items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="flex flex-col">
-                  <p className="truncate text-13 leading-4 font-medium">{truncateText(view.name, 75)}</p>
-                  {view?.description && <p className="text-11 text-secondary">{view.description}</p>}
-                </div>
-              </div>
-              <div className="ml-2 flex flex-shrink-0">
-                <div className="flex items-center gap-4">
-                  <CustomMenu ellipsis>
-                    <CustomMenu.MenuItem
-                      onClick={() => {
-                        setUpdateViewModal(true);
-                      }}
-                    >
-                      <span className="flex items-center justify-start gap-2">
-                        <EditIcon width={14} height={14} strokeWidth={2} />
-                        <span>Edit View</span>
-                      </span>
-                    </CustomMenu.MenuItem>
-                    <CustomMenu.MenuItem
-                      onClick={() => {
-                        setDeleteViewModal(true);
-                      }}
-                    >
-                      <span className="flex items-center justify-start gap-2">
-                        <TrashIcon width={14} height={14} strokeWidth={2} />
-                        <span>Delete View</span>
-                      </span>
-                    </CustomMenu.MenuItem>
-                  </CustomMenu>
-                </div>
-              </div>
-            </div>
-          </div>
-        </Link>
-      </div>
-    </>
+    <div className="group flex min-h-[52px] items-center gap-3 border-b border-subtle px-4 hover:bg-surface-2">
+      <Link href={`/${slug}/workspace-views/${view.id}`} className="min-w-0 flex-1 py-3">
+        <p className="truncate text-13 font-medium">{view.name}</p>
+        {view.description && <p className="truncate text-11 text-secondary">{view.description}</p>}
+      </Link>
+      <EntityFavoriteControl
+        variant="icon"
+        workspaceSlug={slug}
+        entityType="workspace_view"
+        entityId={view.id}
+        name={view.name}
+      />
+      <WorkspaceViewQuickActions workspaceSlug={slug} view={view} />
+    </div>
   );
 });

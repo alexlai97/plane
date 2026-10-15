@@ -1,3 +1,4 @@
+import { EntityFavoriteControl } from "@/components/favorites/entity-favorite-control";
 import { ArtifactAssignees } from "./assignees";
 import { useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
@@ -123,6 +124,15 @@ export function ArtifactDetail({
   };
   const actions = (
     <>
+      {artifact && view === "published" && (
+        <EntityFavoriteControl
+          workspaceSlug={slug}
+          entityType="artifact"
+          entityId={id}
+          name={artifact.title}
+          variant="button"
+        />
+      )}
       {artifact?.can_edit && (
         <a
           href={`/${encodeURIComponent(slug)}/gallery/${encodeURIComponent(id)}/edit/?from=${encodeURIComponent(returnHref)}`}

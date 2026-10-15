@@ -5,7 +5,7 @@
  */
 
 import { useMemo } from "react";
-import { XCircle, ArchiveRestoreIcon } from "lucide-react";
+import { XCircle, ArchiveRestoreIcon, Star } from "lucide-react";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { LinkIcon, CopyIcon, NewTabIcon, EditIcon, ArchiveIcon, TrashIcon } from "@plane/propel/icons";
@@ -13,6 +13,7 @@ import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { EIssuesStoreType, TIssue } from "@plane/types";
 import type { TContextMenuItem } from "@plane/ui";
 import { copyUrlToClipboard, generateWorkItemLink } from "@plane/utils";
+import { useEntityFavorite } from "@/hooks/use-entity-favorite";
 import { createCopyMenuWithDuplication } from "./copy-menu-helper";
 
 // Generic helper function to handle optional function calls gracefully
@@ -140,6 +141,13 @@ export const useIssueActionHandlers = (props: MenuItemFactoryProps) => {
 export const useMenuItemFactory = (props: MenuItemFactoryProps) => {
   const { t } = useTranslation();
   const actionHandlers = useIssueActionHandlers(props);
+  const issueFavorite = useEntityFavorite({
+    workspaceSlug: props.workspaceSlug ?? "",
+    entityType: "issue",
+    entityId: props.issue.id,
+    projectId: props.issue.project_id ?? undefined,
+    name: props.issue.name,
+  });
 
   const {
     issue,
@@ -251,6 +259,16 @@ export const useMenuItemFactory = (props: MenuItemFactoryProps) => {
     shouldRender: isDeletingAllowed,
   });
 
+  const createFavoriteMenuItem = (): TContextMenuItem => ({
+    key: "favorite",
+    title: issueFavorite.isFavorite ? "取消收藏" : "收藏",
+    icon: Star,
+    action: () => void issueFavorite.toggle(),
+    closeOnClick: false,
+    disabled: issueFavorite.pending,
+    shouldRender: issueFavorite.ready,
+  });
+
   return {
     ...actionHandlers,
     createEditMenuItem,
@@ -262,6 +280,7 @@ export const useMenuItemFactory = (props: MenuItemFactoryProps) => {
     createArchiveMenuItem,
     createRestoreMenuItem,
     createDeleteMenuItem,
+    createFavoriteMenuItem,
   };
 };
 
@@ -271,6 +290,7 @@ export const useProjectIssueMenuItems = (props: MenuItemFactoryProps): TContextM
 
   return useMemo(
     () => [
+      factory.createFavoriteMenuItem(),
       factory.createEditMenuItem(),
       factory.createCopyMenuItem(),
       factory.createOpenInNewTabMenuItem(),
@@ -287,6 +307,7 @@ export const useWorkItemDetailMenuItems = (props: MenuItemFactoryProps): TContex
 
   return useMemo(
     () => [
+      factory.createFavoriteMenuItem(),
       factory.createCopyMenuItem(props.workspaceSlug),
       factory.createOpenInNewTabMenuItem(),
       factory.createArchiveMenuItem(),
@@ -303,6 +324,7 @@ export const useAllIssueMenuItems = (props: MenuItemFactoryProps): TContextMenuI
 
   return useMemo(
     () => [
+      factory.createFavoriteMenuItem(),
       factory.createEditMenuItem(),
       factory.createCopyMenuItem(),
       factory.createOpenInNewTabMenuItem(),
@@ -327,6 +349,7 @@ export const useCycleIssueMenuItems = (props: MenuItemFactoryProps): TContextMen
 
   return useMemo(
     () => [
+      factory.createFavoriteMenuItem(),
       factory.createEditMenuItem(customEditAction),
       factory.createCopyMenuItem(),
       factory.createOpenInNewTabMenuItem(),
@@ -353,6 +376,7 @@ export const useModuleIssueMenuItems = (props: MenuItemFactoryProps): TContextMe
 
   return useMemo(
     () => [
+      factory.createFavoriteMenuItem(),
       factory.createEditMenuItem(customEditAction),
       factory.createCopyMenuItem(),
       factory.createOpenInNewTabMenuItem(),
@@ -371,6 +395,7 @@ export const useArchivedIssueMenuItems = (props: MenuItemFactoryProps): TContext
 
   return useMemo(
     () => [
+      factory.createFavoriteMenuItem(),
       factory.createRestoreMenuItem(),
       factory.createOpenInNewTabMenuItem(),
       factory.createCopyLinkMenuItem(),

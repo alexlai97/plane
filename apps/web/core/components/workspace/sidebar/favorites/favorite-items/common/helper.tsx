@@ -11,15 +11,17 @@ export const generateFavoriteItemLink = (workspaceSlug: string, favorite: IFavor
   const entityLinkDetails = FAVORITE_ITEM_LINKS[favorite.entity_type];
 
   if (!entityLinkDetails) {
-    console.error(`Unrecognized favorite entity type: ${favorite.entity_type}`);
-    return `/${workspaceSlug}`;
+    return undefined;
   }
+
+  if (!favorite.entity_identifier) return undefined;
 
   if (entityLinkDetails.itemLevel === "workspace") {
     return `/${workspaceSlug}/${entityLinkDetails.getLink(favorite)}`;
   } else if (entityLinkDetails.itemLevel === "project") {
+    if (!favorite.project_id) return undefined;
     return `/${workspaceSlug}/projects/${favorite.project_id}/${entityLinkDetails.getLink(favorite)}`;
   } else {
-    return `/${workspaceSlug}`;
+    return undefined;
   }
 };

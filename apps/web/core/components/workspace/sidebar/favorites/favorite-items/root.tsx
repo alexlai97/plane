@@ -5,6 +5,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
+import type { MouseEvent } from "react";
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 import type {
   DropTargetRecord,
@@ -25,6 +26,7 @@ import { DropIndicator } from "@plane/ui";
 import { useFavoriteItemDetails } from "@/hooks/use-favorite-item-details";
 // local imports
 import { getCanDrop, getInstructionFromPayload } from "../favorites.helpers";
+import { useArtifactPeek } from "../artifact-peek-provider";
 import { FavoriteItemDragHandle, FavoriteItemQuickAction, FavoriteItemTitle, FavoriteItemWrapper } from "./common";
 
 type Props = {
@@ -40,7 +42,8 @@ export const FavoriteRoot = observer(function FavoriteRoot(props: Props) {
   // props
   const { isLastChild, parentId, workspaceSlug, favorite, handleRemoveFromFavorites, handleDrop } = props;
   // store hooks
-  const { itemLink, itemIcon, itemTitle } = useFavoriteItemDetails(workspaceSlug, favorite);
+  const { itemLink, itemIcon, itemTitle, onClick } = useFavoriteItemDetails(workspaceSlug, favorite);
+  const { openArtifact } = useArtifactPeek();
   //state
   const [isDragging, setIsDragging] = useState(false);
   const [isMenuActive, setIsMenuActive] = useState(false);
@@ -51,6 +54,27 @@ export const FavoriteRoot = observer(function FavoriteRoot(props: Props) {
   const actionSectionRef = useRef<HTMLDivElement | null>(null);
 
   const handleQuickAction = (value: boolean) => setIsMenuActive(value);
+  const handleItemClick = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (
+      favorite.entity_type === "artifact" &&
+      favorite.is_available !== false &&
+      favorite.entity_data !== null &&
+      event.button === 0 &&
+      !event.metaKey &&
+      !event.ctrlKey &&
+      !event.shiftKey &&
+      !event.altKey
+    ) {
+      event.preventDefault();
+      openArtifact(
+        favorite.entity_identifier ?? "",
+        `${window.location.pathname}${window.location.search}${window.location.hash}`,
+        event.currentTarget
+      );
+      return;
+    }
+    onClick?.(event);
+  };
 
   // drag and drop
   useEffect(() => {
@@ -91,7 +115,7 @@ export const FavoriteRoot = observer(function FavoriteRoot(props: Props) {
         onDragStart: () => {
           setIsDragging(true);
         },
-        getData: ({ input, element }) => {
+        getData: ({ input, element: dropElement }) => {
           const blockedStates: InstructionType[] = ["make-child"];
           if (!isLastChild) {
             blockedStates.push("reorder-below");
@@ -99,7 +123,7 @@ export const FavoriteRoot = observer(function FavoriteRoot(props: Props) {
 
           return attachInstruction(initialData, {
             input,
-            element,
+            element: dropElement,
             currentLevel: 1,
             indentPerLevel: 0,
             mode: isLastChild ? "last-in-group" : "standard",
@@ -107,8 +131,8 @@ export const FavoriteRoot = observer(function FavoriteRoot(props: Props) {
           });
         },
         onDrag: ({ self, source, location }) => {
-          const instruction = getInstructionFromPayload(self, source, location);
-          setInstruction(instruction);
+          const nextInstruction = getInstructionFromPayload(self, source, location);
+          setInstruction(nextInstruction);
         },
         onDragLeave: () => {
           setInstruction(undefined);
@@ -129,7 +153,7 @@ export const FavoriteRoot = observer(function FavoriteRoot(props: Props) {
       {isDragging && <DropIndicator isVisible={instruction === "reorder-above"} />}
       <FavoriteItemWrapper elementRef={elementRef} isMenuActive={isMenuActive}>
         <FavoriteItemDragHandle isDragging={isDragging} sort_order={favorite.sort_order} />
-        <FavoriteItemTitle href={itemLink} icon={itemIcon} title={itemTitle} />
+        <FavoriteItemTitle href={itemLink} icon={itemIcon} title={itemTitle} onClick={handleItemClick} />
         <FavoriteItemQuickAction
           favorite={favorite}
           ref={actionSectionRef}

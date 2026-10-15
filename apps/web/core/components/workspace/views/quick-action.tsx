@@ -1,3 +1,5 @@
+import { Star } from "lucide-react";
+import { useEntityFavorite } from "@/hooks/use-entity-favorite";
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -27,6 +29,12 @@ type Props = {
 
 export const WorkspaceViewQuickActions = observer(function WorkspaceViewQuickActions(props: Props) {
   const { workspaceSlug, view } = props;
+  const favorite = useEntityFavorite({
+    workspaceSlug,
+    entityType: "workspace_view",
+    entityId: view.id,
+    name: view.name,
+  });
   // states
   const [updateViewModal, setUpdateViewModal] = useState(false);
   const [deleteViewModal, setDeleteViewModal] = useState(false);
@@ -70,6 +78,12 @@ export const WorkspaceViewQuickActions = observer(function WorkspaceViewQuickAct
         closeOnSelect
         buttonClassName="flex-shrink-0 flex items-center justify-center size-[26px] bg-layer-1/70 rounded-sm"
       >
+        <CustomMenu.MenuItem onClick={() => void favorite.toggle()} disabled={favorite.pending}>
+          <span className="flex items-center gap-2">
+            <Star className="size-3" />
+            {favorite.isFavorite ? "取消收藏" : "收藏"}
+          </span>
+        </CustomMenu.MenuItem>
         {MENU_ITEMS.items.map((item) => {
           if (item.shouldRender === false) return null;
           return (

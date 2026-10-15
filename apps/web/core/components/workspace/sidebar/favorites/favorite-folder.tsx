@@ -105,7 +105,7 @@ export function FavoriteFolder(props: Props) {
       dropTargetForElements({
         element,
         canDrop: ({ source }) => getCanDrop(source, favorite, false),
-        getData: ({ input, element }) => {
+        getData: ({ input, element: dropElement }) => {
           const blockedStates: InstructionType[] = [];
           if (!isLastChild) {
             blockedStates.push("reorder-below");
@@ -113,7 +113,7 @@ export function FavoriteFolder(props: Props) {
 
           return attachInstruction(initialData, {
             input,
-            element,
+            element: dropElement,
             currentLevel: 0,
             indentPerLevel: 0,
             mode: isLastChild ? "last-in-group" : "standard",
@@ -121,8 +121,8 @@ export function FavoriteFolder(props: Props) {
           });
         },
         onDrag: ({ source, self, location }) => {
-          const instruction = getInstructionFromPayload(self, source, location);
-          setInstruction(instruction);
+          const nextInstruction = getInstructionFromPayload(self, source, location);
+          setInstruction(nextInstruction);
         },
         onDragLeave: () => {
           setInstruction(undefined);
@@ -219,7 +219,7 @@ export function FavoriteFolder(props: Props) {
                   }
                   menuButtonOnClick={() => setIsMenuActive(!isMenuActive)}
                   className={cn(
-                    "pointer-events-none flex-shrink-0 opacity-0 group-hover/project-item:pointer-events-auto group-hover/project-item:opacity-100",
+                    "pointer-events-none flex-shrink-0 opacity-0 group-hover/project-item:pointer-events-auto group-hover/project-item:opacity-100 focus-within:pointer-events-auto focus-within:opacity-100",
                     {
                       "pointer-events-auto opacity-100": isMenuActive,
                     }
@@ -231,13 +231,13 @@ export function FavoriteFolder(props: Props) {
                   <CustomMenu.MenuItem onClick={() => handleRemoveFromFavorites(favorite)}>
                     <span className="flex items-center justify-start gap-2">
                       <Star className="fill-yellow-500 stroke-yellow-500 h-3.5 w-3.5" />
-                      <span>Remove from favorites</span>
+                      <span>取消收藏</span>
                     </span>
                   </CustomMenu.MenuItem>
                   <CustomMenu.MenuItem onClick={() => setFolderToRename(favorite.id)}>
                     <div className="flex items-center justify-start gap-2">
                       <DraftIcon className="h-3.5 w-3.5 stroke-[1.5] text-tertiary" />
-                      <span>Rename Folder</span>
+                      <span>重命名文件夹</span>
                     </div>
                   </CustomMenu.MenuItem>
                 </CustomMenu>
