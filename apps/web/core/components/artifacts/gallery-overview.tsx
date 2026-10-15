@@ -21,8 +21,10 @@ function ResultLink({ card, href, onOpenDetail }: { card: GalleryCard; href: str
       className="nodrag nopan group focus-visible:ring-accent-primary flex size-full min-h-8 items-center gap-3 rounded-md px-3 py-1.5 text-14 font-medium text-primary transition-colors outline-none hover:bg-accent-subtle hover:text-link-primary focus-visible:ring-2"
     >
       <Icon aria-hidden="true" className="size-4 shrink-0 text-accent-primary" />
-      <span className="min-w-0 flex-1 break-words">{card.title}</span>
-      <ArtifactAssignees ids={card.assignee_ids} />
+      <span className="flex min-w-0 flex-1 items-center gap-2">
+        <span className="min-w-0 truncate">{card.title}</span>
+        <ArtifactAssignees ids={card.assignee_ids} />
+      </span>
       <ChevronRight aria-hidden="true" className="size-3.5 shrink-0 text-tertiary group-hover:text-link-primary" />
     </a>
   );
