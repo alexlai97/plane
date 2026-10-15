@@ -1,6 +1,7 @@
 export type GallerySource = {
   id: string;
   sequence_id: number;
+  assignee_ids?: string[];
   name: string;
   project_id: string;
   project_name: string;
@@ -39,6 +40,7 @@ export type GalleryCard = {
   category: string;
   kind: string;
   updated_at: string;
+  assignee_ids?: string[];
   sources: GallerySource[];
   attachments: GalleryAttachment[];
   links: GalleryLink[];

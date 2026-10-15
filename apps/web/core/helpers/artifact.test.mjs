@@ -81,7 +81,13 @@ test("preview path retains draft and revision parameters after path insertion", 
 
 test("gallery material links skip unsafe URLs and keep the next safe link visible", () => {
   const safe = { title: "安全链接", url: "https://example.com", kind: "reference" };
-  const unsafeLinks = ["javascript:alert(1)", "data:text/html,unsafe", "file:///etc/passwd", "//example.com/path", "http://[broken"].map((url) => ({
+  const unsafeLinks = [
+    "javascript:alert(1)",
+    "data:text/html,unsafe",
+    "file:///etc/passwd",
+    "//example.com/path",
+    "http://[broken",
+  ].map((url) => ({
     title: "不安全链接",
     url,
     kind: "reference",
@@ -197,4 +203,24 @@ test("remote untouched main action accepts local label even when object property
   const result = mergeArtifactWrites(base, local, latest);
   assert.deepEqual(result.unresolved, []);
   assert.equal(result.merged.primary_action.label, "新按钮");
+});
+
+test("business assignees round trip independently from creation owner", () => {
+  assert.deepEqual(artifactToWrite({ ...artifact, assignee_ids: ["member-one", "member-two"] }).assignee_ids, [
+    "member-one",
+    "member-two",
+  ]);
+  assert.deepEqual(artifactToWrite().assignee_ids, []);
+});
+
+test("concurrent assignee edits require an explicit merge choice", async () => {
+  const { mergeArtifactWrites } = await import("./artifact.ts");
+  const base = artifactToWrite({ ...artifact, assignee_ids: ["member-one"] });
+  const local = { ...base, assignee_ids: ["member-two"] };
+  const latest = { ...base, version: 8, assignee_ids: ["member-three"] };
+  const result = mergeArtifactWrites(base, local, latest);
+  assert.deepEqual(result.unresolved, ["assignee_ids"]);
+  assert.deepEqual(mergeArtifactWrites(base, local, latest, { assignee_ids: "latest" }).merged.assignee_ids, [
+    "member-three",
+  ]);
 });

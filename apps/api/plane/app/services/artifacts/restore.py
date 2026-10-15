@@ -2,7 +2,7 @@ from django.db import transaction
 from rest_framework.exceptions import PermissionDenied
 
 from plane.db.models import Artifact, ArtifactMaterial, ArtifactSource, FileAsset, Issue
-from .service import _asset, _lock_version, _source_rows, authorize_snapshot_sources, require_artifact_write
+from .service import _asset, _lock_version, _source_rows, authorize_snapshot_sources, require_artifact_write, validated_assignee_ids
 
 
 @transaction.atomic
@@ -23,6 +23,7 @@ def restore_revision(user, artifact, revision_id, version):
         if material.get("asset_id"):
             assets.append(_asset(user, artifact.workspace, material["asset_id"], artifact))
     cover = _asset(user, artifact.workspace, snap["cover"]["asset_id"], artifact) if (snap.get("cover") or {}).get("asset_id") else None
+    assignee_ids = validated_assignee_ids(artifact.workspace, snap.get("assignee_ids", []))
     artifact.title = snap["title"]
     artifact.summary = snap.get("summary", "")
     artifact.kind = snap["kind"]
@@ -34,6 +35,7 @@ def restore_revision(user, artifact, revision_id, version):
     artifact.primary_action = snap.get("primary_action", {})
     artifact.version += 1
     artifact.save()
+    artifact.assignees.set(assignee_ids)
     artifact.sources.all().delete()
     ArtifactSource.objects.bulk_create([ArtifactSource(artifact=artifact, issue=issue, project_id=issue.project_id) for issue in issues])
     artifact.materials.all().delete()

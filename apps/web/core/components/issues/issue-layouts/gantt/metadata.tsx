@@ -1,3 +1,4 @@
+import { ButtonAvatars } from "@/components/dropdowns/member/avatar";
 import { observer } from "mobx-react";
 import type { TIssue } from "@plane/types";
 import { useMember } from "@/hooks/store/use-member";
@@ -24,8 +25,13 @@ export const GanttMetadata = observer(function GanttMetadata({
   return (
     <div className="flex min-w-0 items-center gap-2 text-11 text-secondary" data-gantt-metadata>
       {(preview || display.assignee) && (
-        <span className="min-w-0 truncate" title={`负责人：${fullNames}`}>
-          {preview ? `负责人：${fullNames}` : shortNames || "未分配"}
+        <span
+          className="inline-flex min-w-0 items-center gap-1.5"
+          title={`负责人：${fullNames}`}
+          aria-label={`负责人：${fullNames}`}
+        >
+          <ButtonAvatars userIds={issue.assignee_ids ?? []} size="sm" showTooltip={false} />
+          <span className="truncate">{preview ? `负责人：${fullNames}` : shortNames || "未分配"}</span>
         </span>
       )}
       {!preview && display.priority && (

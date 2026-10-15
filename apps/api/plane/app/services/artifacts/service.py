@@ -10,7 +10,7 @@ from rest_framework.exceptions import APIException, NotFound, PermissionDenied, 
 from plane.app.permissions import ROLE
 from plane.db.models import (
     Artifact, ArtifactCategory, ArtifactMaterial, ArtifactRevision, ArtifactSource,
-    FileAsset, Issue, ProjectMember, Workspace, WorkspaceMember,
+    FileAsset, Issue, IssueAssignee, ProjectMember, Workspace, WorkspaceMember,
 )
 
 
@@ -100,7 +100,7 @@ def _validate_url(url):
 def validate_artifact_payload(data, create=False):
     if not isinstance(data, dict):
         raise ValidationError({"detail": "请求内容必须是对象。"})
-    allowed = {"title", "summary", "kind", "category_id", "cover_asset_id", "primary_action", "source_issue_ids", "assets", "links", "version"}
+    allowed = {"title", "summary", "kind", "category_id", "cover_asset_id", "primary_action", "source_issue_ids", "assignee_ids", "assets", "links", "version"}
     unknown = set(data) - allowed
     if unknown:
         raise ValidationError({"detail": f"不支持的字段：{', '.join(sorted(unknown))}"})
@@ -125,12 +125,13 @@ def validate_artifact_payload(data, create=False):
     for field in ("category_id", "cover_asset_id"):
         if field in data:
             check_uuid(data[field], field, allow_empty=True, nullable=True)
-    if "source_issue_ids" in data:
-        values = data["source_issue_ids"]
-        if not isinstance(values, list):
-            raise ValidationError({"source_issue_ids": "必须是 UUID 列表。"})
-        for value in values:
-            check_uuid(value, "source_issue_ids")
+    for field in ("source_issue_ids", "assignee_ids"):
+        if field in data:
+            values = data[field]
+            if not isinstance(values, list):
+                raise ValidationError({field: "必须是 UUID 列表。"})
+            for value in values:
+                check_uuid(value, field)
     if "assets" in data:
         values = data["assets"]
         if not isinstance(values, list):
@@ -208,8 +209,21 @@ def _validate_asset_sources(assets, source_ids):
             raise ValidationError({"assets": "附件来源必须包含在所选来源任务中。"})
 
 
+def validated_assignee_ids(workspace, values):
+    ids = sorted({str(value) for value in values})
+    valid = {str(value) for value in WorkspaceMember.objects.filter(workspace=workspace, member_id__in=ids, is_active=True, deleted_at__isnull=True, member__is_active=True).values_list("member_id", flat=True)}
+    if set(ids) != valid:
+        raise ValidationError({"assignee_ids": "负责人必须是当前工作区的有效成员。"})
+    return ids
+
+
+def source_assignee_ids(issue):
+    active_members = WorkspaceMember.objects.filter(workspace_id=issue.workspace_id, is_active=True, deleted_at__isnull=True, member__is_active=True).values_list("member_id", flat=True)
+    return sorted({str(value) for value in IssueAssignee.objects.filter(issue=issue, deleted_at__isnull=True, assignee_id__in=active_members).values_list("assignee_id", flat=True)})
+
+
 def _serialize_source(issue, slug):
-    return {"id": str(issue.id), "sequence_id": issue.sequence_id, "name": issue.name,
+    return {"id": str(issue.id), "sequence_id": issue.sequence_id, "name": issue.name, "assignee_ids": source_assignee_ids(issue),
             "project_id": str(issue.project_id), "project_name": issue.project.name,
             "identifier": f"{issue.project.identifier}-{issue.sequence_id}",
             "url": f"/{slug}/browse/{issue.project.identifier}-{issue.sequence_id}/"}
@@ -244,6 +258,7 @@ def snapshot(artifact, slug):
     return {"id": str(artifact.id), "title": artifact.title, "summary": artifact.summary, "category": artifact.category.name if artifact.category and not artifact.category.deleted_at else None,
             "category_id": str(artifact.category_id) if artifact.category_id else None, "kind": artifact.kind,
             "sources": sources, "source_issue_ids": [item["id"] for item in sources],
+            "assignee_ids": sorted(str(value) for value in artifact.assignees.values_list("id", flat=True)),
             "assets": [{"id": item["asset_id"], "name": item["name"], "size": item["size"], "type": item["mime"]} for item in materials if item.get("asset_id")],
             "links": [{"title": item["title"], "url": item["url"], "kind": item["kind"]} for item in materials if item.get("url")],
             "materials": materials, "primary_action": artifact.primary_action, "cover": cover,
@@ -251,6 +266,7 @@ def snapshot(artifact, slug):
 
 
 def _apply_body(artifact, user, data, create=False):
+    assignee_ids = validated_assignee_ids(artifact.workspace, data.get("assignee_ids", [])) if create or "assignee_ids" in data else None
     existing_materials = list(artifact.materials.select_related("asset").order_by("position", "created_at"))
     sources_changed = create or "source_issue_ids" in data
     assets_changed = create or "assets" in data
@@ -309,6 +325,8 @@ def _apply_body(artifact, user, data, create=False):
     if not artifact.title or not artifact.kind:
         raise ValidationError({"title": "名称和类型必填。"})
     artifact.save(update_fields=["title", "summary", "kind", "category", "cover_asset", "primary_action", "updated_at"])
+    if assignee_ids is not None:
+        artifact.assignees.set(assignee_ids)
     if sources_changed:
         artifact.sources.all().delete()
         ArtifactSource.objects.bulk_create([ArtifactSource(artifact=artifact, issue=i, project_id=i.project_id) for i in issues])
@@ -434,6 +452,7 @@ def publish_artifact(user, artifact, version):
     artifact = Artifact.objects.select_for_update().get(pk=artifact.pk)
     _lock_version(artifact, version)
     require_artifact_write(user, artifact)
+    validated_assignee_ids(artifact.workspace, artifact.assignees.values_list("id", flat=True))
     if artifact.sources.filter(issue__isnull=True).exists():
         raise ValidationError({"source_issue_ids": "存在已删除的来源任务，请先移除该来源。"})
     source_ids = list(artifact.sources.values_list("issue_id", flat=True))
@@ -481,6 +500,7 @@ def serialize_artifact(artifact, user, view="published"):
         snap = published_snapshot(artifact, user)
         if snap is None:
             raise NotFound()
+    snap.setdefault("assignee_ids", [])
     editable = can_edit(user, artifact)
     if editable:
         try:
@@ -488,8 +508,8 @@ def serialize_artifact(artifact, user, view="published"):
         except NotFound:
             editable = False
     published = artifact.published_revision.snapshot if artifact.published_revision else None
-    compare_keys = ("title", "summary", "category_id", "kind", "source_issue_ids", "assets", "links", "primary_action", "cover")
-    changed = bool(editable and published and any(draft_snap.get(key) != published.get(key) for key in compare_keys))
+    compare_keys = ("title", "summary", "category_id", "kind", "source_issue_ids", "assignee_ids", "assets", "links", "primary_action", "cover")
+    changed = bool(editable and published and any(draft_snap.get(key, [] if key == "assignee_ids" else None) != published.get(key, [] if key == "assignee_ids" else None) for key in compare_keys))
     snap.update({"owner_id": str(artifact.owner_id) if artifact.owner_id else None, "status": artifact.status, "version": artifact.version,
                  "access": artifact.access,
                  "published_version": artifact.published_revision.number if artifact.published_revision else None,

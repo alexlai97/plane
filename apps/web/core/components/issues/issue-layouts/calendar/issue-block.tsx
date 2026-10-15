@@ -1,3 +1,4 @@
+import { ButtonAvatars } from "@/components/dropdowns/member/avatar";
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -142,6 +143,12 @@ export const CalendarIssueBlock = observer(
                     )}
                     <div className="truncate text-13 font-medium md:text-11 md:font-regular">{issue.name}</div>
                   </div>
+                  {issuesFilter?.issueFilters?.displayProperties?.assignee !== false &&
+                    Boolean(issue.assignee_ids?.length) && (
+                      <span className="shrink-0" aria-label="负责人">
+                        <ButtonAvatars userIds={issue.assignee_ids ?? []} size="sm" showTooltip={false} />
+                      </span>
+                    )}
                   {/* Wrapper exists only to stop clicks reaching the ControlLink; the
                       quick-action menu inside carries its own interactive semantics. */}
                   <div

@@ -1,3 +1,4 @@
+import { ArtifactAssignees } from "./assignees";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent } from "react";
 import { AppWindow, AudioLines, ChevronRight, FileText, FolderOpen, Image, Layers, Video } from "lucide-react";
@@ -21,6 +22,7 @@ function ResultLink({ card, href, onOpenDetail }: { card: GalleryCard; href: str
     >
       <Icon aria-hidden="true" className="size-4 shrink-0 text-accent-primary" />
       <span className="min-w-0 flex-1 break-words">{card.title}</span>
+      <ArtifactAssignees ids={card.assignee_ids} />
       <ChevronRight aria-hidden="true" className="size-3.5 shrink-0 text-tertiary group-hover:text-link-primary" />
     </a>
   );

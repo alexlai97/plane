@@ -1,3 +1,6 @@
+import { Input, TextArea } from "@plane/ui";
+import { MemberDropdown } from "@/components/dropdowns/member/dropdown";
+import { useMember } from "@/hooks/store/use-member";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { artifactService } from "@/services/artifact.service";
@@ -21,9 +24,20 @@ import type {
   ArtifactWrite,
 } from "../../helpers/artifact";
 import { getGalleryDetailHref, sanitizeGalleryReturnUrl, isSafeHttpUrl } from "../../helpers/gallery";
-import { ArtifactShell, buttonClass, ConfirmDialog, Field, inputClass, Message, primaryClass, Section } from "./shared";
+import {
+  ArtifactButton,
+  ArtifactShell,
+  buttonClass,
+  ConfirmDialog,
+  Field,
+  inputClass,
+  Message,
+  primaryClass,
+  Section,
+} from "./shared";
 
 export default function ArtifactEditorPage() {
+  const { getUserDetails } = useMember();
   const uploadInput = useRef<HTMLInputElement>(null);
   const appliedArtifactRoute = useRef<string | undefined>(undefined);
   const params = useParams();
@@ -207,6 +221,10 @@ export default function ArtifactEditorPage() {
   };
   const mergeResult = latest ? mergeArtifactWrites(baseline, form, artifactToWrite(latest), mergeChoices) : undefined;
   const describeField = (field: ArtifactWriteField, value: ArtifactWrite): string => {
+    if (field === "assignee_ids")
+      return (
+        value.assignee_ids.map((id) => getUserDetails(id)?.display_name || "成员信息暂不可用").join("、") || "未设置"
+      );
     if (field === "category_id") return categories.find((item) => item.id === value.category_id)?.name ?? "未分类";
     if (field === "source_issue_ids")
       return (
@@ -317,7 +335,7 @@ export default function ArtifactEditorPage() {
                         {(["local", "latest"] as const).map((side) => (
                           <label key={side} className="space-y-2 rounded-md border border-subtle bg-surface-1 p-3">
                             <span className="flex items-center gap-2">
-                              <input
+                              <Input
                                 type="radio"
                                 name={`merge-${field}`}
                                 checked={mergeChoices[field] === side}
@@ -394,7 +412,7 @@ export default function ArtifactEditorPage() {
               )}
               <div className="grid gap-4 md:grid-cols-2">
                 <Field label="成果名称 *">
-                  <input
+                  <Input
                     className={inputClass}
                     maxLength={240}
                     value={form.title}
@@ -402,13 +420,42 @@ export default function ArtifactEditorPage() {
                   />
                 </Field>
                 <Field label="类型 *">
-                  <input
+                  <Input
                     className={inputClass}
                     placeholder="例如：在线工具、演示、交付资料"
                     value={form.kind}
                     onChange={(e) => change("kind", e.target.value)}
                   />
                 </Field>
+                <div role="group" aria-label="负责人" className="space-y-2">
+                  <span className="text-13 font-medium">负责人</span>
+                  <div className="flex min-h-10 flex-wrap items-center gap-2">
+                    <MemberDropdown
+                      multiple
+                      value={form.assignee_ids}
+                      onChange={(ids) => change("assignee_ids", ids)}
+                      buttonVariant="border-with-text"
+                      placeholder="选择负责人"
+                      showUserDetails
+                      optionsClassName="z-50"
+                    />
+                    <ArtifactButton
+                      type="button"
+                      variant="secondary"
+                      disabled={!sources.some((source) => source.assignee_ids?.length)}
+                      onClick={() =>
+                        change("assignee_ids", [...new Set(sources.flatMap((source) => source.assignee_ids ?? []))])
+                      }
+                    >
+                      从关联任务带入
+                    </ArtifactButton>
+                    {form.assignee_ids.length > 0 && (
+                      <ArtifactButton type="button" variant="tertiary" onClick={() => change("assignee_ids", [])}>
+                        清空
+                      </ArtifactButton>
+                    )}
+                  </div>
+                </div>
                 <Field label="分类">
                   <select
                     className={inputClass}
@@ -425,7 +472,7 @@ export default function ArtifactEditorPage() {
                 </Field>
               </div>
               <Field label="简短说明">
-                <textarea
+                <TextArea
                   className={inputClass}
                   rows={3}
                   value={form.summary}
@@ -434,7 +481,7 @@ export default function ArtifactEditorPage() {
               </Field>
             </Section>
             <Section title="关联工作项">
-              <input
+              <Input
                 aria-label="搜索关联工作项"
                 className={inputClass}
                 placeholder="输入工作项编号或名称"
@@ -498,7 +545,7 @@ export default function ArtifactEditorPage() {
                       <div className="mt-3 space-y-2">
                         {materials[source.id].map((item) => (
                           <label className="text-sm flex items-center gap-2" key={item.id}>
-                            <input
+                            <Input
                               type="checkbox"
                               checked={form.assets.some((asset) => asset.id === item.id)}
                               onChange={(e) => {
@@ -544,7 +591,7 @@ export default function ArtifactEditorPage() {
                 >
                   上传文件
                 </button>
-                <input
+                <Input
                   ref={uploadInput}
                   aria-label="上传成果文件"
                   type="file"
@@ -573,7 +620,7 @@ export default function ArtifactEditorPage() {
                   className="grid items-end gap-3 rounded-md bg-layer-1 p-3 md:grid-cols-[1fr_2fr_130px_auto]"
                 >
                   <Field label="链接标题">
-                    <input
+                    <Input
                       className={inputClass}
                       value={link.title}
                       onChange={(e) =>
@@ -585,7 +632,7 @@ export default function ArtifactEditorPage() {
                     />
                   </Field>
                   <Field label="链接地址">
-                    <input
+                    <Input
                       className={inputClass}
                       type="url"
                       placeholder="https://"
@@ -702,7 +749,7 @@ export default function ArtifactEditorPage() {
                   </select>
                 </Field>
                 <Field label="主操作按钮文字">
-                  <input
+                  <Input
                     className={inputClass}
                     value={form.primary_action.label}
                     onChange={(e) => change("primary_action", { ...form.primary_action, label: e.target.value })}

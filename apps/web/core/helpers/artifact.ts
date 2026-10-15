@@ -4,6 +4,7 @@ export type ArtifactAsset = { id: string; name: string; size: number; type: stri
 export type Artifact = GalleryCard & {
   category_id: string | null;
   source_issue_ids: string[];
+  assignee_ids: string[];
   assets: ArtifactAsset[];
   owner_id: string;
   status: "draft" | "published" | "withdrawn";
@@ -31,7 +32,13 @@ export function resolveArtifactCoverPreview(
 }
 
 export type ArtifactCategory = { id: string; name: string; usage_count: number; version: number };
-export type ArtifactSource = { id: string; identifier: string; name: string; project_id: string };
+export type ArtifactSource = {
+  id: string;
+  identifier: string;
+  name: string;
+  project_id: string;
+  assignee_ids?: string[];
+};
 export type ArtifactRevision = { id: string; version: number; actor_name: string; created_at: string };
 export type ArtifactWrite = {
   title: string;
@@ -39,6 +46,7 @@ export type ArtifactWrite = {
   kind: string;
   category_id: string | null;
   source_issue_ids: string[];
+  assignee_ids: string[];
   assets: { id: string }[];
   links: Pick<GalleryLink, "title" | "url" | "kind">[];
   cover_asset_id: string | null;
@@ -66,6 +74,7 @@ export function artifactToWrite(artifact?: Artifact): ArtifactWrite {
     kind: artifact?.kind ?? "",
     category_id: artifact?.category_id ?? null,
     source_issue_ids: artifact?.source_issue_ids ?? [],
+    assignee_ids: artifact?.assignee_ids ?? [],
     assets: artifact?.assets.map(({ id }) => ({ id })) ?? [],
     links: artifact?.links.map(({ title, url, kind }) => ({ title, url, kind })) ?? [],
     cover_asset_id: artifact?.cover?.asset_id ?? null,
@@ -106,6 +115,7 @@ export const artifactWriteFields = [
   "kind",
   "category_id",
   "source_issue_ids",
+  "assignee_ids",
   "assets",
   "links",
   "cover_asset_id",
@@ -119,6 +129,7 @@ export const artifactFieldLabels: Record<ArtifactWriteField, string> = {
   kind: "类型",
   category_id: "分类",
   source_issue_ids: "关联工作项",
+  assignee_ids: "负责人",
   assets: "成果材料",
   links: "链接（标题、地址与用途）",
   cover_asset_id: "封面",

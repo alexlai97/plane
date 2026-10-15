@@ -1,3 +1,5 @@
+import { Input } from "@plane/ui";
+import { ArtifactAssignees } from "./assignees";
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { artifactService } from "@/services/artifact.service";
@@ -82,7 +84,7 @@ export default function ArtifactManagePage() {
           <Section title="分类管理">
             {categories.map((cat) => (
               <div key={cat.id} className="flex flex-wrap items-center gap-3">
-                <input
+                <Input
                   aria-label={`分类名称：${cat.name}`}
                   className={`${inputClass} max-w-xs`}
                   value={names[cat.id] ?? cat.name}
@@ -111,7 +113,7 @@ export default function ArtifactManagePage() {
               </div>
             ))}
             <div className="flex gap-3">
-              <input
+              <Input
                 aria-label="新分类名称"
                 placeholder="新分类名称"
                 value={newName}
@@ -131,7 +133,7 @@ export default function ArtifactManagePage() {
         </div>
       )}
       <div className="mb-5 flex flex-wrap gap-3">
-        <input
+        <Input
           aria-label="搜索成果"
           placeholder="搜索成果名称或说明"
           className={`${inputClass} max-w-md`}
@@ -159,7 +161,7 @@ export default function ArtifactManagePage() {
           <Table>
             <TableHeader>
               <TableRow>
-                {["成果", "分类", "状态", "更新日期", "操作"].map((heading) => (
+                {["成果", "负责人", "分类", "状态", "更新日期", "操作"].map((heading) => (
                   <TableHead key={heading}>{heading}</TableHead>
                 ))}
               </TableRow>
@@ -168,6 +170,9 @@ export default function ArtifactManagePage() {
               {visible.map((row) => (
                 <TableRow key={row.id}>
                   <TableCell className="font-medium">{row.title}</TableCell>
+                  <TableCell>
+                    <ArtifactAssignees ids={row.assignee_ids} showNames />
+                  </TableCell>
                   <TableCell>{row.category || "未分类"}</TableCell>
                   <TableCell>
                     {artifactStatus[row.status]}

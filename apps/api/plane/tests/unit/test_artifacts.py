@@ -787,6 +787,106 @@ class ArtifactLifecycleTests(TestCase):
         self.assertNotIn("attacker.invalid", source)
 
 
+    def test_assignees_are_workspace_members_not_permissions_and_publish_isolated(self):
+        created = self.request('post', self.owner, self.payload(assignee_ids=[str(self.member.id), str(self.member.id)]))
+        self.assertEqual(created.status_code, 201, created.data)
+        pk = created.data['id']
+        self.assertEqual(created.data['assignee_ids'], [str(self.member.id)])
+        self.assertEqual(created.data['owner_id'], str(self.owner.id))
+        self.assertEqual(self.request('get', self.member, pk=pk).status_code, 404)
+        self.assertEqual(self.request('post', self.owner, {'version': 1}, pk, 'publish').status_code, 200)
+        edit = self.request('patch', self.owner, {'version': 2, 'assignee_ids': [str(self.owner.id)]}, pk)
+        self.assertEqual(edit.status_code, 200, edit.data)
+        self.assertEqual(self.request('get', self.member, pk=pk).data['assignee_ids'], [str(self.member.id)])
+        self.assertEqual(self.request('get', self.owner, pk=pk, query='view=draft').data['assignee_ids'], [str(self.owner.id)])
+        self.assertTrue(self.request('get', self.owner, pk=pk).data['has_unpublished_changes'])
+        preserved = self.request('patch', self.owner, {'version': 3, 'summary': 'new'}, pk)
+        self.assertEqual(preserved.data['assignee_ids'], [str(self.owner.id)])
+        cleared = self.request('patch', self.owner, {'version': 4, 'assignee_ids': []}, pk)
+        self.assertEqual(cleared.data['assignee_ids'], [])
+
+    def test_invalid_or_foreign_assignees_are_rejected_atomically(self):
+        for ids in (None, 'bad', ['invalid'], [str(self.stranger.id)]):
+            response = self.request('post', self.owner, self.payload(assignee_ids=ids))
+            self.assertEqual(response.status_code, 400, response.data)
+        self.assertFalse(Artifact.objects.exists())
+
+    def test_source_suggestions_do_not_silently_assign(self):
+        from plane.app.services.artifacts.service import _serialize_source
+        self.issue.assignees.add(self.member, through_defaults={"project": self.project, "workspace": self.workspace})
+        source = _serialize_source(self.issue, self.workspace.slug)
+        self.assertEqual(source['assignee_ids'], [str(self.member.id)])
+        response = self.request('post', self.owner, self.payload(source_issue_ids=[str(self.issue.id)]))
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(response.data['assignee_ids'], [])
+
+
+    def test_backfill_is_explicit_idempotent_and_preserves_publication_history(self):
+        from io import StringIO
+        from plane.db.models import IssueAssignee
+        from django.utils import timezone
+        IssueAssignee.objects.create(issue=self.issue, assignee=self.member, project=self.project, workspace=self.workspace)
+        IssueAssignee.objects.create(issue=self.issue, assignee=self.owner, project=self.project, workspace=self.workspace, deleted_at=timezone.now())
+        created = self.request('post', self.owner, self.payload(source_issue_ids=[str(self.issue.id)]))
+        pk = created.data['id']
+        self.request('post', self.owner, {'version': 1}, pk, 'publish')
+        old_revision = Artifact.objects.get(pk=pk).published_revision
+        old_snapshot = dict(old_revision.snapshot)
+        out = StringIO()
+        call_command('backfill_artifact_assignees', workspace=self.workspace.slug, actor=str(self.owner.id), stdout=out)
+        self.assertEqual(json.loads(out.getvalue())['results'][0]['suggested'], [str(self.member.id)])
+        self.assertEqual(self.request('get', self.owner, pk=pk).data['assignee_ids'], [])
+        call_command('backfill_artifact_assignees', workspace=self.workspace.slug, actor=str(self.owner.id), apply=True, stdout=StringIO())
+        result = self.request('get', self.member, pk=pk).data
+        self.assertEqual(result['assignee_ids'], [str(self.member.id)])
+        self.assertEqual(result['published_version'], 2)
+        old_revision.refresh_from_db()
+        self.assertEqual(old_revision.snapshot, old_snapshot)
+        count = ArtifactRevision.objects.count()
+        call_command('backfill_artifact_assignees', workspace=self.workspace.slug, actor=str(self.owner.id), apply=True, stdout=StringIO())
+        self.assertEqual(ArtifactRevision.objects.count(), count)
+
+    def test_restoring_revision_restores_assignees_in_draft_only(self):
+        created = self.request('post', self.owner, self.payload(assignee_ids=[str(self.member.id)]))
+        pk = created.data['id']
+        self.request('post', self.owner, {'version': 1}, pk, 'publish')
+        revision = Artifact.objects.get(pk=pk).published_revision
+        self.request('patch', self.owner, {'version': 2, 'assignee_ids': []}, pk)
+        from plane.app.services.artifacts.restore import restore_revision
+        restore_revision(self.owner, Artifact.objects.get(pk=pk), revision.id, 3)
+        self.assertEqual(self.request('get', self.owner, pk=pk, query='view=draft').data['assignee_ids'], [str(self.member.id)])
+
+
+    def test_backfill_never_updates_draft_or_withdrawn_artifacts(self):
+        from io import StringIO
+        self.issue.assignees.add(self.member, through_defaults={"project": self.project, "workspace": self.workspace})
+        first = self.request('post', self.owner, self.payload(source_issue_ids=[str(self.issue.id)]))
+        second = self.request('post', self.owner, self.payload(title='withdrawn', source_issue_ids=[str(self.issue.id)]))
+        self.request('post', self.owner, {'version': 1}, second.data['id'], 'publish')
+        self.request('post', self.owner, {'version': 2}, second.data['id'], 'withdraw')
+        out = StringIO()
+        call_command('backfill_artifact_assignees', workspace=self.workspace.slug, actor=str(self.owner.id), apply=True, stdout=out)
+        self.assertEqual({row['action'] for row in json.loads(out.getvalue())['results']}, {'skip-not-published'})
+        for pk in (first.data['id'], second.data['id']):
+            self.assertFalse(Artifact.objects.get(pk=pk).assignees.exists())
+
+    def test_departed_workspace_member_cannot_be_assigned_or_restored(self):
+        created = self.request('post', self.owner, self.payload(assignee_ids=[str(self.member.id)]))
+        pk = created.data['id']
+        self.request('post', self.owner, {'version': 1}, pk, 'publish')
+        revision = Artifact.objects.get(pk=pk).published_revision
+        WorkspaceMember.objects.filter(workspace=self.workspace, member=self.member).update(is_active=False)
+        updated = self.request('patch', self.owner, {'version': 2, 'assignee_ids': [str(self.member.id)]}, pk)
+        self.assertEqual(updated.status_code, 400)
+        self.assertEqual(self.request('post', self.owner, {'version': 2}, pk, 'publish').status_code, 400)
+        self.assertEqual(Artifact.objects.get(pk=pk).version, 2)
+        from plane.app.services.artifacts.restore import restore_revision
+        from rest_framework.exceptions import ValidationError
+        with self.assertRaises(ValidationError):
+            restore_revision(self.owner, Artifact.objects.get(pk=pk), revision.id, 2)
+        self.assertEqual(Artifact.objects.get(pk=pk).version, 2)
+
+
 class ArtifactImportCommandTests(TestCase):
     @classmethod
     def setUpTestData(cls):

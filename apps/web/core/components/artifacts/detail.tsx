@@ -1,3 +1,4 @@
+import { ArtifactAssignees } from "./assignees";
 import { useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { Dialog } from "@headlessui/react";
@@ -158,6 +159,10 @@ export function ArtifactDetail({
             </p>
           )}
           <Section title="成果说明">
+            <div className="mb-3 flex items-center gap-2 text-13 text-secondary">
+              <span>负责人</span>
+              <ArtifactAssignees ids={artifact.assignee_ids} showNames />
+            </div>
             <div className="text-xs flex flex-wrap gap-2 text-secondary">
               <span>{artifact.category || "未分类"}</span>
               <span>{artifact.kind}</span>

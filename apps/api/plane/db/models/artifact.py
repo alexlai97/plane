@@ -32,6 +32,7 @@ class Artifact(models.Model):
 
     workspace = models.ForeignKey("db.Workspace", on_delete=models.CASCADE, related_name="artifacts")
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="owned_artifacts")
+    assignees = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, related_name="assigned_artifacts")
     title = models.CharField(max_length=255)
     summary = models.TextField(blank=True, default="")
     kind = models.CharField(max_length=80)

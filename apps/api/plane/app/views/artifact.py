@@ -223,7 +223,7 @@ class ArtifactSourceEndpoint(BaseAPIView):
                                               entity_type__in=[FileAsset.EntityTypeContext.ISSUE_ATTACHMENT, FileAsset.EntityTypeContext.ISSUE_DESCRIPTION, FileAsset.EntityTypeContext.COMMENT_DESCRIPTION])
             return Response({"results": [{"id": str(a.id), "name": a.attributes.get("name", "附件"), "type": a.attributes.get("type", "application/octet-stream"), "size": int(a.size or 0)} for a in assets]})
         q = request.query_params.get("search", "").strip()
-        from plane.app.services.artifacts import can_project
+        from plane.app.services.artifacts import can_project, source_assignee_ids
         from plane.app.permissions import ROLE
         allowed_projects = set(ProjectMember.objects.filter(workspace=ws, member=request.user, is_active=True, deleted_at__isnull=True).values_list("project_id", flat=True))
         issues = Issue.issue_objects.filter(workspace=ws, project_id__in=allowed_projects, deleted_at__isnull=True).select_related("project")
@@ -233,7 +233,7 @@ class ArtifactSourceEndpoint(BaseAPIView):
             identifier = f"{issue.project.identifier}-{issue.sequence_id}"
             if term and term not in identifier.casefold() and term not in issue.name.casefold() and term not in issue.project.name.casefold():
                 continue
-            results.append({"id": str(issue.id), "identifier": identifier, "name": issue.name, "project_id": str(issue.project_id)})
+            results.append({"id": str(issue.id), "identifier": identifier, "name": issue.name, "project_id": str(issue.project_id), "assignee_ids": source_assignee_ids(issue)})
             if len(results) == 100:
                 break
         return Response({"results": results})
