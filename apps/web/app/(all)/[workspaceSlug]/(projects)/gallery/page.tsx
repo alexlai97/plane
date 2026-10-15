@@ -109,7 +109,7 @@ export default function GalleryPage() {
             {canCreate && (
               <a
                 href={`/${encodeURIComponent(slug)}/gallery/manage/`}
-                className="text-12 text-secondary hover:text-link-primary"
+                className="shrink-0 text-12 whitespace-nowrap text-secondary hover:text-link-primary"
               >
                 管理成果
               </a>
