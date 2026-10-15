@@ -7,7 +7,7 @@
 import { observer } from "mobx-react";
 // components
 import { CycleCreateUpdateModal } from "@/components/cycles/modal";
-import { CreateUpdateModuleModal } from "@/components/modules";
+import { CreateUpdateModuleModal } from "@/components/modules/modal";
 import { CreatePageModal } from "@/components/pages/modals/create-page-modal";
 import { CreateUpdateProjectViewModal } from "@/components/views/modal";
 // hooks

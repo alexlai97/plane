@@ -12,7 +12,7 @@ import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { IModule } from "@plane/types";
 import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
 // components
-import { ModuleForm } from "@/components/modules";
+import { ModuleForm } from "./form";
 // hooks
 import { useModule } from "@/hooks/store/use-module";
 import { useProject } from "@/hooks/store/use-project";

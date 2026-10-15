@@ -18,7 +18,7 @@ import { getDate, renderFormattedPayloadDate, getTabIndex } from "@plane/utils";
 import { DateRangeDropdown } from "@/components/dropdowns/date-range";
 import { MemberDropdown } from "@/components/dropdowns/member/dropdown";
 import { ProjectDropdown } from "@/components/dropdowns/project/dropdown";
-import { ModuleStatusSelect } from "@/components/modules";
+import { ModuleStatusSelect } from "./select/status";
 // hooks
 import { useUser } from "@/hooks/store/user/user-user";
 

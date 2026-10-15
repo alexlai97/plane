@@ -70,3 +70,22 @@ Preview cache endpoints are authorized against the original attachment and proje
 Only UUID-prefixed output for the authorized asset and fixed viewer resources can be read.
 Upstream receives X-Base-Url for per-attachment paths. It fetches only short-lived signed source URLs.
 User-supplied source URLs are ignored; original download endpoints stay available.
+
+## SPA startup and deferred editor
+
+The static SPA `HydrateFallback` renders the same loading shell during build and
+initial browser hydration. Theme changes are expressed through CSS, not a separate
+initial DOM. The public work-item modal entrypoint retains its props contract and
+loads the existing form/provider only when opened, with a cancellable loading modal.
+Module modal/form imports stay direct to avoid pulling analytics through a barrel cycle.
+
+For the browser regression, open the authenticated gallery in an owned
+`playwright-cli` session, then run:
+
+```sh
+playwright-cli -s=startup run-code "$(cat bokang/tests/spa-startup.browser.js)"
+```
+
+It reloads the gallery with a cold cache, compares visible results with the API,
+rejects startup page errors, and checks that closed editor/chart features are deferred.
+It makes read-only requests and does not save business data.
