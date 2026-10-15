@@ -8,6 +8,8 @@ from pathlib import Path
 
 from django.core.management import call_command, CommandError
 from django.test import TestCase, override_settings
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core import signing
 from django.http import HttpResponse
@@ -140,6 +142,11 @@ class ArtifactLifecycleTests(TestCase):
             self.request("post", self.owner, {"version": 1}, artifact_id, "publish")
             artifact = Artifact.objects.get(id=artifact_id)
             revision_id = artifact.published_revision_id
+            gallery_request = APIRequestFactory().get("/gallery/")
+            force_authenticate(gallery_request, user=self.member)
+            gallery = WorkspaceGalleryEndpoint.as_view()(gallery_request, slug=self.workspace.slug)
+            self.assertEqual(gallery.status_code, 200, gallery.data)
+            self.assertNotIn(artifact_id, {item["id"] for item in gallery.data["cards"]})
             if deletion == "soft":
                 Issue.all_objects.filter(id=issue.id).update(deleted_at=timezone.now())
             elif deletion == "hard":
@@ -279,6 +286,122 @@ class ArtifactLifecycleTests(TestCase):
         from django.utils import timezone
         Artifact.objects.filter(id__in=[first, second]).update(updated_at=timezone.now())
         self.assertEqual([row["id"] for row in self.request("get", self.owner, query="scope=manage").data["results"]], sorted([first, second]))
+
+    def test_gallery_collection_query_count_does_not_grow_with_artifact_count(self):
+        shared = FileAsset.objects.create(
+            workspace=self.workspace, user=self.owner, issue=self.issue, project=self.project,
+            entity_type=FileAsset.EntityTypeContext.ISSUE_ATTACHMENT, is_uploaded=True,
+            asset="gallery-query-shared.pdf", attributes={"name": "共享材料.pdf", "size": 128, "type": "application/pdf"}, size=128,
+        )
+
+        def publish(title):
+            created = self.request("post", self.owner, self.payload(
+                title=title, source_issue_ids=[str(self.issue.id)], assets=[str(shared.id)],
+            ))
+            self.assertEqual(created.status_code, 201, created.data)
+            self.assertEqual(self.request("post", self.owner, {"version": 1}, created.data["id"], "publish").status_code, 200)
+            return created.data["id"]
+
+        first = publish("第一个成果")
+
+        def gallery_query_count():
+            request = APIRequestFactory().get("/gallery/")
+            force_authenticate(request, user=self.owner)
+            with CaptureQueriesContext(connection) as queries:
+                response = WorkspaceGalleryEndpoint.as_view()(request, slug=self.workspace.slug)
+            self.assertEqual(response.status_code, 200, response.data)
+            return len(queries), response.data
+
+        def management_query_count():
+            request = APIRequestFactory().get("/artifacts/?scope=manage")
+            force_authenticate(request, user=self.owner)
+            with CaptureQueriesContext(connection) as queries:
+                response = ArtifactEndpoint.as_view()(request, slug=self.workspace.slug)
+            self.assertEqual(response.status_code, 200, response.data)
+            return len(queries), response.data
+
+        one_count, one = gallery_query_count()
+        one_manage_count, _ = management_query_count()
+        self.assertTrue(one["can_create"])
+        self.assertEqual([item["id"] for item in one["cards"]], [first])
+        self.assertEqual(one["cards"][0]["sources"][0]["id"], str(self.issue.id))
+
+        for index in range(3):
+            publish(f"第 {index + 2} 个成果")
+        four_count, four = gallery_query_count()
+        four_manage_count, four_manage = management_query_count()
+        self.assertEqual(len(four["cards"]), 4)
+        self.assertEqual(four_count, one_count, f"collection query count grew from {one_count} to {four_count}")
+        self.assertLessEqual(four_count, 20, f"gallery collection used {four_count} queries for four cards")
+        self.assertEqual(len(four_manage["results"]), 4)
+        self.assertEqual(four_manage_count, one_manage_count,
+                         f"management query count grew from {one_manage_count} to {four_manage_count}")
+
+    def test_gallery_batch_snapshot_matches_single_artifact_serialization_for_frozen_sources(self):
+        category = ArtifactCategory.objects.create(workspace=self.workspace, name="产品交付")
+        material = FileAsset.objects.create(
+            workspace=self.workspace, user=self.owner, issue=self.issue, project=self.project,
+            entity_type=FileAsset.EntityTypeContext.ISSUE_ATTACHMENT, is_uploaded=True,
+            asset="gallery-parity.pdf", attributes={"name": "交付.pdf", "size": 128, "type": "application/pdf"}, size=128,
+        )
+        created = self.request("post", self.owner, self.payload(
+            category_id=str(category.id), source_issue_ids=[str(self.issue.id)], assets=[str(material.id)],
+            primary_action={"type": "attachment", "label": "打开交付", "attachment_id": str(material.id)},
+        ))
+        artifact_id = created.data["id"]
+        self.assertEqual(self.request("patch", self.owner, {
+            "version": 1, "cover_asset_id": str(material.id),
+        }, artifact_id).status_code, 200)
+        self.assertEqual(self.request("post", self.owner, {"version": 2}, artifact_id, "publish").status_code, 200)
+
+        # A deleted source remains readable only through its frozen project reference.
+        Issue.all_objects.filter(id=self.issue.id).delete()
+        request = APIRequestFactory().get("/gallery/")
+        force_authenticate(request, user=self.owner)
+        gallery = WorkspaceGalleryEndpoint.as_view()(request, slug=self.workspace.slug)
+        self.assertEqual(gallery.status_code, 200, gallery.data)
+        card = next(item for item in gallery.data["cards"] if item["id"] == artifact_id)
+
+        from plane.app.services.artifacts import serialize_artifact
+        artifact = Artifact.objects.select_related("workspace", "published_revision", "category", "cover_asset", "owner").get(id=artifact_id)
+        single = serialize_artifact(artifact, self.owner, "published")
+        self.assertEqual(card, single)
+        self.assertEqual(card["category"], "产品交付")
+        self.assertEqual(card["unavailable_reference_count"], 3)
+        self.assertEqual(card["cover"]["asset_id"], str(material.id))
+        self.assertEqual(card["attachments"][0]["id"], str(material.id))
+
+    def test_gallery_batch_snapshot_matches_single_serialization_for_foreign_cover_owner(self):
+        from plane.app.services.artifacts import serialize_artifact
+
+        published = self.request("post", self.owner, self.payload(title="已发布成果")).data
+        self.assertEqual(self.request("post", self.owner, {"version": 1}, published["id"], "publish").status_code, 200)
+        other = self.request("post", self.owner, self.payload(title="另一成果")).data
+        foreign_asset = FileAsset.objects.create(
+            workspace=self.workspace, user=self.owner, entity_type=FileAsset.EntityTypeContext.ARTIFACT_ATTACHMENT,
+            entity_identifier=other["id"], is_uploaded=True, asset="foreign-cover.png",
+            attributes={"name": "另一成果封面.png", "size": 64, "type": "image/png"}, size=64,
+        )
+        artifact = Artifact.objects.get(id=published["id"])
+        revision = artifact.published_revision
+        snapshot_data = dict(revision.snapshot)
+        reference = {"title": "跨成果附件", "url": None, "kind": "attachment", "asset_id": str(foreign_asset.id),
+                     "name": "另一成果封面.png", "size": 64, "mime": "image/png"}
+        snapshot_data["materials"] = [*snapshot_data.get("materials", []), reference]
+        snapshot_data["cover"] = {"asset_id": str(foreign_asset.id), "name": "另一成果封面.png"}
+        revision.snapshot = snapshot_data
+        revision.save(update_fields=["snapshot"])
+
+        request = APIRequestFactory().get("/gallery/")
+        force_authenticate(request, user=self.owner)
+        gallery = WorkspaceGalleryEndpoint.as_view()(request, slug=self.workspace.slug)
+        card = next(item for item in gallery.data["cards"] if item["id"] == published["id"])
+        single = serialize_artifact(
+            Artifact.objects.select_related("workspace", "published_revision", "category", "cover_asset", "owner").get(id=published["id"]),
+            self.owner, "published",
+        )
+        self.assertEqual(card, single)
+        self.assertEqual(card["unavailable_reference_count"], 2)
 
     def test_restore_published_changes_only_draft_and_preserves_served_revision(self):
         created = self.request("post", self.owner, self.payload(summary="first"))

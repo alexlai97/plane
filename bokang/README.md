@@ -21,7 +21,9 @@ pnpm install --filter 'web...' --filter 'admin...' --filter 'space...' --frozen-
 
 Web uses `apps/web/build/client` at `/usr/share/nginx/html`. Admin uses
 `apps/admin/build/client` at `/usr/share/nginx/html/god-mode` (ASSET_PATH build arg, HEALTHCHECK_PATH=/god-mode/).
-Package these with `Dockerfile.runtime`. Space serves SSR through Node and uses
+Package these with `Dockerfile.runtime`, placing `nginx.runtime.conf` beside the Dockerfile
+and `client/` in the build context. Hashed assets use immutable caching, entrypoints
+revalidate, and text resources are gzip-compressed. Space serves SSR through Node and uses
 all of `apps/space/build`, copied to `/app/apps/space/build` by `Dockerfile.space-runtime`.
 The build script sets the same API/admin/space/live base paths as upstream Dockerfiles.
 Only three frontend images need to be replaced. Preserve production volumes.

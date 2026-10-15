@@ -3,7 +3,7 @@ import uuid
 from urllib.parse import urlparse
 
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Prefetch, Q
 from django.utils import timezone
 from rest_framework.exceptions import APIException, NotFound, PermissionDenied, ValidationError
 
@@ -222,24 +222,136 @@ def source_assignee_ids(issue):
     return sorted({str(value) for value in IssueAssignee.objects.filter(issue=issue, deleted_at__isnull=True, assignee_id__in=active_members).values_list("assignee_id", flat=True)})
 
 
-def _serialize_source(issue, slug):
-    return {"id": str(issue.id), "sequence_id": issue.sequence_id, "name": issue.name, "assignee_ids": source_assignee_ids(issue),
+def artifact_read_queryset(queryset):
+    """Load artifact relations once so collection serializers do not issue per-row queries."""
+    return queryset.select_related("workspace", "published_revision", "category", "cover_asset", "owner").prefetch_related(
+        Prefetch("sources", queryset=ArtifactSource.objects.select_related("issue__project").order_by("created_at", "id"), to_attr="_artifact_read_sources"),
+        Prefetch("materials", queryset=ArtifactMaterial.objects.select_related("asset").order_by("position", "created_at"), to_attr="_artifact_read_materials"),
+        Prefetch("assignees", to_attr="_artifact_read_assignees"),
+    )
+
+
+class ArtifactReadContext:
+    """Request-local, workspace-scoped authorization and lookup maps for a collection read."""
+
+    def __init__(self, user, workspace, artifacts, role=None):
+        self.user = user
+        self.workspace = workspace
+        self.role = role if role is not None else member_role(user, workspace)
+        artifacts = list(artifacts)
+        source_rows = [row for artifact in artifacts for row in self._sources(artifact)]
+        materials = [item for artifact in artifacts for item in self._materials(artifact)]
+
+        issue_ids = {str(row.issue_id) for row in source_rows if row.issue_id}
+        asset_ids = {str(item.asset_id) for item in materials if item.asset_id}
+        category_ids = {str(artifact.category_id) for artifact in artifacts if artifact.category_id}
+        for artifact in artifacts:
+            revision = artifact.published_revision
+            if not revision:
+                continue
+            snap = revision.snapshot or {}
+            category_id = snap.get("category_id")
+            if category_id:
+                category_ids.add(category_id)
+            for source in snap.get("sources", []):
+                if source.get("id"):
+                    issue_ids.add(str(source["id"]))
+            asset_ids.update(str(item["asset_id"]) for item in snap.get("materials", []) if item.get("asset_id"))
+            if (snap.get("cover") or {}).get("asset_id"):
+                asset_ids.add(str(snap["cover"]["asset_id"]))
+
+        projects = ProjectMember.objects.filter(
+            workspace=workspace, member=user, is_active=True, deleted_at__isnull=True,
+            project__deleted_at__isnull=True,
+        ).values_list("project_id", flat=True)
+        self.project_ids = {str(value) for value in projects}
+        self.issues = {
+            str(issue.id): issue
+            for issue in Issue.all_objects.filter(id__in=issue_ids, workspace=workspace).select_related("project")
+        }
+        self.assets = {
+            str(asset.id): asset
+            for asset in FileAsset.objects.filter(
+                id__in=asset_ids, workspace=workspace, is_uploaded=True, is_deleted=False, deleted_at__isnull=True,
+            )
+        }
+        self.categories = {
+            str(category.id): category
+            for category in ArtifactCategory.objects.filter(id__in=category_ids, workspace=workspace, deleted_at__isnull=True)
+        }
+        active_members = WorkspaceMember.objects.filter(
+            workspace=workspace, is_active=True, deleted_at__isnull=True, member__is_active=True,
+        ).values_list("member_id", flat=True)
+        self.source_assignees = {}
+        if issue_ids:
+            for issue_id, user_id in IssueAssignee.objects.filter(
+                issue_id__in=issue_ids, deleted_at__isnull=True, assignee_id__in=active_members,
+            ).values_list("issue_id", "assignee_id").distinct():
+                self.source_assignees.setdefault(str(issue_id), set()).add(str(user_id))
+
+    @staticmethod
+    def _sources(artifact):
+        if hasattr(artifact, "_artifact_read_sources"):
+            return artifact._artifact_read_sources
+        return artifact.sources.select_related("issue__project").order_by("created_at", "id")
+
+    @staticmethod
+    def _materials(artifact):
+        if hasattr(artifact, "_artifact_read_materials"):
+            return artifact._artifact_read_materials
+        return artifact.materials.select_related("asset").order_by("position", "created_at")
+
+    def valid_published_asset(self, asset_id, artifact):
+        asset = self.assets.get(str(asset_id))
+        return bool(asset and (asset.entity_type != FileAsset.EntityTypeContext.ARTIFACT_ATTACHMENT
+                               or str(asset.entity_identifier) == str(artifact.id)))
+
+    def authorize_snapshot(self, snap):
+        unavailable = 0
+        for source in snap.get("sources", []):
+            issue = self.issues.get(str(source.get("id"))) if source.get("id") else None
+            project_id = issue.project_id if issue else source.get("project_id")
+            if not project_id or str(project_id) not in self.project_ids:
+                raise NotFound()
+            if issue is None or issue.deleted_at is not None:
+                unavailable += 1
+        return unavailable
+
+    def authorize_existing(self, artifact):
+        if artifact.published_revision:
+            self.authorize_snapshot(artifact.published_revision.snapshot)
+        for row in self._sources(artifact):
+            source = {"id": str(row.issue_id)} if row.issue_id else {"project_id": str(row.project_id) if row.project_id else None}
+            self.authorize_snapshot({"sources": [source]})
+
+    def can_edit(self, artifact):
+        return self.role == ROLE.ADMIN.value or (
+            self.role == ROLE.MEMBER.value
+            and (artifact.access == Artifact.Access.WORKSPACE or artifact.owner_id == self.user.id)
+        )
+
+
+def _serialize_source(issue, slug, read_context=None):
+    assignee_ids = sorted(read_context.source_assignees.get(str(issue.id), set())) if read_context else source_assignee_ids(issue)
+    return {"id": str(issue.id), "sequence_id": issue.sequence_id, "name": issue.name, "assignee_ids": assignee_ids,
             "project_id": str(issue.project_id), "project_name": issue.project.name,
             "identifier": f"{issue.project.identifier}-{issue.sequence_id}",
             "url": f"/{slug}/browse/{issue.project.identifier}-{issue.sequence_id}/"}
 
 
-def snapshot(artifact, slug):
+def snapshot(artifact, slug, read_context=None):
     sources = []
     unavailable = 0
-    for row in artifact.sources.select_related("issue__project").order_by("created_at", "id"):
+    source_rows = read_context._sources(artifact) if read_context else artifact.sources.select_related("issue__project").order_by("created_at", "id")
+    for row in source_rows:
         issue = row.issue
         if issue is None or issue.deleted_at is not None:
             unavailable += 1
         else:
-            sources.append(_serialize_source(issue, slug))
+            sources.append(_serialize_source(issue, slug, read_context))
     materials = []
-    for item in artifact.materials.select_related("asset"):
+    material_rows = read_context._materials(artifact) if read_context else artifact.materials.select_related("asset")
+    for item in material_rows:
         asset = item.asset
         if item.url:
             materials.append({"title": item.title, "url": item.url, "kind": item.kind, "asset_id": None})
@@ -255,10 +367,15 @@ def snapshot(artifact, slug):
         cover = {"asset_id": str(artifact.cover_asset_id), "name": artifact.cover_asset.attributes.get("name", "封面")}
     elif artifact.cover_asset_id:
         unavailable += 1
+    assignees = getattr(artifact, "_artifact_read_assignees", None)
+    if assignees is None:
+        assignee_ids = list(artifact.assignees.values_list("id", flat=True))
+    else:
+        assignee_ids = [assignee.id for assignee in assignees]
     return {"id": str(artifact.id), "title": artifact.title, "summary": artifact.summary, "category": artifact.category.name if artifact.category and not artifact.category.deleted_at else None,
             "category_id": str(artifact.category_id) if artifact.category_id else None, "kind": artifact.kind,
             "sources": sources, "source_issue_ids": [item["id"] for item in sources],
-            "assignee_ids": sorted(str(value) for value in artifact.assignees.values_list("id", flat=True)),
+            "assignee_ids": sorted(str(value) for value in assignee_ids),
             "assets": [{"id": item["asset_id"], "name": item["name"], "size": item["size"], "type": item["mime"]} for item in materials if item.get("asset_id")],
             "links": [{"title": item["title"], "url": item["url"], "kind": item["kind"]} for item in materials if item.get("url")],
             "materials": materials, "primary_action": artifact.primary_action, "cover": cover,
@@ -421,9 +538,13 @@ def render_authorized_asset(user, artifact, revision, asset_id):
     return asset
 
 
-def published_snapshot(artifact, user):
-    if artifact.status != Artifact.Status.PUBLISHED or (artifact.access == Artifact.Access.PRIVATE and not can_edit(user, artifact)):
+def published_snapshot(artifact, user, read_context=None):
+    if artifact.status != Artifact.Status.PUBLISHED:
         raise NotFound()
+    if artifact.access == Artifact.Access.PRIVATE:
+        can_edit_artifact = read_context.can_edit(artifact) if read_context else can_edit(user, artifact)
+        if not can_edit_artifact:
+            raise NotFound()
     revision = artifact.published_revision
     if not revision:
         return None
@@ -431,7 +552,10 @@ def published_snapshot(artifact, user):
     snap["published_version"] = revision.number
     snap["status"] = artifact.status
     category_id = snap.get("category_id")
-    current_category = ArtifactCategory.objects.filter(id=category_id, workspace=artifact.workspace, deleted_at__isnull=True).first() if category_id else None
+    if read_context:
+        current_category = read_context.categories.get(str(category_id)) if category_id else None
+    else:
+        current_category = ArtifactCategory.objects.filter(id=category_id, workspace=artifact.workspace, deleted_at__isnull=True).first() if category_id else None
     snap["category"] = current_category.name if current_category else None
     # Report broken references explicitly; a missing private source denies the whole result.
     referenced_assets = [m.get("asset_id") for m in snap.get("materials", []) if m.get("asset_id")]
@@ -439,11 +563,15 @@ def published_snapshot(artifact, user):
         referenced_assets.append(snap["cover"]["asset_id"])
     unavailable_assets = 0
     for asset_id in referenced_assets:
-        asset = FileAsset.objects.filter(id=asset_id, workspace=artifact.workspace, is_uploaded=True, is_deleted=False, deleted_at__isnull=True).first()
-        if asset is None or (asset.entity_type == FileAsset.EntityTypeContext.ARTIFACT_ATTACHMENT and str(asset.entity_identifier) != str(artifact.id)):
+        if read_context:
+            asset_is_valid = read_context.valid_published_asset(asset_id, artifact)
+        else:
+            asset = FileAsset.objects.filter(id=asset_id, workspace=artifact.workspace, is_uploaded=True, is_deleted=False, deleted_at__isnull=True).first()
+            asset_is_valid = asset is not None and (asset.entity_type != FileAsset.EntityTypeContext.ARTIFACT_ATTACHMENT or str(asset.entity_identifier) == str(artifact.id))
+        if not asset_is_valid:
             unavailable_assets += 1
     snap["unavailable_reference_count"] = unavailable_assets
-    snap["unavailable_reference_count"] += authorize_snapshot_sources(user, artifact.workspace, snap)
+    snap["unavailable_reference_count"] += read_context.authorize_snapshot(snap) if read_context else authorize_snapshot_sources(user, artifact.workspace, snap)
     return snap
 
 
@@ -491,25 +619,40 @@ def transition_artifact(user, artifact, version, status_value):
     return artifact
 
 
-def serialize_artifact(artifact, user, view="published"):
-    draft_snap = snapshot(artifact, artifact.workspace.slug)
-    if view == "draft" and can_edit(user, artifact):
-        authorize_existing_sources(user, artifact)
-        snap = draft_snap
+def serialize_artifact(artifact, user, view="published", read_context=None):
+    if read_context is not None:
+        editable = read_context.can_edit(artifact)
+        draft_snap = snapshot(artifact, artifact.workspace.slug, read_context=read_context) if editable else None
+        if view == "draft" and editable:
+            read_context.authorize_existing(artifact)
+            snap = draft_snap
+        else:
+            snap = published_snapshot(artifact, user, read_context=read_context)
+            if snap is None:
+                raise NotFound()
     else:
-        snap = published_snapshot(artifact, user)
-        if snap is None:
-            raise NotFound()
+        draft_snap = snapshot(artifact, artifact.workspace.slug)
+        if view == "draft" and can_edit(user, artifact):
+            authorize_existing_sources(user, artifact)
+            snap = draft_snap
+        else:
+            snap = published_snapshot(artifact, user)
+            if snap is None:
+                raise NotFound()
     snap.setdefault("assignee_ids", [])
-    editable = can_edit(user, artifact)
+    if read_context is None:
+        editable = can_edit(user, artifact)
     if editable:
         try:
-            authorize_existing_sources(user, artifact)
+            if read_context is not None:
+                read_context.authorize_existing(artifact)
+            else:
+                authorize_existing_sources(user, artifact)
         except NotFound:
             editable = False
     published = artifact.published_revision.snapshot if artifact.published_revision else None
     compare_keys = ("title", "summary", "category_id", "kind", "source_issue_ids", "assignee_ids", "assets", "links", "primary_action", "cover")
-    changed = bool(editable and published and any(draft_snap.get(key, [] if key == "assignee_ids" else None) != published.get(key, [] if key == "assignee_ids" else None) for key in compare_keys))
+    changed = bool(editable and published and draft_snap and any(draft_snap.get(key, [] if key == "assignee_ids" else None) != published.get(key, [] if key == "assignee_ids" else None) for key in compare_keys))
     snap.update({"owner_id": str(artifact.owner_id) if artifact.owner_id else None, "status": artifact.status, "version": artifact.version,
                  "access": artifact.access,
                  "published_version": artifact.published_revision.number if artifact.published_revision else None,

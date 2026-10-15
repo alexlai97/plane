@@ -49,6 +49,7 @@ export type GalleryCard = {
 };
 
 export type GalleryResponse = {
+  can_create: boolean;
   categories: string[];
   stats: { total: number; with_demo: number };
   cards: GalleryCard[];

@@ -6,7 +6,6 @@ import { Header, EHeaderVariant } from "@plane/ui";
 import { Button } from "@plane/propel/button";
 import { Input } from "@plane/propel/input";
 import { Tabs } from "@plane/propel/tabs";
-import { artifactService } from "@/services/artifact.service";
 import { PageHead } from "@/components/core/page-title";
 import { GalleryOverview } from "@/components/artifacts/gallery-overview";
 import { GalleryCards } from "@/components/artifacts/gallery-cards";
@@ -35,7 +34,6 @@ export default function GalleryPage() {
   const navigate = useNavigate();
   const { query, layout, peek } = parseGalleryViewState(searchParams.toString());
   const [data, setData] = useState<GalleryResponse | null>(null);
-  const [canCreate, setCanCreate] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [preview, setPreview] = useState<GalleryAttachment>();
@@ -65,11 +63,6 @@ export default function GalleryPage() {
       setError(true);
     } finally {
       setLoading(false);
-    }
-    try {
-      setCanCreate((await artifactService.list(slug)).can_create);
-    } catch {
-      setCanCreate(false);
     }
   }, [slug]);
   useEffect(() => {
@@ -148,7 +141,7 @@ export default function GalleryPage() {
                 </Tabs.Trigger>
               </Tabs.List>
             </Tabs>
-            {canCreate && (
+            {data?.can_create && (
               <a
                 href={`/${encodeURIComponent(slug)}/gallery/manage/`}
                 className="shrink-0 text-12 whitespace-nowrap text-secondary hover:text-link-primary"

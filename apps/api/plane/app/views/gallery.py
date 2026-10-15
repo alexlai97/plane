@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404
 from django.utils.html import escape
 from rest_framework.response import Response
 
-from plane.app.services.artifacts import can_edit, render_authorized_asset, serialize_artifact, snapshot
+from plane.app.services.artifacts import ArtifactReadContext, artifact_read_queryset, can_edit, member_role, render_authorized_asset, serialize_artifact, snapshot
 from plane.app.views.base import BaseAPIView
 from plane.app.views.attachment_preview import AttachmentPreviewResponseMixin
 from plane.app.permissions import ROLE, allow_permission
@@ -22,19 +22,22 @@ class WorkspaceGalleryEndpoint(BaseAPIView):
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
     def get(self, request, slug):
         workspace = get_object_or_404(Workspace, slug=slug, deleted_at__isnull=True)
-        rows = Artifact.objects.filter(workspace=workspace, status=Artifact.Status.PUBLISHED,
-                                       deleted_at__isnull=True).select_related("published_revision").order_by("created_at", "id")
+        rows = list(artifact_read_queryset(Artifact.objects.filter(
+            workspace=workspace, status=Artifact.Status.PUBLISHED, deleted_at__isnull=True,
+        ).order_by("created_at", "id")))
+        read_context = ArtifactReadContext(request.user, workspace, rows)
         cards = []
         for artifact in rows:
             try:
-                card = serialize_artifact(artifact, request.user, "published")
+                card = serialize_artifact(artifact, request.user, "published", read_context=read_context)
             except (NotFound, PermissionDenied):
                 continue
             card["published_version"] = artifact.published_revision.number if artifact.published_revision else None
             cards.append(card)
         categories = list(dict.fromkeys(c["category"] for c in cards if c.get("category")))
         demos = {c["id"] for c in cards if any(l.get("kind") == "demo" for l in c["links"]) or any(a.get("mime", "").startswith("video/") for a in c["attachments"])}
-        return Response({"categories": categories, "stats": {"total": len(cards), "with_demo": len(demos)}, "cards": cards})
+        return Response({"categories": categories, "stats": {"total": len(cards), "with_demo": len(demos)}, "cards": cards,
+                         "can_create": read_context.role in (ROLE.ADMIN.value, ROLE.MEMBER.value)})
 
 
 class ArtifactAssetEndpoint(AttachmentPreviewResponseMixin, BaseAPIView):

@@ -12,7 +12,7 @@ from rest_framework.exceptions import NotFound, PermissionDenied
 
 from plane.app.permissions import ROLE
 from plane.app.services.artifacts import (
-    active_artifact, can_edit, create_artifact, member_role, published_snapshot,
+    ArtifactReadContext, active_artifact, artifact_read_queryset, can_edit, create_artifact, member_role, published_snapshot,
     publish_artifact, serialize_artifact, transition_artifact, update_artifact,
 )
 from plane.app.views.base import BaseAPIView
@@ -25,9 +25,11 @@ from plane.api.rate_limit import ApiKeyRateThrottle
 class ArtifactEndpoint(BaseAPIView):
     def workspace(self, slug):
         ws = get_object_or_404(Workspace, slug=slug, deleted_at__isnull=True)
-        if member_role(self.request.user, ws) is None:
+        role = member_role(self.request.user, ws)
+        if role is None:
             from rest_framework.exceptions import NotFound
             raise NotFound()
+        self.workspace_role = role
         return ws
 
     def get(self, request, slug, pk=None):
@@ -37,8 +39,9 @@ class ArtifactEndpoint(BaseAPIView):
             return Response(serialize_artifact(obj, request.user, request.query_params.get("view", "published")))
         manage = request.query_params.get("scope") == "manage"
         qs = Artifact.objects.filter(workspace=ws, deleted_at__isnull=True)
+        role = self.workspace_role
         if manage:
-            if member_role(request.user, ws) != ROLE.ADMIN.value:
+            if role != ROLE.ADMIN.value:
                 qs = qs.filter(Q(access=Artifact.Access.WORKSPACE) | Q(owner=request.user))
         else:
             qs = qs.filter(status=Artifact.Status.PUBLISHED)
@@ -46,13 +49,16 @@ class ArtifactEndpoint(BaseAPIView):
         term = request.query_params.get("search", "").strip()
         if term:
             qs = qs.filter(title__icontains=term) | qs.filter(summary__icontains=term)
+        artifacts = list(artifact_read_queryset(qs))
+        read_context = ArtifactReadContext(request.user, ws, artifacts, role=role)
         rows = []
-        for obj in qs.select_related("published_revision", "category", "owner"):
+        for obj in artifacts:
             try:
-                rows.append(serialize_artifact(obj, request.user, "draft" if manage and can_edit(request.user, obj) else "published"))
+                view = "draft" if manage and read_context.can_edit(obj) else "published"
+                rows.append(serialize_artifact(obj, request.user, view, read_context=read_context))
             except (NotFound, PermissionDenied):
                 continue
-        return Response({"results": rows, "count": len(rows), "can_create": member_role(request.user, ws) in (ROLE.ADMIN.value, ROLE.MEMBER.value)})
+        return Response({"results": rows, "count": len(rows), "can_create": role in (ROLE.ADMIN.value, ROLE.MEMBER.value)})
 
     def post(self, request, slug, pk=None, action=None, revision_id=None):
         ws = self.workspace(slug)
