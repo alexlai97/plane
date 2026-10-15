@@ -46,6 +46,7 @@ import {
 } from "./base-issues-utils";
 import type { IBaseIssueFilterStore } from "./issue-filter-helper.store";
 import { sortWithOrderedCriteria } from "./multi-sort";
+import { getIssueMembershipGroups } from "./grouped-issue-membership";
 
 export type TIssueDisplayFilterOptions = Exclude<TIssueGroupByOptions, null> | "target_date";
 
@@ -1218,20 +1219,25 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
     const issueId = issue?.id ?? issueBeforeUpdate?.id;
     if (!issueId) return;
 
-    // Get display filters to check if 'Show sub Work items' is enabled - Donot add Work item to main list if disabled.
+    // Filtered responses can promote a child whose parent is outside the view.
+    // Preserve the server-selected root membership while moving it between groups.
+    const groupsBeforeUpdate = getIssueMembershipGroups(this.groupedIssueIds, issueId);
+    const wasAlreadyListed = groupsBeforeUpdate.size > 0;
+    if (!action && issueBeforeUpdate && !wasAlreadyListed) return;
     const isShowWorkItemsEnabled = this.issueFilterStore.issueFilters?.displayFilters?.sub_issue ?? false;
 
     // get issueUpdates from another method by passing down the three arguments
     // issueUpdates is nothing but an array of objects that contain the path of the issueId list that need updating and also the action that needs to be performed at the path
     const issueUpdates = this.getUpdateDetails(issue, issueBeforeUpdate, action);
-    const accumulatedUpdatesForCount = {};
+    const accumulatedUpdatesForCount: Record<string, EIssueGroupedAction> = {};
     runInAction(() => {
       // The issueUpdates
       for (const issueUpdate of issueUpdates) {
         //if update is add, add it at a particular path
         if (issueUpdate.action === EIssueGroupedAction.ADD) {
           const isSubIssue = issue?.parent_id;
-          if (isSubIssue && !isShowWorkItemsEnabled) continue;
+          if (isSubIssue && !isShowWorkItemsEnabled && !wasAlreadyListed) continue;
+          if (get(this.groupedIssueIds, issueUpdate.path, []).includes(issueId)) continue;
           // add issue Id at the path
           update(this, ["groupedIssueIds", ...issueUpdate.path], (issueIds: string[] = []) =>
             this.issuesSortWithOrderBy(uniq(concat(issueIds, issueId)), this.orderBy)
@@ -1240,6 +1246,7 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
 
         //if update is delete, remove it at a particular path
         if (issueUpdate.action === EIssueGroupedAction.DELETE) {
+          if (!get(this.groupedIssueIds, issueUpdate.path, []).includes(issueId)) continue;
           // remove issue Id from the path
           update(this, ["groupedIssueIds", ...issueUpdate.path], (issueIds: string[] = []) => pull(issueIds, issueId));
         }
@@ -1256,7 +1263,24 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
         }
       }
 
-      // update the respective counts from the accumulation object
+      // An issue may occur in several label/assignee subgroups. Aggregate counts
+      // track distinct issues, not the number of paths that were added/removed.
+      const groupsAfterUpdate = getIssueMembershipGroups(this.groupedIssueIds, issueId);
+      for (const groupId of new Set([...groupsBeforeUpdate, ...groupsAfterUpdate])) {
+        if (groupsBeforeUpdate.has(groupId) === groupsAfterUpdate.has(groupId)) {
+          delete accumulatedUpdatesForCount[groupId];
+        } else {
+          accumulatedUpdatesForCount[groupId] = groupsAfterUpdate.has(groupId)
+            ? EIssueGroupedAction.ADD
+            : EIssueGroupedAction.DELETE;
+        }
+      }
+      const isStillListed = groupsAfterUpdate.size > 0;
+      if (wasAlreadyListed === isStillListed) {
+        delete accumulatedUpdatesForCount[ALL_ISSUES];
+      } else {
+        accumulatedUpdatesForCount[ALL_ISSUES] = isStillListed ? EIssueGroupedAction.ADD : EIssueGroupedAction.DELETE;
+      }
       this.updateIssueCount(accumulatedUpdatesForCount);
     });
   }
