@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { artifactService } from "@/services/artifact.service";
 import {
   artifactError,
@@ -20,7 +20,7 @@ import type {
   ArtifactWriteField,
   ArtifactWrite,
 } from "../../helpers/artifact";
-import { isSafeHttpUrl } from "../../helpers/gallery";
+import { getGalleryDetailHref, sanitizeGalleryReturnUrl, isSafeHttpUrl } from "../../helpers/gallery";
 import { ArtifactShell, buttonClass, ConfirmDialog, Field, inputClass, Message, primaryClass, Section } from "./shared";
 
 export default function ArtifactEditorPage() {
@@ -30,6 +30,8 @@ export default function ArtifactEditorPage() {
   const router = useRouter();
   const slug = params.workspaceSlug?.toString() ?? "";
   const routeId = params.artifactId?.toString();
+  const searchParams = useSearchParams();
+  const returnHref = sanitizeGalleryReturnUrl(searchParams.get("from"), slug);
   const [artifact, setArtifact] = useState<Artifact>();
   const [form, setForm] = useState<ArtifactWrite>(artifactToWrite());
   const [baseline, setBaseline] = useState<ArtifactWrite>(artifactToWrite());
@@ -174,7 +176,7 @@ export default function ArtifactEditorPage() {
       artifact?.id
     );
     apply(item);
-    if (!artifact) router.replace(`/${slug}/gallery/${item.id}/edit/`);
+    if (!artifact) router.replace(`/${slug}/gallery/${item.id}/edit/?from=${encodeURIComponent(returnHref)}`);
     return item;
   };
   const saveAction = (mode: "save" | "preview" | "publish") =>
@@ -185,7 +187,7 @@ export default function ArtifactEditorPage() {
         apply(await artifactService.detail(slug, published.id, "draft"));
         setMessage("已发布，成果展厅现在展示此版本。");
       } else if (mode === "preview") {
-        router.push(`/${slug}/gallery/${item.id}/?view=draft`);
+        router.push(`${getGalleryDetailHref(slug, item.id, returnHref)}&view=draft`);
         setMessage("草稿已保存。");
       } else setMessage("草稿已保存。发布后才会更新成果展厅。");
     });
@@ -239,7 +241,7 @@ export default function ArtifactEditorPage() {
   const selectedAssets = assets.filter((asset) => form.assets.some((selected) => selected.id === asset.id));
   if (loading)
     return (
-      <ArtifactShell slug={slug} title="成果编辑">
+      <ArtifactShell slug={slug} title="成果编辑" returnHref={returnHref}>
         <p role="status">正在加载…</p>
       </ArtifactShell>
     );
@@ -248,10 +250,16 @@ export default function ArtifactEditorPage() {
     <ArtifactShell
       slug={slug}
       title={artifact ? `编辑成果 · ${artifact.title}` : "新建成果"}
+      returnHref={returnHref}
       actions={
-        <a href={`/${slug}/gallery/manage/`} className={buttonClass}>
-          管理成果
-        </a>
+        <>
+          <a href={returnHref} className={buttonClass}>
+            返回总览
+          </a>
+          <a href={`/${slug}/gallery/manage/`} className={buttonClass}>
+            管理成果
+          </a>
+        </>
       }
     >
       <Message error={error} message={message} />
@@ -265,7 +273,7 @@ export default function ArtifactEditorPage() {
               <span className="text-tertiary">当前草稿版本 {artifact.version}</span>
               {artifact.has_unpublished_changes && <span className="text-warning-primary">有未发布修改</span>}
               {artifact.status === "published" && (
-                <a className="text-link-primary underline" href={`/${slug}/gallery/${artifact.id}/`}>
+                <a className="text-link-primary underline" href={getGalleryDetailHref(slug, artifact.id, returnHref)}>
                   查看发布成果
                 </a>
               )}

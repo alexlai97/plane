@@ -21,6 +21,7 @@ export interface PortalWrapperProps extends BasePortalProps {
 
 export interface ModalPortalProps extends BasePortalProps {
   isOpen: boolean;
+  ariaLabel?: string;
   onClose?: () => void;
   portalId?: string;
   overlayClassName?: string;

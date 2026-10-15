@@ -75,11 +75,10 @@ test("search finds original titles, sources and materials without hiding categor
   assert.equal(buildGalleryOverview([card], "不存在").length, 0);
 });
 
-test("default is expanded tree; explicit sections round trips; old layouts map to sections", () => {
+test("default is expanded tree; explicit sections round trips; legacy list maps to sections", () => {
   assert.deepEqual(parseGalleryViewState(""), { query: "", layout: "tree" });
   assert.equal(parseGalleryViewState("layout=unknown").layout, "tree");
-  for (const layout of ["gallery", "list", "sections"])
-    assert.equal(parseGalleryViewState(`layout=${layout}`).layout, "sections");
+  for (const layout of ["list", "sections"]) assert.equal(parseGalleryViewState(`layout=${layout}`).layout, "sections");
   assert.equal(serializeGalleryViewState({ layout: "tree", query: "" }), "layout=tree");
   assert.deepEqual(parseGalleryViewState(serializeGalleryViewState({ layout: "sections", query: "BOM" })), {
     layout: "sections",
@@ -158,4 +157,79 @@ test("long category and result titles grow rather than overlap or escape a narro
     assert.ok(n.y + n.height <= graph.height);
     assert.ok(n.x + n.width <= 640);
   }
+});
+
+test("cards stay a supported layout, including legacy gallery URLs", () => {
+  assert.equal(parseGalleryViewState("layout=cards").layout, "cards");
+  assert.equal(parseGalleryViewState("layout=gallery").layout, "cards");
+  assert.equal(
+    serializeGalleryViewState({ query: "说明书", layout: "cards" }),
+    "q=%E8%AF%B4%E6%98%8E%E4%B9%A6&layout=cards"
+  );
+});
+
+test("peek URL state round trips safely, while return links strip the open panel", () => {
+  assert.deepEqual(parseGalleryViewState("layout=cards&q=BOM&peekArtifact=artifact-one"), {
+    layout: "cards",
+    query: "BOM",
+    peek: "artifact-one",
+  });
+  assert.equal(
+    serializeGalleryViewState({ layout: "tree", query: "", peek: "artifact-one" }),
+    "layout=tree&peekArtifact=artifact-one"
+  );
+  assert.equal(parseGalleryViewState("peekArtifact=https://evil.example").peek, undefined);
+  assert.equal(
+    sanitizeGalleryReturnUrl("/acme/gallery/?layout=cards&q=BOM&peekArtifact=artifact-one", "acme"),
+    "/acme/gallery/?q=BOM&layout=cards"
+  );
+});
+
+test("detail interception preserves native new-tab and modified-click navigation", async () => {
+  const { shouldOpenGalleryPeek } = await import("../../apps/web/core/helpers/gallery.ts");
+  assert.equal(
+    shouldOpenGalleryPeek({
+      button: 0,
+      defaultPrevented: false,
+      metaKey: false,
+      ctrlKey: false,
+      shiftKey: false,
+      altKey: false,
+    }),
+    true
+  );
+  for (const overrides of [
+    { button: 1 },
+    { ctrlKey: true },
+    { metaKey: true },
+    { shiftKey: true },
+    { altKey: true },
+    { defaultPrevented: true },
+  ])
+    assert.equal(
+      shouldOpenGalleryPeek({
+        button: 0,
+        defaultPrevented: false,
+        metaKey: false,
+        ctrlKey: false,
+        shiftKey: false,
+        altKey: false,
+        ...overrides,
+      }),
+      false
+    );
+});
+
+test("standalone detail links retain a safe overview but never recursive peek state", async () => {
+  const { getGalleryDetailHref } = await import("../../apps/web/core/helpers/gallery.ts");
+  assert.equal(getGalleryDetailHref("acme", "a1"), "/acme/gallery/a1/");
+  const url = new URL(
+    getGalleryDetailHref("acme", "a1", "/acme/gallery/?layout=cards&q=BOM&peekArtifact=a1"),
+    "https://local.test"
+  );
+  assert.equal(url.searchParams.get("from"), "/acme/gallery/?q=BOM&layout=cards");
+  assert.equal(
+    new URL(getGalleryDetailHref("acme", "a1", "https://evil.test"), "https://local.test").searchParams.get("from"),
+    "/acme/gallery/"
+  );
 });

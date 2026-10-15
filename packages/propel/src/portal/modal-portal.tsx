@@ -35,6 +35,7 @@ import type { ModalPortalProps } from "./types";
 export function ModalPortal({
   children,
   isOpen,
+  ariaLabel,
   onClose,
   portalId = DEFAULT_PORTAL_ID,
   className,
@@ -98,6 +99,7 @@ export function ModalPortal({
       className={cn("absolute inset-0 h-full w-full overflow-y-auto", className)}
       style={{ zIndex: MODAL_Z_INDEX }}
       role="dialog"
+      aria-label={ariaLabel}
     >
       {showOverlay && (
         <div

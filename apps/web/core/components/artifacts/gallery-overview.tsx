@@ -9,13 +9,14 @@ import { getGalleryResultIcon, layoutGalleryTree } from "../../helpers/gallery";
 import "@xyflow/react/dist/style.css";
 
 const resultIcons = { application: AppWindow, video: Video, audio: AudioLines, image: Image, document: FileText };
-type OnOpenDetail = (event: MouseEvent<HTMLAnchorElement>) => void;
+export type GalleryDetailLinkHandler = (event: MouseEvent<HTMLAnchorElement>, card: GalleryCard) => void;
+type OnOpenDetail = GalleryDetailLinkHandler;
 function ResultLink({ card, href, onOpenDetail }: { card: GalleryCard; href: string; onOpenDetail: OnOpenDetail }) {
   const Icon = resultIcons[getGalleryResultIcon(card)];
   return (
     <a
       href={href}
-      onClick={onOpenDetail}
+      onClick={(event) => onOpenDetail(event, card)}
       className="nodrag nopan group focus-visible:ring-accent-primary flex size-full min-h-8 items-center gap-3 rounded-md px-3 py-1.5 text-14 font-medium text-primary transition-colors outline-none hover:bg-accent-subtle hover:text-link-primary focus-visible:ring-2"
     >
       <Icon aria-hidden="true" className="size-4 shrink-0 text-accent-primary" />

@@ -57,8 +57,8 @@ export type GalleryActionTarget =
   | { type: "attachment"; attachment: GalleryAttachment }
   | { type: "detail" };
 
-export type GalleryLayout = "tree" | "sections";
-export type GalleryViewState = { query: string; layout: GalleryLayout };
+export type GalleryLayout = "tree" | "sections" | "cards";
+export type GalleryViewState = { query: string; layout: GalleryLayout; peek?: string };
 export type GalleryOverviewGroup = { id: string; name: string; cards: GalleryCard[] };
 
 /** One canonical result per category; no category-name or workspace-specific presentation rules. */
@@ -89,9 +89,16 @@ export function buildGalleryOverview(cards: GalleryCard[], query: string): Galle
 export function parseGalleryViewState(search: string): GalleryViewState {
   const params = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
   const layout = params.get("layout");
+  const peek = params.get("peekArtifact") ?? "";
   return {
     query: params.get("q") ?? "",
-    layout: layout === "sections" || layout === "gallery" || layout === "list" ? "sections" : "tree",
+    layout:
+      layout === "cards" || layout === "gallery"
+        ? "cards"
+        : layout === "sections" || layout === "list"
+          ? "sections"
+          : "tree",
+    ...(/^[a-zA-Z0-9_-]{1,100}$/.test(peek) ? { peek } : {}),
   };
 }
 
@@ -99,6 +106,7 @@ export function serializeGalleryViewState(state: GalleryViewState): string {
   const params = new URLSearchParams();
   if (state.query) params.set("q", state.query);
   params.set("layout", state.layout);
+  if (state.peek && /^[a-zA-Z0-9_-]{1,100}$/.test(state.peek)) params.set("peekArtifact", state.peek);
   return params.toString();
 }
 
@@ -108,7 +116,8 @@ export function sanitizeGalleryReturnUrl(value: string | null | undefined, works
   try {
     const candidate = new URL(value, "https://gallery.local");
     if (candidate.origin !== "https://gallery.local" || candidate.pathname !== base) return base;
-    const query = serializeGalleryViewState(parseGalleryViewState(candidate.search));
+    const { layout, query: search } = parseGalleryViewState(candidate.search);
+    const query = serializeGalleryViewState({ layout, query: search });
     return `${base}?${query}`;
   } catch {
     return base;
@@ -244,4 +253,27 @@ export function layoutGalleryTree(
     height: 76,
   });
   return { nodes, edges, height };
+}
+
+export function shouldOpenGalleryPeek(event: {
+  button: number;
+  defaultPrevented: boolean;
+  ctrlKey: boolean;
+  metaKey: boolean;
+  shiftKey: boolean;
+  altKey: boolean;
+}): boolean {
+  return (
+    event.button === 0 &&
+    !event.defaultPrevented &&
+    !event.ctrlKey &&
+    !event.metaKey &&
+    !event.shiftKey &&
+    !event.altKey
+  );
+}
+
+export function getGalleryDetailHref(slug: string, id: string, returnHref?: string): string {
+  const base = `/${encodeURIComponent(slug)}/gallery/${encodeURIComponent(id)}/`;
+  return returnHref ? `${base}?from=${encodeURIComponent(sanitizeGalleryReturnUrl(returnHref, slug))}` : base;
 }

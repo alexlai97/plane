@@ -1,12 +1,15 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { Dialog } from "@headlessui/react";
-import { ArrowDownToLine, Eye, FileText, X } from "lucide-react";
+import { ArrowDownToLine, ArrowLeft, ExternalLink, Eye, FileText, X } from "lucide-react";
+import { ModalPortal, EPortalWidth, EPortalPosition } from "@plane/propel/portal";
+import useKeypress from "@/hooks/use-keypress";
 import { artifactService } from "@/services/artifact.service";
 import { artifactError, getArtifactShareUrl, resolveArtifactCoverPreview } from "../../helpers/artifact";
 import type { Artifact } from "../../helpers/artifact";
 import type { GalleryAttachment } from "../../helpers/gallery";
 import {
+  getGalleryDetailHref,
   getGallerySourceHref,
   isSafeHttpUrl,
   resolveGalleryAction,
@@ -20,31 +23,86 @@ export default function ArtifactDetailPage() {
   const searchParams = useSearchParams();
   const slug = params.workspaceSlug?.toString() ?? "";
   const id = params.artifactId?.toString() ?? "";
-  const returnHref = sanitizeGalleryReturnUrl(searchParams.get("from"), slug);
-  const view =
-    typeof window !== "undefined" && new URLSearchParams(window.location.search).get("view") === "draft"
-      ? "draft"
-      : "published";
+  const view = searchParams.get("view") === "draft" ? "draft" : "published";
+  return (
+    <ArtifactDetail
+      key={`${id}:${view}`}
+      slug={slug}
+      id={id}
+      view={view}
+      returnHref={sanitizeGalleryReturnUrl(searchParams.get("from"), slug)}
+    />
+  );
+}
+
+export function ArtifactDetail({
+  slug,
+  id,
+  view = "published",
+  returnHref,
+  onClose,
+  initialSection,
+}: {
+  slug: string;
+  id: string;
+  view?: "draft" | "published";
+  returnHref: string;
+  onClose?: () => void;
+  initialSection?: "materials";
+}) {
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const materialsRef = useRef<HTMLDivElement>(null);
+  const [retry, setRetry] = useState(0);
+  const standaloneHref = getGalleryDetailHref(slug, id, returnHref);
+  const isPeek = Boolean(onClose);
+  useEffect(() => {
+    if (!isPeek) return;
+    const frame = requestAnimationFrame(() => closeRef.current?.focus());
+    return () => cancelAnimationFrame(frame);
+  }, [id, isPeek]);
+  useKeypress("Escape", (event) => {
+    if (
+      !onClose ||
+      event.defaultPrevented ||
+      document.querySelector(
+        '[data-bokang-attachment-preview], [data-artifact-media-preview], [data-slot="dialog-content"]'
+      )
+    )
+      return;
+    event.preventDefault();
+    onClose();
+  });
   const [artifact, setArtifact] = useState<Artifact>();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [preview, setPreview] = useState<GalleryAttachment>();
   const [coverImagePreview, setCoverImagePreview] = useState<GalleryAttachment>();
   const [failedCoverId, setFailedCoverId] = useState<string>();
-  const load = useCallback(async () => {
+  useEffect(() => {
+    let active = true;
     setError("");
     setLoading(true);
-    try {
-      setArtifact(await artifactService.detail(slug, id, view));
-    } catch (e) {
-      setError(artifactError(e));
-    } finally {
-      setLoading(false);
-    }
-  }, [slug, id, view]);
+    setArtifact(undefined);
+    void (async () => {
+      try {
+        const item = await artifactService.detail(slug, id, view);
+        if (active) setArtifact(item);
+      } catch (cause) {
+        if (active) setError(artifactError(cause));
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [slug, id, view, retry]);
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (!artifact || (initialSection !== "materials" && window.location.hash !== "#materials")) return;
+    const frame = requestAnimationFrame(() => materialsRef.current?.scrollIntoView({ block: "start" }));
+    return () => cancelAnimationFrame(frame);
+  }, [artifact, initialSection]);
+  const load = () => setRetry((value) => value + 1);
   const openAttachment = (attachment: GalleryAttachment) => {
     if (attachment.can_preview) setPreview(attachment);
     else window.open(attachment.file_url, "_blank", "noopener,noreferrer");
@@ -62,22 +120,29 @@ export default function ArtifactDetailPage() {
     if (coverPreview.type === "image") setCoverImagePreview(coverPreview.attachment);
     else openAttachment(coverPreview.attachment);
   };
-  return (
-    <ArtifactShell
-      slug={slug}
-      title={artifact?.title ?? "成果详情"}
-      returnHref={returnHref}
-      actions={
-        <>
-          {artifact?.can_edit && (
-            <a href={`/${slug}/gallery/${id}/edit/`} className={buttonClass}>
-              编辑成果
-            </a>
-          )}
-          {artifact && <CopyLinkButton getValue={() => getArtifactShareUrl(window.location.href, view)} />}
-        </>
-      }
-    >
+  const actions = (
+    <>
+      {artifact?.can_edit && (
+        <a
+          href={`/${encodeURIComponent(slug)}/gallery/${encodeURIComponent(id)}/edit/?from=${encodeURIComponent(returnHref)}`}
+          target={onClose ? "_blank" : undefined}
+          rel={onClose ? "noopener noreferrer" : undefined}
+          className={buttonClass}
+        >
+          编辑成果
+        </a>
+      )}
+      {artifact && (
+        <CopyLinkButton
+          getValue={() =>
+            getArtifactShareUrl(new URL(getGalleryDetailHref(slug, id), window.location.origin).href, view)
+          }
+        />
+      )}
+    </>
+  );
+  const content = (
+    <>
       <Message error={error} />
       {loading ? (
         <p role="status">正在加载成果…</p>
@@ -148,6 +213,8 @@ export default function ArtifactDetailPage() {
                 <a
                   key={source.id}
                   href={getGallerySourceHref(slug, source)}
+                  target={onClose ? "_blank" : undefined}
+                  rel={onClose ? "noopener noreferrer" : undefined}
                   className="text-sm block rounded-md border border-subtle p-3 text-link-primary hover:bg-surface-2"
                 >
                   {source.identifier} · {source.name}
@@ -158,7 +225,7 @@ export default function ArtifactDetailPage() {
           )}
           {artifact.attachments.length > 0 && (
             <Section title="交付材料">
-              <div id="materials" className="divide-y divide-subtle rounded-md border border-subtle">
+              <div ref={materialsRef} id="materials" className="divide-y divide-subtle rounded-md border border-subtle">
                 {artifact.attachments.map((attachment) => (
                   <div key={attachment.id} className="flex flex-wrap items-center gap-3 p-3">
                     {attachment.can_preview ? (
@@ -229,7 +296,13 @@ export default function ArtifactDetailPage() {
         />
       )}
       {coverImagePreview && (
-        <Dialog open onClose={() => setCoverImagePreview(undefined)} className="relative z-[100]">
+        <Dialog
+          open
+          onClose={() => setCoverImagePreview(undefined)}
+          data-artifact-media-preview
+          data-prevent-outside-click
+          className="relative z-[100]"
+        >
           <div className="fixed inset-0 bg-black/80" aria-hidden="true" />
           <Dialog.Panel className="fixed inset-0 flex flex-col bg-black/80 p-3 sm:p-5">
             <div className="flex items-center justify-between gap-3 pb-3 text-white">
@@ -253,6 +326,65 @@ export default function ArtifactDetailPage() {
           </Dialog.Panel>
         </Dialog>
       )}
+    </>
+  );
+  if (onClose)
+    return (
+      <ModalPortal
+        isOpen
+        ariaLabel="成果详情"
+        width={EPortalWidth.HALF}
+        position={EPortalPosition.RIGHT}
+        showOverlay={false}
+        closeOnEscape={false}
+        className="pointer-events-none"
+        contentClassName="pointer-events-auto flex w-full min-w-0 max-w-none flex-col overflow-hidden border-l border-subtle bg-surface-1 md:w-[56%] lg:max-w-3xl"
+      >
+        <div data-artifact-detail className="flex h-full min-h-0 flex-col bg-surface-1 text-primary">
+          <header className="flex shrink-0 flex-wrap items-center gap-2 border-b border-subtle px-4 py-3">
+            <button
+              ref={closeRef}
+              type="button"
+              onClick={onClose}
+              aria-label="关闭成果详情"
+              title="关闭成果详情（Esc）"
+              className={buttonClass}
+            >
+              <X aria-hidden="true" className="size-4" />
+            </button>
+            <h2 className="min-w-0 flex-1 truncate text-16 font-semibold">{artifact?.title ?? "成果详情"}</h2>
+            <a
+              href={standaloneHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="在新标签页独立打开成果"
+              className={buttonClass}
+            >
+              <ExternalLink aria-hidden="true" className="mr-1 inline size-3.5" />
+              独立打开
+            </a>
+            <div className="flex w-full flex-wrap justify-end gap-2">{actions}</div>
+          </header>
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6">{content}</div>
+        </div>
+      </ModalPortal>
+    );
+  return (
+    <ArtifactShell
+      slug={slug}
+      title={artifact?.title ?? "成果详情"}
+      returnHref={returnHref}
+      actions={
+        <>
+          <a href={returnHref} className={buttonClass}>
+            <ArrowLeft aria-hidden="true" className="mr-1 inline size-3.5" />
+            返回总览
+          </a>
+          {actions}
+        </>
+      }
+    >
+      {content}
     </ArtifactShell>
   );
 }
