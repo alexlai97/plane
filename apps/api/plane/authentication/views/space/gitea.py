@@ -19,7 +19,7 @@ from plane.authentication.adapter.error import (
     AUTHENTICATION_ERROR_CODES,
     AuthenticationException,
 )
-from plane.utils.path_validator import validate_next_path
+from plane.utils.path_validator import get_relative_redirect_url, validate_next_path
 
 
 class GiteaOauthInitiateSpaceEndpoint(View):
@@ -40,7 +40,7 @@ class GiteaOauthInitiateSpaceEndpoint(View):
             params = exc.get_error_dict()
             if next_path:
                 params["next_path"] = str(validate_next_path(next_path))
-            url = f"{base_host(request=request, is_space=True)}?{urlencode(params)}"
+            url = get_relative_redirect_url(f"{base_host(request=request, is_space=True)}?{urlencode(params)}")
             return HttpResponseRedirect(url)
 
         try:
@@ -53,7 +53,7 @@ class GiteaOauthInitiateSpaceEndpoint(View):
             params = e.get_error_dict()
             if next_path:
                 params["next_path"] = str(next_path)
-            url = f"{base_host(request=request, is_space=True)}?{urlencode(params)}"
+            url = get_relative_redirect_url(f"{base_host(request=request, is_space=True)}?{urlencode(params)}")
             return HttpResponseRedirect(url)
 
 
@@ -71,7 +71,7 @@ class GiteaCallbackSpaceEndpoint(View):
             params = exc.get_error_dict()
             if next_path:
                 params["next_path"] = str(validate_next_path(next_path))
-            url = f"{base_host(request=request, is_space=True)}?{urlencode(params)}"
+            url = get_relative_redirect_url(f"{base_host(request=request, is_space=True)}?{urlencode(params)}")
             return HttpResponseRedirect(url)
 
         if not code:
@@ -82,7 +82,7 @@ class GiteaCallbackSpaceEndpoint(View):
             params = exc.get_error_dict()
             if next_path:
                 params["next_path"] = str(validate_next_path(next_path))
-            url = f"{base_host(request=request, is_space=True)}?{urlencode(params)}"
+            url = get_relative_redirect_url(f"{base_host(request=request, is_space=True)}?{urlencode(params)}")
             return HttpResponseRedirect(url)
 
         try:
@@ -100,5 +100,5 @@ class GiteaCallbackSpaceEndpoint(View):
             params = e.get_error_dict()
             if next_path:
                 params["next_path"] = str(validate_next_path(next_path))
-            url = f"{base_host(request=request, is_space=True)}?{urlencode(params)}"
+            url = get_relative_redirect_url(f"{base_host(request=request, is_space=True)}?{urlencode(params)}")
             return HttpResponseRedirect(url)

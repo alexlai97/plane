@@ -11,6 +11,7 @@ from django.utils import timezone
 # Module imports
 from plane.authentication.utils.host import user_ip, base_host
 from plane.db.models import User
+from plane.utils.path_validator import get_safe_redirect_url
 
 
 class SignOutAuthEndpoint(View):
@@ -23,6 +24,6 @@ class SignOutAuthEndpoint(View):
             user.save()
             # Log the user out
             logout(request)
-            return HttpResponseRedirect(base_host(request=request, is_app=True))
+            return HttpResponseRedirect(get_safe_redirect_url(base_url=base_host(request=request, is_app=True)))
         except Exception:
-            return HttpResponseRedirect(base_host(request=request, is_app=True))
+            return HttpResponseRedirect(get_safe_redirect_url(base_url=base_host(request=request, is_app=True)))

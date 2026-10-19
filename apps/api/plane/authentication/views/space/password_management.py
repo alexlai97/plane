@@ -4,7 +4,6 @@
 
 # Python imports
 import os
-from urllib.parse import urlencode
 
 # Third party imports
 from rest_framework import status
@@ -26,6 +25,7 @@ from django.views import View
 from plane.bgtasks.forgot_password_task import forgot_password
 from plane.license.models import Instance
 from plane.db.models import User
+from plane.utils.path_validator import get_safe_redirect_url
 from plane.license.utils.instance_value import get_configuration_value
 from plane.authentication.utils.host import base_host
 from plane.authentication.adapter.error import (
@@ -122,7 +122,7 @@ class ResetPasswordSpaceEndpoint(View):
                     error_message="INVALID_PASSWORD_TOKEN",
                 )
                 params = exc.get_error_dict()
-                url = f"{base_host(request=request, is_space=True)}/accounts/reset-password/?{urlencode(params)}"
+                url = get_safe_redirect_url(base_url=base_host(request=request, is_space=True).rstrip("/") + "/accounts/reset-password/", params=params)
                 return HttpResponseRedirect(url)
 
             password = request.POST.get("password", False)
@@ -132,7 +132,7 @@ class ResetPasswordSpaceEndpoint(View):
                     error_code=AUTHENTICATION_ERROR_CODES["INVALID_PASSWORD"],
                     error_message="INVALID_PASSWORD",
                 )
-                url = f"{base_host(request=request, is_space=True)}/accounts/reset-password/?{urlencode(exc.get_error_dict())}"  # noqa: E501
+                url = get_safe_redirect_url(base_url=base_host(request=request, is_space=True).rstrip("/") + "/accounts/reset-password/", params=exc.get_error_dict())  # noqa: E501
                 return HttpResponseRedirect(url)
 
             # Check the password complexity
@@ -142,7 +142,7 @@ class ResetPasswordSpaceEndpoint(View):
                     error_code=AUTHENTICATION_ERROR_CODES["PASSWORD_TOO_WEAK"],
                     error_message="PASSWORD_TOO_WEAK",
                 )
-                url = f"{base_host(request=request, is_space=True)}/accounts/reset-password/?{urlencode(exc.get_error_dict())}"  # noqa: E501
+                url = get_safe_redirect_url(base_url=base_host(request=request, is_space=True).rstrip("/") + "/accounts/reset-password/", params=exc.get_error_dict())  # noqa: E501
                 return HttpResponseRedirect(url)
 
             # set_password also hashes the password that the user will get
@@ -150,11 +150,11 @@ class ResetPasswordSpaceEndpoint(View):
             user.is_password_autoset = False
             user.save()
 
-            return HttpResponseRedirect(base_host(request=request, is_space=True))
+            return HttpResponseRedirect(get_safe_redirect_url(base_url=base_host(request=request, is_space=True)))
         except DjangoUnicodeDecodeError:
             exc = AuthenticationException(
                 error_code=AUTHENTICATION_ERROR_CODES["EXPIRED_PASSWORD_TOKEN"],
                 error_message="EXPIRED_PASSWORD_TOKEN",
             )
-            url = f"{base_host(request=request, is_space=True)}/accounts/reset-password/?{urlencode(exc.get_error_dict())}"  # noqa: E501
+            url = get_safe_redirect_url(base_url=base_host(request=request, is_space=True).rstrip("/") + "/accounts/reset-password/", params=exc.get_error_dict())  # noqa: E501
             return HttpResponseRedirect(url)

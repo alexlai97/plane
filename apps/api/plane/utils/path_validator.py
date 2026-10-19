@@ -134,48 +134,31 @@ def validate_next_path(next_path: str) -> str:
     return next_path
 
 
-def get_safe_redirect_url(base_url: str, next_path: str = "", params: dict = {}) -> str:
-    """
-    Safely construct a redirect URL with validated next_path.
+def get_relative_redirect_url(url: str) -> str:
+    """Keep a local browser destination, discarding any configured authority."""
+    from urllib.parse import urlsplit, urlunsplit
 
-    Args:
-        base_url (str): The base URL to redirect to
-        next_path (str): The next path to append
-        params (dict): The parameters to append
-    Returns:
-        str: The safe redirect URL
+    parts = urlsplit(url)
+    path = parts.path or "/"
+    if not path.startswith("/") or not url_has_allowed_host_and_scheme(path, allowed_hosts=set()):
+        path = "/"
+    return urlunsplit(("", "", path, parts.query, parts.fragment))
+
+
+def get_safe_redirect_url(base_url: str, next_path: str = "", params: dict | None = None) -> str:
+    """Build a same-origin browser redirect, independent of deployment origin.
+
+    Configured base URLs supply only the app's mount path. Absolute URLs for
+    emails/provider callbacks remain the responsibility of their own builders.
+    Never derive a redirect authority from Host or forwarded headers.
     """
     from urllib.parse import urlencode
 
-    # Validate the next path
+    base_path = urlparse(get_relative_redirect_url(base_url)).path
+    base_path = base_path.rstrip("/") + "/"
+    query = dict(params or {})
     validated_path = validate_next_path(next_path)
-
-    # Add the next path to the parameters
-    base_url = base_url.rstrip("/")
-
-    # Prepare the query parameters
-    query_parts = []
-    encoded_params = ""
-
-    # Add the next path to the parameters
     if validated_path:
-        query_parts.append(f"next_path={validated_path}")
-
-    # Add additional parameters
-    if params:
-        encoded_params = urlencode(params)
-        query_parts.append(encoded_params)
-
-    # Construct the url query string
-    if query_parts:
-        query_string = "&".join(query_parts)
-        url = f"{base_url}/?{query_string}"
-    else:
-        url = base_url
-
-    # Check if the URL is allowed
-    if url_has_allowed_host_and_scheme(url, allowed_hosts=get_allowed_hosts()):
-        return url
-
-    # Return the base URL if the URL is not allowed
-    return base_url + (f"?{encoded_params}" if encoded_params else "")
+        query["next_path"] = validated_path
+    encoded = urlencode(query)
+    return base_path + (f"?{encoded}" if encoded else "")
