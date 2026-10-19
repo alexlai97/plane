@@ -31,6 +31,7 @@ import {
   createPresentationId,
   emptyPresentationDocument,
   presentationSlideIndex,
+  presentationKeyboardAction,
 } from "../../helpers/presentation";
 import type {
   Presentation,
@@ -168,6 +169,36 @@ const PresentationsPage = observer(function PresentationsPage() {
       window.location.origin
     );
   }, [selected.section, selected.slide]);
+
+  // The viewer lives in an iframe: keyboard events in the surrounding page do not reach Reveal.
+  useEffect(() => {
+    if (!current || editing || preview || detailLoading) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.isComposing) return;
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (target.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"])'))
+        return;
+      if (
+        Array.from(window.document.querySelectorAll('[role="dialog"],[aria-modal="true"]')).some(
+          (dialog) => dialog.getClientRects().length > 0,
+        )
+      )
+        return;
+      const action = presentationKeyboardAction(event);
+      if (!action || !iframe.current?.contentWindow) return;
+      // Preserve native activation of focused links and controls.
+      if (["Enter", " "].includes(event.key) && target.closest('button,a,[role="button"]')) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      iframe.current.contentWindow.postMessage(
+        { type: "bokang:presentation-navigate", action },
+        window.location.origin,
+      );
+    };
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
+  }, [current, editing, preview, detailLoading]);
 
   const open = useCallback(
     async (id: string, draft = false, edit = false) => {
@@ -1068,7 +1099,7 @@ const PresentationsPage = observer(function PresentationsPage() {
                         )}
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="hidden text-11 text-secondary xl:inline">左右切换章节 · 上下查看细节</span>
+                        <span className="hidden text-11 text-secondary xl:inline">方向键导航 · 空格 / 回车下一页</span>
                         <button
                           className={button}
                           aria-label="上一章节"

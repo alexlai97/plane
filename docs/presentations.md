@@ -147,3 +147,10 @@ byte-range reads. [Django's gzip middleware contract](https://docs.djangoproject
 leaves responses with an explicit content encoding unchanged. Regression tests
 must apply the actual gzip middleware to both full and partial source responses;
 testing the source helper alone misses response transformations.
+
+### 演示键盘操作
+
+- 左右切换章节，上下进入或退出该章的细节页。
+- 空格、回车、PageDown 顺序前进；Shift＋空格、PageUp 顺序后退。
+- 画面内复用 Reveal.js 的导航；画面外将同样的操作通过限定来源的消息传入画面。
+- 编辑模式、输入框、附件预览和其他打开的对话框不接管翻页键；焦点在按钮或链接时，保留空格／回车的原生激活行为。

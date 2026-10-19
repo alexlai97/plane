@@ -68,3 +68,24 @@ test("derived previews and safe raster files can render inline, but viewer HTML 
 test("generated document identifiers are UUIDs in browsers without secure-context crypto", () => {
   assert.match(createPresentationId(), /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
 });
+
+test("presentation keys navigate without stealing browser shortcuts", async () => {
+  const { presentationKeyboardAction: action } = await import("./presentation-core.ts");
+  for (const [key, command] of Object.entries({
+    ArrowLeft: "left",
+    ArrowRight: "right",
+    ArrowUp: "up",
+    ArrowDown: "down",
+    Enter: "next",
+    " ": "next",
+    PageUp: "prev",
+    PageDown: "next",
+  })) {
+    assert.equal(action({ key }), command);
+    for (const modifier of ["ctrlKey", "altKey", "metaKey"])
+      assert.equal(action({ key, [modifier]: true }), undefined);
+  }
+  assert.equal(action({ key: " ", shiftKey: true }), "prev");
+  assert.equal(action({ key: "Enter", shiftKey: true }), "next");
+  for (const key of ["Escape", "a", "Tab"]) assert.equal(action({ key }), undefined);
+});

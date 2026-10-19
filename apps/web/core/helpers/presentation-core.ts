@@ -78,3 +78,34 @@ export function selectPresentationImageUrl(media: PresentationMedia): string | u
 export function presentationSlidesByChapter(document: PresentationDocument) {
   return document.sections.map((section) => ({ title: section.title, slides: section.slides }));
 }
+
+/** Commands shared with the embedded viewer's existing Reveal navigation API. */
+export function presentationKeyboardAction(event: {
+  key: string;
+  shiftKey?: boolean;
+  ctrlKey?: boolean;
+  metaKey?: boolean;
+  altKey?: boolean;
+}): "left" | "right" | "up" | "down" | "next" | "prev" | undefined {
+  if (event.ctrlKey || event.metaKey || event.altKey) return undefined;
+  switch (event.key) {
+    case "ArrowLeft":
+      return "left";
+    case "ArrowRight":
+      return "right";
+    case "ArrowUp":
+      return "up";
+    case "ArrowDown":
+      return "down";
+    case "Enter":
+      return "next";
+    case " ":
+      return event.shiftKey ? "prev" : "next";
+    case "PageDown":
+      return "next";
+    case "PageUp":
+      return "prev";
+    default:
+      return undefined;
+  }
+}

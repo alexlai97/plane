@@ -7,6 +7,7 @@ export {
   createPresentationId,
   emptyPresentationDocument,
   presentationSlideIndex,
+  presentationKeyboardAction,
   selectPresentationImageUrl,
 } from "./presentation-core";
 export type {
@@ -85,11 +86,15 @@ html,body{height:100%;margin:0;background:#f8fafc}
 .reveal .controls{color:#376f99}.reveal .progress{color:#376f99}
 </style></head><body><div class="reveal"><div class="slides">${sections}</div></div><script src="/vendor/reveal/${version}/reveal.js"></script><script>
 const hostOrigin=parent.location.origin;
-Reveal.initialize({width:1280,height:760,margin:0.035,center:false,hash:false,controls:true,progress:true,slideNumber:'c/t',overview:true,transition:'slide',embedded:true,keyboard:{27:null}}).then(()=>{
+Reveal.initialize({width:1280,height:760,margin:0.035,center:false,hash:false,controls:true,progress:true,slideNumber:'c/t',overview:true,transition:'slide',embedded:true,keyboard:{13:'next',27:null},keyboardCondition:event=>!event.ctrlKey&&!event.metaKey&&!event.altKey&&!event.target.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"])')&&(!['Enter',' '].includes(event.key)||!event.target.closest('button,a,[role="button"]'))}).then(()=>{
  Reveal.on('slidechanged',event=>parent.postMessage({type:'bokang:presentation-slide',h:event.indexh,v:event.indexv},hostOrigin));
  document.addEventListener('click',event=>{const button=event.target.closest('[data-asset-id]');if(button)parent.postMessage({type:'bokang:presentation-media',assetId:button.dataset.assetId},hostOrigin)});
  parent.postMessage({type:'bokang:presentation-ready'},hostOrigin);
 });
-addEventListener('message',event=>{if(event.origin!==hostOrigin||event.source!==parent||event.data?.type!=='bokang:presentation-go')return;Reveal.slide(event.data.h,event.data.v)});
+addEventListener('message',event=>{
+ if(event.origin!==hostOrigin||event.source!==parent)return;
+ if(event.data?.type==='bokang:presentation-go')Reveal.slide(event.data.h,event.data.v);
+ if(event.data?.type==='bokang:presentation-navigate'&&['left','right','up','down','next','prev'].includes(event.data.action))Reveal[event.data.action]();
+});
 </script></body></html>`;
 }
