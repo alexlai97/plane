@@ -5,7 +5,9 @@ from django.test import TestCase
 from django.http import HttpResponse
 from django.core import signing
 from rest_framework.test import APIRequestFactory, force_authenticate
-from plane.db.models import User, Workspace, WorkspaceMember, Project, ProjectMember, Issue, FileAsset
+from plane.db.models import (
+    User, Workspace, WorkspaceMember, Project, ProjectMember, Issue, FileAsset, Presentation, PresentationRevision,
+)
 from plane.app.views.attachment_preview import AttachmentPreviewEndpoint, AttachmentPreviewSourceEndpoint, allowed_preview_path, SOURCE_SALT, source_response
 
 
@@ -96,6 +98,8 @@ class AttachmentPreviewTests(TestCase):
             with patch("plane.app.views.attachment_preview.S3Storage", return_value=storage):
                 response = source_response(self.asset, request)
             self.assertEqual(response["Content-Type"], mime_type)
+            self.assertEqual(response["Content-Encoding"], "identity")
+            self.assertIn("no-transform", response["Cache-Control"])
             self.assertEqual(response["Content-Disposition"], "attachment")
             self.assertIn("sandbox", response["Content-Security-Policy"])
 
@@ -110,6 +114,70 @@ class AttachmentPreviewTests(TestCase):
             self.assertEqual(response["Content-Type"], mime_type)
             self.assertEqual(response["Content-Disposition"], "inline")
             self.assertIn("sandbox", response["Content-Security-Policy"])
+
+    def test_presentation_asset_preserves_identity_and_ranges_through_gzip_middleware(self):
+        from django.middleware.gzip import GZipMiddleware
+        from plane.app.views.presentation import PresentationAssetEndpoint
+
+        payload = b"0123456789abcdef" * 512
+        self.asset.attributes = {"name": "large.pdf", "type": "application/pdf", "size": len(payload)}
+        self.asset.size = len(payload)
+        self.asset.save(update_fields=["attributes", "size"])
+        document = {"schema_version": 1, "sections": [{"id": str(uuid.uuid4()), "title": "Section", "slides": [{
+            "id": str(uuid.uuid4()), "title": "Slide", "body": "", "notes": "", "issue_ids": [],
+            "media": [{"asset_id": str(self.asset.id), "caption": ""}], "links": [],
+        }]}]}
+        presentation = Presentation.objects.create(
+            workspace=self.workspace, project=self.project, owner=self.member, title="Range QA", document=document,
+        )
+        revision = PresentationRevision.objects.create(
+            presentation=presentation, number=1, actor=self.member,
+            snapshot={"title": presentation.title, "document": document},
+        )
+        presentation.published_revision = revision
+        presentation.save(update_fields=["published_revision"])
+        endpoint = PresentationAssetEndpoint.as_view()
+        gzip_middleware = GZipMiddleware(lambda request: None)
+        storage = MagicMock()
+        storage.aws_storage_bucket_name = "test-bucket"
+
+        for range_header, s3_reply, expected_status, expected_payload, expected_range in (
+            (None, {"Body": MagicMock(), "ContentLength": len(payload)}, 200, payload, None),
+            (
+                "bytes=0-1023",
+                {"Body": MagicMock(), "ContentLength": 1024, "ContentRange": f"bytes 0-1023/{len(payload)}"},
+                206, payload[:1024], f"bytes 0-1023/{len(payload)}",
+            ),
+        ):
+            s3_reply["Body"].iter_chunks.return_value = iter([expected_payload])
+            s3_reply["Body"].close.return_value = None
+            storage.s3_client.get_object.return_value = s3_reply
+            path = f"/api/workspaces/{self.workspace.slug}/presentations/{presentation.id}/assets/{self.asset.id}/"
+            request = APIRequestFactory().get(
+                path, HTTP_ACCEPT_ENCODING="gzip", **({"HTTP_RANGE": range_header} if range_header else {})
+            )
+            force_authenticate(request, user=self.member)
+            with patch("plane.app.views.attachment_preview.S3Storage", return_value=storage):
+                response = endpoint(request, slug=self.workspace.slug, pk=presentation.id, asset_id=self.asset.id)
+
+            # This is the response after PresentationAssetEndpoint's real
+            # finalize_response mixin has added its frame and cache headers.
+            self.assertEqual(response.status_code, expected_status)
+            self.assertEqual(response["Content-Encoding"], "identity")
+            self.assertEqual(response["Content-Length"], str(len(expected_payload)))
+            self.assertEqual(response.get("Content-Range"), expected_range)
+            self.assertIn("no-transform", response["Cache-Control"])
+
+            # Isolate GZipMiddleware's existing-Content-Encoding skip condition
+            # from the additional no-transform directive, then exercise it with
+            # a gzip-accepting request and a compressible streaming body.
+            response["Cache-Control"] = "private, no-store"
+            response = gzip_middleware.process_response(request, response)
+            self.assertEqual(response.status_code, expected_status)
+            self.assertEqual(response["Content-Encoding"], "identity")
+            self.assertEqual(response["Content-Length"], str(len(expected_payload)))
+            self.assertEqual(response.get("Content-Range"), expected_range)
+            self.assertEqual(b"".join(response.streaming_content), expected_payload)
 
     def test_existing_source_ticket_rechecks_profile_and_project_membership(self):
         endpoint = AttachmentPreviewSourceEndpoint.as_view()

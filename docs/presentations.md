@@ -130,3 +130,20 @@ time, and recorded status distinct from business acceptance. Refreshing source
 data must not automatically overwrite human edits in an existing draft or
 publication. Missing plans should remain visibly pending until their owners
 provide them.
+
+## Attachment transport contract
+
+Authenticated media sources preserve byte identity, `Content-Length`,
+`Accept-Ranges: bytes` and the exact `Content-Range` on partial responses.
+`Content-Encoding: identity` prevents Django's gzip middleware from transforming
+those streams; `no-transform` carries that intent through intermediaries.
+This is a file transport rule shared by task, gallery and presentation previews,
+not a presentation-specific PDF exception. HTML and preview UI assets retain
+normal compression.
+
+[PDF.js range capability detection](https://github.com/mozilla/pdf.js/blob/master/src/display/network_utils.js)
+requires an integer content length and identity encoding before it enables
+byte-range reads. [Django's gzip middleware contract](https://docs.djangoproject.com/en/5.2/ref/middleware/#gzip-middleware)
+leaves responses with an explicit content encoding unchanged. Regression tests
+must apply the actual gzip middleware to both full and partial source responses;
+testing the source helper alone misses response transformations.

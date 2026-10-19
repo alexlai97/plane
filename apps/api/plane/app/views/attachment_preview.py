@@ -84,11 +84,16 @@ def source_response(asset, request):
     response = StreamingHttpResponse(chunks(), status=206 if "ContentRange" in obj else 200,
                                      content_type=content_type)
     response["Content-Length"] = str(obj["ContentLength"])
+    # PDF.js only enables byte-range loading when the initial response has a
+    # valid Content-Length and an identity content encoding. Mark the original
+    # object explicitly so Django's GZipMiddleware does not transform either
+    # the complete response or individual byte ranges.
+    response["Content-Encoding"] = "identity"
     response["Accept-Ranges"] = "bytes"
     if "ContentRange" in obj:
         response["Content-Range"] = obj["ContentRange"]
     response["Content-Disposition"] = "attachment" if normalized_type in active_content_types else "inline"
-    response["Cache-Control"] = "private, no-store"
+    response["Cache-Control"] = "private, no-store, no-transform"
     # Keep any accidentally active or mislabeled media inert when it is opened
     # directly on the application origin. The conversion service fetches source
     # bytes server-side, so this does not affect image/PDF preview conversion.
@@ -290,7 +295,11 @@ class AttachmentPreviewResponseMixin:
         if not any(directive.strip().lower().startswith("frame-ancestors ") for directive in policy.split(";")):
             policy = f"{policy.rstrip('; ')}; frame-ancestors 'self'" if policy else "frame-ancestors 'self'"
         response["Content-Security-Policy"] = policy
-        response["Cache-Control"] = "private, no-store"
+        no_transform = any(
+            directive.strip().lower() == "no-transform"
+            for directive in response.get("Cache-Control", "").split(",")
+        )
+        response["Cache-Control"] = "private, no-store" + (", no-transform" if no_transform else "")
         return response
 
 class AttachmentPreviewEndpoint(AttachmentPreviewResponseMixin, BaseAPIView):

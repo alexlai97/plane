@@ -332,19 +332,8 @@ const PresentationsPage = observer(function PresentationsPage() {
     }
   };
   const move = (direction: -1 | 1) => {
-    const next = selected.slide + direction;
-    if (editing && selected.slide === -1) {
-      const dest = direction < 0 ? selected.section - 1 : selected.section + 1;
-      if (dest >= 0 && dest < document.sections.length) setSelected({ section: dest, slide: -1 });
-    } else if (next < 0) {
-      if (selected.section > 0) {
-        const previousSection = selected.section - 1;
-        setSelected({ section: previousSection, slide: document.sections[previousSection].slides.length - 1 });
-      }
-    } else if (next < (document.sections[selected.section]?.slides.length ?? 0))
-      setSelected({ section: selected.section, slide: next });
-    else if (direction > 0 && selected.section + 1 < document.sections.length)
-      setSelected({ section: selected.section + 1, slide: 0 });
+    const section = selected.section + direction;
+    if (section >= 0 && section < document.sections.length) setSelected({ section, slide: 0 });
   };
   const openPreview = (item: PresentationMedia) =>
     item.can_preview && (item.file_url || item.preview_file_url) && setPreview(item);
@@ -1079,12 +1068,23 @@ const PresentationsPage = observer(function PresentationsPage() {
                         )}
                       </div>
                       <div className="flex items-center gap-2">
-                        <button className={button} aria-label="上一页" onClick={() => move(-1)}>
+                        <span className="hidden text-11 text-secondary xl:inline">左右切换章节 · 上下查看细节</span>
+                        <button
+                          className={button}
+                          aria-label="上一章节"
+                          disabled={selected.section === 0}
+                          onClick={() => move(-1)}
+                        >
                           <ChevronLeft className="size-4" />
-                          <span className="hidden sm:inline">上一页</span>
+                          <span className="hidden sm:inline">上一章节</span>
                         </button>
-                        <button className={button} aria-label="下一页" onClick={() => move(1)}>
-                          <span className="hidden sm:inline">下一页</span>
+                        <button
+                          className={button}
+                          aria-label="下一章节"
+                          disabled={selected.section >= document.sections.length - 1}
+                          onClick={() => move(1)}
+                        >
+                          <span className="hidden sm:inline">下一章节</span>
                           <ChevronRight className="size-4" />
                         </button>
                       </div>
