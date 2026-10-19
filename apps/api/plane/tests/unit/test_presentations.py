@@ -293,3 +293,88 @@ class PresentationLifecycleTests(TestCase):
         comment.deleted_at = timezone.now()
         comment.save(update_fields=["deleted_at"])
         self.assertFalse(presentation_source_asset_is_live(asset, self.workspace, self.project))
+
+    def test_source_references_are_live_labeled_scoped_and_not_persisted(self):
+        from plane.db.models import Issue
+        issue = Issue.objects.create(project=self.project, name="Source title")
+        doc = self.document()
+        doc["sections"][0]["slides"][0]["issue_ids"] = [str(issue.id)]
+        created = self.create(document=doc)
+        self.assertEqual(created.status_code, 201)
+        pk = created.data["id"]
+        self.request("post", self.owner, {"version": 1}, pk, "publish")
+        response = self.request("get", self.writer, pk=pk)
+        source = response.data["sources"][0]
+        self.assertEqual(source["identifier"], f"PRS-{issue.sequence_id}")
+        self.assertEqual(source["name"], "Source title")
+        self.assertEqual(source["url"], f"/{self.workspace.slug}/browse/PRS-{issue.sequence_id}")
+        self.assertNotIn("sources", Presentation.objects.get(pk=pk).document)
+        observer = self.request("get", self.observer, pk=pk)
+        self.assertEqual(observer.data["sources"], [])
+        issue.name = "Renamed source"
+        issue.save()
+        self.assertEqual(self.request("get", self.writer, pk=pk).data["sources"][0]["name"], "Renamed source")
+        from django.utils import timezone
+        issue.deleted_at = timezone.now()
+        issue.save()
+        self.assertEqual(self.request("get", self.writer, pk=pk).data["sources"], [{"id": str(issue.id), "is_available": False}])
+
+    def test_uuid_reference_endpoint_denies_other_project_workspace_and_observer(self):
+        from plane.app.views.issue.base import WorkItemReferenceEndpoint
+        from plane.db.models import Issue
+        issue = Issue.objects.create(project=self.project, name="Readable")
+        outside = Issue.objects.create(project=self.other_project, name="Secret")
+        def get(user, identifier, slug=None):
+            request = APIRequestFactory().get("/api/reference/")
+            force_authenticate(request, user=user)
+            return WorkItemReferenceEndpoint.as_view()(request, slug=slug or self.workspace.slug, issue_id=identifier)
+        self.assertEqual(get(self.writer, issue.id).status_code, 200)
+        self.assertEqual(get(self.writer, issue.id).data["url"], f"/{self.workspace.slug}/browse/PRS-{issue.sequence_id}")
+        self.assertEqual(get(self.observer, issue.id).status_code, 403)
+        self.assertEqual(get(self.writer, outside.id).status_code, 404)
+        hidden_project = Project.objects.create(workspace=self.workspace, name="Hidden", identifier="HID")
+        hidden_issue = Issue.objects.create(project=hidden_project, name="Private same-workspace task")
+        self.assertEqual(get(self.writer, hidden_issue.id).status_code, 404)
+        # Even an admin of this workspace cannot read an ID through the wrong workspace.
+        self.assertEqual(get(self.owner, outside.id).status_code, 404)
+        member = ProjectMember.objects.get(project=self.project, member=self.writer)
+        member.is_active = False
+        member.save()
+        self.assertEqual(get(self.writer, issue.id).status_code, 404)
+
+    def test_batch_reference_resolution_does_not_query_per_slide_or_issue(self):
+        from plane.db.models import Issue
+        from plane.app.services.work_item_references import resolve_work_item_references
+        issues = [Issue.objects.create(project=self.project, name=f"Task {n}") for n in range(8)]
+        with self.assertNumQueries(2):
+            references = resolve_work_item_references(self.writer, self.workspace, [i.id for i in issues] * 3)
+        self.assertEqual(len(references), 8)
+        self.assertTrue(all(r["is_available"] for r in references.values()))
+
+    def test_reference_context_uses_readable_ancestors_and_guest_visibility(self):
+        from plane.db.models import Issue
+        from plane.app.services.work_item_references import resolve_work_item_references
+        parent = Issue.objects.create(project=self.project, name="Manuals", created_by=self.owner)
+        model = Issue.objects.create(project=self.project, name="Model", parent=parent, created_by=self.owner)
+        child = Issue.objects.create(project=self.project, name="2026-10-15", parent=model, created_by=self.guest)
+        # AuditModel requires a request user; set the intended fixture creator explicitly.
+        Issue.objects.filter(id=child.id).update(created_by_id=self.guest.id)
+        reference = resolve_work_item_references(self.writer, self.workspace, [child.id])[str(child.id)]
+        self.assertEqual(reference["context"], "Manuals / Model")
+        self.project.guest_view_all_features = False
+        self.project.save()
+        references = resolve_work_item_references(self.guest, self.workspace, [child.id, parent.id])
+        self.assertTrue(references[str(child.id)]["is_available"])
+        self.assertEqual(references[str(child.id)]["context"], "")
+        self.assertEqual(references[str(parent.id)], {"id": str(parent.id), "is_available": False})
+
+    def test_archived_reference_has_real_archive_route_and_missing_reference_has_no_fake_url(self):
+        from django.utils import timezone
+        from plane.db.models import Issue
+        from plane.app.services.work_item_references import resolve_work_item_references
+        issue = Issue.objects.create(project=self.project, name="Archived", archived_at=timezone.now())
+        missing = uuid.uuid4()
+        references = resolve_work_item_references(self.writer, self.workspace, [issue.id, missing])
+        self.assertTrue(references[str(issue.id)]["is_archived"])
+        self.assertEqual(references[str(issue.id)]["url"], f"/{self.workspace.slug}/projects/{self.project.id}/archives/issues/{issue.id}")
+        self.assertEqual(references[str(missing)], {"id": str(missing), "is_available": False})

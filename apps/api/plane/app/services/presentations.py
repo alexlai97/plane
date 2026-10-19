@@ -311,6 +311,12 @@ def serialize_presentation(obj, user, policy, view="published", detail=False):
               "can_edit": bool(editable), "created_at": obj.created_at, "updated_at": obj.updated_at}
     if detail:
         doc = deepcopy(source["document"])
+        from plane.app.services.work_item_references import resolve_work_item_references
+        referenced_ids = list(dict.fromkeys(
+            value for section in doc.get("sections", []) for slide in section.get("slides", [])
+            for value in slide.get("issue_ids", [])
+        ))
+        result["sources"] = list(resolve_work_item_references(user, obj.workspace, referenced_ids, obj.project_id).values()) if policy.allows("work_item.detail.read") else []
         from plane.app.views.attachment_preview import is_previewable_asset
         for section in doc.get("sections", []):
             for slide in section.get("slides", []):

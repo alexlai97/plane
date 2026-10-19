@@ -421,6 +421,11 @@ export class IssueService extends APIService {
       });
   }
 
+  async getWorkItemReference(workspaceSlug: string, issueId: string): Promise<{ url: string }> {
+    return this.get(`/api/workspaces/${workspaceSlug}/work-items/${issueId}/reference/`)
+      .then((response) => response?.data);
+  }
+
   async getIssueMetaFromURL(
     workspaceSlug: string,
     projectId: string,

@@ -8,6 +8,7 @@ from plane.db.models import (
     ProjectPage,
 )
 from plane.app.permissions import ROLE
+from plane.app.services.work_item_references import issue_visibility_filter as _issue_visibility_filter
 
 
 SUPPORTED_ENTITY_TYPES = {"project", "module", "cycle", "page", "view", "workspace_view", "issue", "artifact"}
@@ -19,16 +20,6 @@ def _active_project_ids(user, workspace):
         project__deleted_at__isnull=True,
     ).values_list("project_id", flat=True))
 
-
-def _issue_visibility_filter(user):
-    return Q(
-        Q(project__project_projectmember__role__gt=ROLE.GUEST.value)
-        | Q(project__project_projectmember__role=ROLE.GUEST.value, project__guest_view_all_features=True)
-        | Q(project__project_projectmember__role=ROLE.GUEST.value, project__guest_view_all_features=False, created_by=user),
-        project__project_projectmember__member=user,
-        project__project_projectmember__is_active=True,
-        project__project_projectmember__deleted_at__isnull=True,
-    )
 
 
 def favorite_target_is_allowed(user, workspace, entity_type, identifier, project_id=None):

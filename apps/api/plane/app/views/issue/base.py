@@ -1211,6 +1211,21 @@ class IssueMetaEndpoint(BaseAPIView):
         )
 
 
+class WorkItemReferenceEndpoint(BaseAPIView):
+    access_policy_capability = "work_item.detail.read"
+
+    def get(self, request, slug, issue_id):
+        from django.shortcuts import get_object_or_404
+        from rest_framework.exceptions import NotFound
+        from plane.db.models import Workspace
+        from plane.app.services.work_item_references import resolve_work_item_references
+        workspace = get_object_or_404(Workspace, slug=slug, deleted_at__isnull=True)
+        reference = resolve_work_item_references(request.user, workspace, [issue_id])[str(issue_id)]
+        if not reference["is_available"]:
+            raise NotFound()
+        return Response(reference)
+
+
 class IssueDetailIdentifierEndpoint(BaseAPIView):
     def strict_str_to_int(self, s):
         if not s.isdigit() and not (s.startswith("-") and s[1:].isdigit()):

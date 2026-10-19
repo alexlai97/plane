@@ -43,6 +43,8 @@ import type {
 } from "../../helpers/presentation";
 import { presentationService } from "../../services/presentation.service";
 
+import { PresentationSourceLinks } from "./source-links";
+
 const REVEAL_VERSION = "6.0.2";
 const button =
   "inline-flex items-center gap-2 rounded-lg border border-subtle-1 bg-surface-1 px-3 py-2 text-13 text-secondary hover:bg-surface-2 disabled:opacity-50";
@@ -815,19 +817,7 @@ const PresentationsPage = observer(function PresentationsPage() {
                       {canReadWorkItemDetails(slug) && slide.issue_ids.length > 0 && (
                         <fieldset className="space-y-2">
                           <legend className="text-12 font-medium text-secondary">相关工作项</legend>
-                          <div className="flex flex-wrap gap-2">
-                            {slide.issue_ids.map((issueId) => (
-                              <a
-                                key={issueId}
-                                href={`/${encodeURIComponent(slug)}/projects/${encodeURIComponent(current.project_id)}/issues/${encodeURIComponent(issueId)}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className={button}
-                              >
-                                查看工作项
-                              </a>
-                            ))}
-                          </div>
+                          <PresentationSourceLinks ids={slide.issue_ids} sources={current.sources} />
                         </fieldset>
                       )}
                       <fieldset className="space-y-2">
@@ -1073,6 +1063,12 @@ const PresentationsPage = observer(function PresentationsPage() {
                         ) : null
                       )}
                     </div>
+                    {slide && canReadWorkItemDetails(slug) && slide.issue_ids.length > 0 && (
+                      <div className="border-t border-subtle-1 px-4 py-2 sm:px-6">
+                        <p className="mb-1 text-11 font-medium text-secondary">本页相关工作项 · 点击编号与标题打开详情</p>
+                        <PresentationSourceLinks ids={slide.issue_ids} sources={current.sources} />
+                      </div>
+                    )}
                     <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-subtle-1 px-4 py-3 sm:px-6">
                       <div className="min-w-0 text-12 text-secondary">
                         <span className="font-semibold text-primary">
@@ -1082,21 +1078,7 @@ const PresentationsPage = observer(function PresentationsPage() {
                         <span className="ml-2 text-tertiary">
                           · 第 {position.horizontal} / {Math.max(position.total, 1)} 页
                         </span>
-                        {!editing && slide && canReadWorkItemDetails(slug) && slide.issue_ids.length > 0 && (
-                          <span className="ml-3 inline-flex flex-wrap gap-x-2">
-                            {slide.issue_ids.map((issueId) => (
-                              <a
-                                key={issueId}
-                                href={`/${encodeURIComponent(slug)}/projects/${encodeURIComponent(current.project_id)}/issues/${encodeURIComponent(issueId)}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-link-primary hover:underline"
-                              >
-                                来源工作项
-                              </a>
-                            ))}
-                          </span>
-                        )}
+
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="hidden text-11 text-secondary xl:inline">方向键导航 · 空格 / 回车下一页</span>

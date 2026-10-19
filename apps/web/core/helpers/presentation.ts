@@ -18,6 +18,7 @@ export type {
   PresentationListResponse,
   PresentationMedia,
   PresentationSection,
+  PresentationSource,
   PresentationSlide,
 } from "./presentation-core";
 
