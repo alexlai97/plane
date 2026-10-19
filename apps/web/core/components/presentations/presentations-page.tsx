@@ -788,7 +788,7 @@ const PresentationsPage = observer(function PresentationsPage() {
                             {slide.issue_ids.map((issueId) => (
                               <a
                                 key={issueId}
-                                href={`/${encodeURIComponent(slug)}/browse/${encodeURIComponent(issueId)}`}
+                                href={`/${encodeURIComponent(slug)}/projects/${encodeURIComponent(current.project_id)}/issues/${encodeURIComponent(issueId)}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className={button}
@@ -1056,7 +1056,7 @@ const PresentationsPage = observer(function PresentationsPage() {
                             {slide.issue_ids.map((issueId) => (
                               <a
                                 key={issueId}
-                                href={`/${encodeURIComponent(slug)}/browse/${encodeURIComponent(issueId)}`}
+                                href={`/${encodeURIComponent(slug)}/projects/${encodeURIComponent(current.project_id)}/issues/${encodeURIComponent(issueId)}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-link-primary hover:underline"
