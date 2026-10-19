@@ -9,6 +9,26 @@ export type GallerySource = {
   url: string;
 };
 
+export type ArtifactAssignee = {
+  id: string;
+  display_name: string;
+  avatar_url?: string | null;
+};
+
+/** Resolve only assignee metadata supplied by the authorized artifact projection. */
+export function resolveArtifactAssignees(
+  ids: string[] | undefined,
+  members?: ArtifactAssignee[]
+): ArtifactAssignee[] | undefined {
+  if (!members) return undefined;
+  const uniqueIds = [...new Set(ids ?? members.map((member) => member.id))];
+  const byId = new Map(members.map((member) => [member.id, member]));
+  return uniqueIds.flatMap((id) => {
+    const member = byId.get(id);
+    return member ? [member] : [];
+  });
+}
+
 export type GalleryAttachment = {
   id: string;
   name: string;
@@ -41,6 +61,7 @@ export type GalleryCard = {
   kind: string;
   updated_at: string;
   assignee_ids?: string[];
+  assignees?: ArtifactAssignee[];
   sources: GallerySource[];
   attachments: GalleryAttachment[];
   links: GalleryLink[];

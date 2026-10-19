@@ -57,6 +57,7 @@ logger = logging.getLogger("plane")
 
 
 class UserEndpoint(BaseViewSet):
+    access_policy_global_exempt = True
     serializer_class = UserSerializer
     model = User
     use_read_replica = True
@@ -349,6 +350,7 @@ class UserEndpoint(BaseViewSet):
 
 
 class UserSessionEndpoint(BaseAPIView):
+    access_policy_global_exempt = True
     permission_classes = [AllowAny]
 
     def get(self, request):
@@ -363,6 +365,7 @@ class UserSessionEndpoint(BaseAPIView):
 
 
 class UpdateUserOnBoardedEndpoint(BaseAPIView):
+    access_policy_global_exempt = True
     def patch(self, request):
         profile = Profile.objects.get(user_id=request.user.id)
         profile.is_onboarded = request.data.get("is_onboarded", False)
@@ -371,6 +374,7 @@ class UpdateUserOnBoardedEndpoint(BaseAPIView):
 
 
 class UpdateUserTourCompletedEndpoint(BaseAPIView):
+    access_policy_global_exempt = True
     def patch(self, request):
         profile = Profile.objects.get(user_id=request.user.id)
         profile.is_tour_completed = request.data.get("is_tour_completed", False)
@@ -397,6 +401,7 @@ class UserActivityEndpoint(BaseAPIView, BasePaginator):
 
 
 class AccountEndpoint(BaseAPIView):
+    access_policy_global_exempt = True
     def get(self, request, pk=None):
         if pk:
             account = Account.objects.get(pk=pk, user=request.user)
@@ -414,6 +419,7 @@ class AccountEndpoint(BaseAPIView):
 
 
 class ProfileEndpoint(BaseAPIView):
+    access_policy_global_exempt = True
     @method_decorator(cache_control(private=True, max_age=12))
     @method_decorator(vary_on_cookie)
     def get(self, request):

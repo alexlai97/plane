@@ -48,6 +48,7 @@ from plane.db.models import (
     IssueSubscriber,
     Project,
     ProjectMember,
+    Profile,
     User,
     Workspace,
     WorkspaceMember,
@@ -61,15 +62,15 @@ from plane.utils.grouper import (
 from plane.utils.issue_filters import issue_filters
 from plane.utils.order_queryset import ACTIVITY_ORDER_BY_ALLOWLIST, order_issue_queryset, sanitize_order_by
 from plane.utils.paginator import GroupedOffsetPaginator, SubGroupedOffsetPaginator
+from plane.utils.access_policy import STANDARD, get_workspace_access_policy
 from plane.utils.filters import ComplexFilterBackend
 from plane.utils.filters import IssueFilterSet
 
 
 class UserLastProjectWithWorkspaceEndpoint(BaseAPIView):
+    access_policy_global_exempt = True
     def get(self, request):
-        user = User.objects.get(pk=request.user.id)
-
-        last_workspace_id = user.last_workspace_id
+        last_workspace_id = Profile.objects.filter(user=request.user).values_list("last_workspace_id", flat=True).first()
 
         if last_workspace_id is None:
             return Response(
@@ -81,8 +82,24 @@ class UserLastProjectWithWorkspaceEndpoint(BaseAPIView):
         workspace_serializer = WorkSpaceSerializer(workspace)
 
         project_member = ProjectMember.objects.filter(
-            workspace_id=last_workspace_id, member=request.user
+            workspace_id=last_workspace_id,
+            member=request.user,
+            is_active=True,
+            deleted_at__isnull=True,
+            project__deleted_at__isnull=True,
         ).select_related("workspace", "project", "member", "workspace__owner")
+
+        workspace_membership = WorkspaceMember.objects.filter(
+            workspace_id=last_workspace_id,
+            member=request.user,
+            is_active=True,
+            deleted_at__isnull=True,
+        ).only("access_profile").first()
+        if workspace_membership is None:
+            project_member = project_member.none()
+        elif workspace_membership.access_profile != STANDARD:
+            policy = get_workspace_access_policy(request, workspace.slug)
+            project_member = project_member.filter(project_id__in=policy.allowed_project_ids or ())
 
         project_member_serializer = ProjectMemberSerializer(project_member, many=True)
 

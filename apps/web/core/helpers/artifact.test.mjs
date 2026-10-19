@@ -7,7 +7,7 @@ import {
   getArtifactShareUrl,
   resolveArtifactCoverPreview,
 } from "./artifact.ts";
-import { getAttachmentPreviewUrl, getSafeGalleryLinks } from "./gallery.ts";
+import { getAttachmentPreviewUrl, getSafeGalleryLinks, resolveArtifactAssignees } from "./gallery.ts";
 
 const artifact = {
   title: "成果",
@@ -32,7 +32,22 @@ test("edit payload carries current version and category id, without read-only me
   assert.deepEqual(form.links, [{ title: "应用", url: "https://example.com", kind: "application" }]);
   assert.equal(form.owner_id, undefined);
   assert.equal(form.status, undefined);
+  assert.equal(form.assignees, undefined);
   assert.equal(artifactToWrite().version, undefined);
+});
+
+test("published artifact assignee projection resolves only selected member metadata", () => {
+  const members = [
+    { id: "member-b", display_name: "李工", avatar_url: "/avatars/b.png" },
+    { id: "member-extra", display_name: "非负责人", avatar_url: null },
+    { id: "member-a", display_name: "王工", avatar_url: null },
+  ];
+  assert.deepEqual(resolveArtifactAssignees(["member-a", "member-b", "member-a"], members), [
+    { id: "member-a", display_name: "王工", avatar_url: null },
+    { id: "member-b", display_name: "李工", avatar_url: "/avatars/b.png" },
+  ]);
+  assert.deepEqual(resolveArtifactAssignees([], members), []);
+  assert.equal(resolveArtifactAssignees(["member-a"], undefined), undefined);
 });
 
 test("share URL removes gallery return context and marks a real draft view", () => {

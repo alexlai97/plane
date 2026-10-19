@@ -31,6 +31,8 @@ from plane.throttles.asset import AssetRateThrottle
 class UserAssetsV2Endpoint(BaseAPIView):
     """This endpoint is used to upload user profile images."""
 
+    access_policy_global_exempt = True
+
     def asset_delete(self, asset_id):
         asset = FileAsset.objects.filter(id=asset_id).first()
         if asset is None:
@@ -490,6 +492,8 @@ class WorkspaceFileAssetEndpoint(BaseAPIView):
 
 class StaticFileAssetEndpoint(BaseAPIView):
     """This endpoint is used to get the signed URL for a static asset."""
+
+    access_policy_global_exempt = True
 
     permission_classes = [AllowAny]
 

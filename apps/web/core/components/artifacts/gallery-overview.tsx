@@ -23,7 +23,7 @@ function ResultLink({ card, href, onOpenDetail }: { card: GalleryCard; href: str
       <Icon aria-hidden="true" className="size-4 shrink-0 text-accent-primary" />
       <span className="flex min-w-0 flex-1 items-center gap-2">
         <span className="min-w-0 truncate">{card.title}</span>
-        <ArtifactAssignees ids={card.assignee_ids} />
+        <ArtifactAssignees ids={card.assignee_ids} resolvedMembers={card.assignees} />
       </span>
       <ChevronRight aria-hidden="true" className="size-3.5 shrink-0 text-tertiary group-hover:text-link-primary" />
     </a>

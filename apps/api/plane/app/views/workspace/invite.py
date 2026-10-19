@@ -261,6 +261,7 @@ class WorkspaceJoinEndpoint(BaseAPIView):
 
 
 class UserWorkspaceInvitationsViewSet(BaseViewSet):
+    access_policy_global_exempt = True
     serializer_class = WorkSpaceMemberInviteSerializer
     model = WorkspaceMemberInvite
 

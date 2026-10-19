@@ -149,6 +149,7 @@ class WorkspaceLiteSerializer(BaseSerializer):
 
 class WorkSpaceMemberSerializer(DynamicBaseSerializer):
     member = UserLiteSerializer(read_only=True)
+    access_profile = serializers.CharField(read_only=True)
 
     class Meta:
         model = WorkspaceMember
@@ -157,6 +158,7 @@ class WorkSpaceMemberSerializer(DynamicBaseSerializer):
 
 class WorkspaceMemberMeSerializer(BaseSerializer):
     draft_issue_count = serializers.IntegerField(read_only=True)
+    access_profile = serializers.CharField(read_only=True)
 
     class Meta:
         model = WorkspaceMember
@@ -165,6 +167,7 @@ class WorkspaceMemberMeSerializer(BaseSerializer):
 
 class WorkspaceMemberAdminSerializer(DynamicBaseSerializer):
     member = UserAdminLiteSerializer(read_only=True)
+    access_profile = serializers.CharField(read_only=True)
 
     class Meta:
         model = WorkspaceMember

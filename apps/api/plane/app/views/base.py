@@ -39,6 +39,9 @@ class TimezoneMixin:
 
     def initial(self, request, *args, **kwargs):
         super().initial(request, *args, **kwargs)
+        from plane.utils.access_policy import enforce_workspace_access_policy
+
+        enforce_workspace_access_policy(self, request, kwargs)
         if request.user.is_authenticated:
             timezone.activate(zoneinfo.ZoneInfo(request.user.user_timezone))
         else:

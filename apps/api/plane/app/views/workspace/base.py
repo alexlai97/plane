@@ -53,6 +53,7 @@ from plane.utils.csv_utils import sanitize_csv_row
 
 
 class WorkSpaceViewSet(BaseViewSet):
+    access_policy_global_exempt = True
     model = Workspace
     serializer_class = WorkSpaceSerializer
     permission_classes = [WorkSpaceBasePermission]
@@ -202,6 +203,7 @@ class WorkSpaceViewSet(BaseViewSet):
 
 
 class UserWorkSpacesEndpoint(BaseAPIView):
+    access_policy_global_exempt = True
     search_fields = ["name"]
     filterset_fields = ["owner"]
     use_read_replica = True
@@ -241,6 +243,7 @@ class UserWorkSpacesEndpoint(BaseAPIView):
 
 
 class WorkSpaceAvailabilityCheckEndpoint(BaseAPIView):
+    access_policy_global_exempt = True
     def get(self, request):
         slug = request.GET.get("slug", False)
 

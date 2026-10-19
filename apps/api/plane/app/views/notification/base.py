@@ -294,6 +294,7 @@ class MarkAllReadNotificationViewSet(BaseViewSet):
 
 
 class UserNotificationPreferenceEndpoint(BaseAPIView):
+    access_policy_global_exempt = True
     model = UserNotificationPreference
     serializer_class = UserNotificationPreferenceSerializer
 

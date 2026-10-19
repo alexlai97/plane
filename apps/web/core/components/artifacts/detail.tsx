@@ -7,6 +7,7 @@ import { ArrowDownToLine, ArrowLeft, ExternalLink, Eye, FileText, X } from "luci
 import { ModalPortal, EPortalWidth, EPortalPosition } from "@plane/propel/portal";
 import useKeypress from "@/hooks/use-keypress";
 import { artifactService } from "@/services/artifact.service";
+import { canReadWorkItemDetails, isSummaryObserverProfile } from "@/helpers/workspace-access-policy";
 import { artifactError, getArtifactShareUrl, resolveArtifactCoverPreview } from "../../helpers/artifact";
 import type { Artifact } from "../../helpers/artifact";
 import type { GalleryAttachment } from "../../helpers/gallery";
@@ -57,6 +58,7 @@ export function ArtifactDetail({
   const [retry, setRetry] = useState(0);
   const standaloneHref = getGalleryDetailHref(slug, id, returnHref);
   const isPeek = Boolean(onClose);
+  const isSummaryObserver = isSummaryObserverProfile(slug);
   useEffect(() => {
     if (!isPeek) return;
     const frame = requestAnimationFrame(() => closeRef.current?.focus());
@@ -124,7 +126,7 @@ export function ArtifactDetail({
   };
   const actions = (
     <>
-      {artifact && view === "published" && (
+      {artifact && view === "published" && !isSummaryObserver && (
         <EntityFavoriteControl
           workspaceSlug={slug}
           entityType="artifact"
@@ -133,7 +135,7 @@ export function ArtifactDetail({
           variant="button"
         />
       )}
-      {artifact?.can_edit && (
+      {artifact?.can_edit && !isSummaryObserver && (
         <a
           href={`/${encodeURIComponent(slug)}/gallery/${encodeURIComponent(id)}/edit/?from=${encodeURIComponent(returnHref)}`}
           target={onClose ? "_blank" : undefined}
@@ -171,7 +173,7 @@ export function ArtifactDetail({
           <Section title="成果说明">
             <div className="mb-3 flex items-center gap-2 text-13 text-secondary">
               <span>负责人</span>
-              <ArtifactAssignees ids={artifact.assignee_ids} showNames />
+              <ArtifactAssignees ids={artifact.assignee_ids} resolvedMembers={artifact.assignees} showNames />
             </div>
             <div className="text-xs flex flex-wrap gap-2 text-secondary">
               <span>{artifact.category || "未分类"}</span>
@@ -224,18 +226,25 @@ export function ArtifactDetail({
           </Section>
           {artifact.sources.length > 0 && (
             <Section title="关联工作项">
-              {artifact.sources.map((source) => (
-                <a
-                  key={source.id}
-                  href={getGallerySourceHref(slug, source)}
-                  target={onClose ? "_blank" : undefined}
-                  rel={onClose ? "noopener noreferrer" : undefined}
-                  className="text-sm block rounded-md border border-subtle p-3 text-link-primary hover:bg-surface-2"
-                >
-                  {source.identifier} · {source.name}
-                  <span className="text-xs mt-1 block text-tertiary">{source.project_name}</span>
-                </a>
-              ))}
+              {artifact.sources.map((source) =>
+                canReadWorkItemDetails(slug) ? (
+                  <a
+                    key={source.id}
+                    href={getGallerySourceHref(slug, source)}
+                    target={onClose ? "_blank" : undefined}
+                    rel={onClose ? "noopener noreferrer" : undefined}
+                    className="text-sm block rounded-md border border-subtle p-3 text-link-primary hover:bg-surface-2"
+                  >
+                    {source.identifier} · {source.name}
+                    <span className="text-xs mt-1 block text-tertiary">{source.project_name}</span>
+                  </a>
+                ) : (
+                  <div key={source.id} className="text-sm block rounded-md border border-subtle p-3 text-secondary">
+                    {source.identifier} · {source.name}
+                    <span className="text-xs mt-1 block text-tertiary">{source.project_name}</span>
+                  </div>
+                )
+              )}
             </Section>
           )}
           {artifact.attachments.length > 0 && (

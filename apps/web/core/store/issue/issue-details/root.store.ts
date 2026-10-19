@@ -6,6 +6,7 @@
 
 import { action, computed, makeObservable, observable } from "mobx";
 import { nextPeekTrail } from "@/helpers/peek-navigation";
+import { canReadWorkItemDetails } from "@/helpers/workspace-access-policy";
 // types
 import type {
   TIssue,
@@ -248,6 +249,7 @@ export class IssueDetail implements IIssueDetail {
   setRelationKey = (relationKey: TIssueRelationTypes | null) => (this.relationKey = relationKey);
   setIssueCrudOperationState = (state: TIssueCrudOperationState) => (this.issueCrudOperationState = state);
   setPeekIssue = (peekIssue: TPeekIssue | undefined) => {
+    if (peekIssue && !canReadWorkItemDetails(peekIssue.workspaceSlug)) return;
     this.peekTrail = nextPeekTrail(this.peekTrail, this.peekIssue, peekIssue);
     this.peekIssue = peekIssue;
   };

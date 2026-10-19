@@ -21,10 +21,13 @@ import useSWR from "swr";
 import { useWorkspaceNotifications } from "@/hooks/store/notifications";
 // local imports
 import { StarUsOnGitHubLink } from "@/app/(all)/[workspaceSlug]/(projects)/star-us-link";
+import { useWorkspaceAccessPolicy } from "@/components/workspace/access-policy-context";
 
 export const TopNavigationRoot = observer(function TopNavigationRoot() {
   // router
   const { workspaceSlug } = useParams();
+  const { policy, loading } = useWorkspaceAccessPolicy();
+  const isStandardAccess = !loading && policy?.profile === "standard";
   const pathname = usePathname();
   const isInbox = pathname?.includes("/notifications/");
   const notificationNavigation = useNotificationReturn(workspaceSlug?.toString() ?? "");
@@ -37,9 +40,11 @@ export const TopNavigationRoot = observer(function TopNavigationRoot() {
 
   // Fetch notification count
   useSWR(
-    workspaceSlug ? "WORKSPACE_UNREAD_NOTIFICATION_COUNT" : null,
-    workspaceSlug ? () => getUnreadNotificationsCount(workspaceSlug.toString()) : null
+    workspaceSlug && isStandardAccess ? `WORKSPACE_UNREAD_NOTIFICATION_COUNT_${workspaceSlug}` : null,
+    workspaceSlug && isStandardAccess ? () => getUnreadNotificationsCount(workspaceSlug.toString()) : null
   );
+
+  if (!isStandardAccess) return null;
 
   // Calculate notification count
   const isMentionsEnabled = unreadNotificationsCount.mention_unread_notifications_count > 0;

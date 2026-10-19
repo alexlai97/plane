@@ -25,6 +25,7 @@ import type {
   GalleryAttachment,
 } from "../../../../../core/helpers/gallery";
 import { galleryService } from "@/services/gallery.service";
+import { isSummaryObserverProfile } from "@/helpers/workspace-access-policy";
 
 const emptyCards: GalleryCard[] = [];
 export default function GalleryPage() {
@@ -141,7 +142,7 @@ export default function GalleryPage() {
                 </Tabs.Trigger>
               </Tabs.List>
             </Tabs>
-            {data?.can_create && (
+            {data?.can_create && !isSummaryObserverProfile(slug) && (
               <a
                 href={`/${encodeURIComponent(slug)}/gallery/manage/`}
                 className="shrink-0 text-12 whitespace-nowrap text-secondary hover:text-link-primary"

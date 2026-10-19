@@ -38,9 +38,15 @@ from plane.app.views import (
     WorkspaceUserPreferenceViewSet,
 )
 from plane.app.views.gallery import GalleryAssetEndpoint, GalleryCoverEndpoint, WorkspaceGalleryEndpoint
+from plane.app.views.workspace.access_policy import WorkspaceAccessPolicyEndpoint
 
 
 urlpatterns = [
+    path(
+        "workspaces/<str:slug>/access-policy/",
+        WorkspaceAccessPolicyEndpoint.as_view(),
+        name="workspace-access-policy",
+    ),
     path(
         "workspaces/<str:slug>/gallery/",
         WorkspaceGalleryEndpoint.as_view(),

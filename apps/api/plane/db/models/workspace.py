@@ -205,6 +205,9 @@ class WorkspaceMember(BaseModel):
         related_name="member_workspace",
     )
     role = models.PositiveSmallIntegerField(choices=ROLE_CHOICES, default=5)
+    # Independent from Plane's numeric workspace role. This selects a
+    # workspace access preset enforced by plane.utils.access_policy.
+    access_profile = models.CharField(max_length=64, default="standard", db_index=True)
     company_role = models.TextField(null=True, blank=True)
     view_props = models.JSONField(default=get_default_props)
     default_props = models.JSONField(default=get_default_props)
@@ -231,6 +234,40 @@ class WorkspaceMember(BaseModel):
     def __str__(self):
         """Return members of the workspace"""
         return f"{self.member.email} <{self.workspace.name}>"
+
+
+class WorkspaceMemberProjectGrant(BaseModel):
+    """Project scope granted to a workspace member access profile."""
+
+    workspace_member = models.ForeignKey(WorkspaceMember, on_delete=models.CASCADE, related_name="project_grants")
+    project = models.ForeignKey("db.Project", on_delete=models.CASCADE, related_name="workspace_access_grants")
+
+    class Meta:
+        db_table = "workspace_member_project_grants"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["workspace_member", "project"],
+                condition=models.Q(deleted_at__isnull=True),
+                name="uniq_workspace_member_project_grant",
+            )
+        ]
+
+
+class WorkspaceMemberViewGrant(BaseModel):
+    """Saved-view scope granted to a workspace member access profile."""
+
+    workspace_member = models.ForeignKey(WorkspaceMember, on_delete=models.CASCADE, related_name="view_grants")
+    view = models.ForeignKey("db.IssueView", on_delete=models.CASCADE, related_name="workspace_access_grants")
+
+    class Meta:
+        db_table = "workspace_member_view_grants"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["workspace_member", "view"],
+                condition=models.Q(deleted_at__isnull=True),
+                name="uniq_workspace_member_view_grant",
+            )
+        ]
 
 
 class WorkspaceMemberInvite(BaseModel):

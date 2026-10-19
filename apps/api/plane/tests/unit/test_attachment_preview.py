@@ -2,6 +2,7 @@
 import uuid
 from unittest.mock import patch, MagicMock
 from django.test import TestCase
+from django.http import HttpResponse
 from django.core import signing
 from rest_framework.test import APIRequestFactory, force_authenticate
 from plane.db.models import User, Workspace, WorkspaceMember, Project, ProjectMember, Issue, FileAsset
@@ -81,6 +82,30 @@ class AttachmentPreviewTests(TestCase):
         with patch("django.core.signing.time.time", return_value=1000):
             token = signing.dumps(str(self.asset.id), salt=SOURCE_SALT)
         self.assertEqual(endpoint(request, token=token, filename=f"{self.asset.id.hex}-attachment.md").status_code, 403)
+
+    def test_existing_source_ticket_rechecks_profile_and_project_membership(self):
+        endpoint = AttachmentPreviewSourceEndpoint.as_view()
+        request = APIRequestFactory().get("/source")
+        claims = {"asset": str(self.asset.id), "user": str(self.member.id), "workspace": str(self.workspace.id)}
+        token = signing.dumps(claims, salt=SOURCE_SALT)
+        filename = f"{self.asset.id.hex}-attachment.md"
+
+        with patch("plane.app.views.attachment_preview.source_response", return_value=HttpResponse("ok")) as source:
+            self.assertEqual(endpoint(request, token=token, filename=filename).status_code, 200)
+            source.reset_mock()
+
+            WorkspaceMember.objects.filter(workspace=self.workspace, member=self.member).update(
+                access_profile="summary_observer"
+            )
+            self.assertEqual(endpoint(request, token=token, filename=filename).status_code, 404)
+            source.assert_not_called()
+
+            WorkspaceMember.objects.filter(workspace=self.workspace, member=self.member).update(
+                access_profile="standard"
+            )
+            ProjectMember.objects.filter(project=self.project, member=self.member).update(is_active=False)
+            self.assertEqual(endpoint(request, token=token, filename=filename).status_code, 404)
+            source.assert_not_called()
 
     @patch("plane.app.views.attachment_preview.requests.get")
     def test_media_uses_branded_native_player_without_vendor_portal(self, get):

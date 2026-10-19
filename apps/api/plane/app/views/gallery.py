@@ -19,13 +19,17 @@ COVER_DIR = Path(__file__).resolve().parent.parent / "data" / "covers"
 
 
 class WorkspaceGalleryEndpoint(BaseAPIView):
+    access_policy_capability = "artifact.published.read"
+
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
     def get(self, request, slug):
         workspace = get_object_or_404(Workspace, slug=slug, deleted_at__isnull=True)
+        from plane.utils.access_policy import get_workspace_access_policy
+        policy = get_workspace_access_policy(request, slug)
         rows = list(artifact_read_queryset(Artifact.objects.filter(
             workspace=workspace, status=Artifact.Status.PUBLISHED, deleted_at__isnull=True,
         ).order_by("created_at", "id")))
-        read_context = ArtifactReadContext(request.user, workspace, rows)
+        read_context = ArtifactReadContext(request.user, workspace, rows, policy=policy)
         cards = []
         for artifact in rows:
             try:
@@ -37,15 +41,21 @@ class WorkspaceGalleryEndpoint(BaseAPIView):
         categories = list(dict.fromkeys(c["category"] for c in cards if c.get("category")))
         demos = {c["id"] for c in cards if any(l.get("kind") == "demo" for l in c["links"]) or any(a.get("mime", "").startswith("video/") for a in c["attachments"])}
         return Response({"categories": categories, "stats": {"total": len(cards), "with_demo": len(demos)}, "cards": cards,
-                         "can_create": read_context.role in (ROLE.ADMIN.value, ROLE.MEMBER.value)})
+                         "can_create": not policy.is_restricted and read_context.role in (ROLE.ADMIN.value, ROLE.MEMBER.value)})
 
 
 class ArtifactAssetEndpoint(AttachmentPreviewResponseMixin, BaseAPIView):
+    access_policy_capability = "artifact.material.read"
+
     def get(self, request, slug, pk, asset_id, resource="", view=None):
         workspace = get_object_or_404(Workspace, slug=slug, deleted_at__isnull=True)
         artifact = get_object_or_404(Artifact, id=pk, workspace=workspace, deleted_at__isnull=True)
+        from plane.utils.access_policy import get_workspace_access_policy
+        policy = get_workspace_access_policy(request, slug)
         if view == "draft" or request.query_params.get("view") == "draft":
             from rest_framework.exceptions import NotFound
+            if policy.is_restricted:
+                raise NotFound()
             if not can_edit(request.user, artifact):
                 raise NotFound()
             from types import SimpleNamespace
@@ -57,8 +67,11 @@ class ArtifactAssetEndpoint(AttachmentPreviewResponseMixin, BaseAPIView):
             if not revision or artifact.status != Artifact.Status.PUBLISHED:
                 from rest_framework.exceptions import NotFound
                 raise NotFound()
+            source = next(iter((revision.snapshot or {}).get("sources", [])), None)
+            policy.require("artifact.published.read", project_id=(source or {}).get("project_id"))
+            policy.require("artifact.material.read", project_id=(source or {}).get("project_id"))
             request.artifact_preview_claim = {"artifact": str(artifact.id), "revision": str(revision.id), "user": str(request.user.id)}
-        asset = render_authorized_asset(request.user, artifact, revision, asset_id)
+        asset = render_authorized_asset(request.user, artifact, revision, asset_id, policy=policy)
         if not resource:
             storage = S3Storage(request=request)
             return HttpResponseRedirect(storage.generate_presigned_url(object_name=asset.asset.name, disposition="attachment", filename=asset.attributes.get("name", "attachment")))
@@ -74,8 +87,12 @@ class ArtifactCoverEndpoint(ArtifactAssetEndpoint):
         from django.http import FileResponse
         workspace = get_object_or_404(Workspace, slug=slug, deleted_at__isnull=True)
         artifact = get_object_or_404(Artifact, id=pk, workspace=workspace, deleted_at__isnull=True)
+        from plane.utils.access_policy import get_workspace_access_policy
+        policy = get_workspace_access_policy(request, slug)
         if request.query_params.get("view") == "draft":
             from rest_framework.exceptions import NotFound
+            if policy.is_restricted:
+                raise NotFound()
             from types import SimpleNamespace
             if not can_edit(request.user, artifact):
                 raise NotFound()
@@ -87,8 +104,11 @@ class ArtifactCoverEndpoint(ArtifactAssetEndpoint):
             if not revision or artifact.status != Artifact.Status.PUBLISHED:
                 from rest_framework.exceptions import NotFound
                 raise NotFound()
+            source = next(iter((revision.snapshot or {}).get("sources", [])), None)
+            policy.require("artifact.published.read", project_id=(source or {}).get("project_id"))
+            policy.require("artifact.material.read", project_id=(source or {}).get("project_id"))
             request.artifact_preview_claim = {"artifact": str(artifact.id), "revision": str(revision.id), "user": str(request.user.id)}
-        render_authorized_asset(request.user, artifact, revision, asset_id)
+        render_authorized_asset(request.user, artifact, revision, asset_id, policy=policy)
         path = COVER_DIR / f"{asset_id}.png"
         if path.is_file():
             response = FileResponse(path.open("rb"), content_type="image/png")

@@ -92,6 +92,10 @@ class WorkSpaceMemberViewSet(BaseViewSet):
 
         if serializer.is_valid():
             serializer.save()
+            if not serializer.instance.is_active:
+                from plane.utils.access_policy import clear_workspace_member_access_grants
+
+                clear_workspace_member_access_grants(serializer.instance)
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -147,6 +151,9 @@ class WorkSpaceMemberViewSet(BaseViewSet):
 
         workspace_member.is_active = False
         workspace_member.save()
+        from plane.utils.access_policy import clear_workspace_member_access_grants
+
+        clear_workspace_member_access_grants(workspace_member)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @invalidate_cache(
@@ -202,6 +209,9 @@ class WorkSpaceMemberViewSet(BaseViewSet):
         # # Deactivate the user
         workspace_member.is_active = False
         workspace_member.save()
+        from plane.utils.access_policy import clear_workspace_member_access_grants
+
+        clear_workspace_member_access_grants(workspace_member)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -215,6 +225,7 @@ class WorkspaceMemberUserViewsEndpoint(BaseAPIView):
 
 
 class WorkspaceMemberUserEndpoint(BaseAPIView):
+    access_policy_capability = "member.self.read"
     use_read_replica = True
 
     def get(self, request, slug):

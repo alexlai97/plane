@@ -82,7 +82,7 @@ function ResultCard({
             {card.title}
           </a>
         </h2>
-        <ArtifactAssignees ids={card.assignee_ids} showNames />
+        <ArtifactAssignees ids={card.assignee_ids} resolvedMembers={card.assignees} showNames />
         <p className="line-clamp-2 min-h-10 text-13 leading-5 text-secondary">{card.summary}</p>
         <div className="flex min-h-8 flex-wrap gap-x-3 gap-y-1 text-12">
           {card.attachments.slice(0, 2).map((item) => (

@@ -69,6 +69,8 @@ from .workspace import (
     Workspace,
     WorkspaceBaseModel,
     WorkspaceMember,
+    WorkspaceMemberProjectGrant,
+    WorkspaceMemberViewGrant,
     WorkspaceMemberInvite,
     WorkspaceTheme,
     WorkspaceUserProperties,

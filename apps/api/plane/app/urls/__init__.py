@@ -13,6 +13,7 @@ from .intake import urlpatterns as intake_urls
 from .issue import urlpatterns as issue_urls
 from .module import urlpatterns as module_urls
 from .notification import urlpatterns as notification_urls
+from .observer import urlpatterns as observer_urls
 from .page import urlpatterns as page_urls
 from .project import urlpatterns as project_urls
 from .search import urlpatterns as search_urls
@@ -35,6 +36,7 @@ urlpatterns = [
     *issue_urls,
     *module_urls,
     *notification_urls,
+    *observer_urls,
     *page_urls,
     *project_urls,
     *search_urls,

@@ -23,6 +23,7 @@ from plane.app.views.attachment_preview import ArtifactPreviewSourceEndpoint, AR
 from plane.db.models import (
     Artifact, ArtifactCategory, ArtifactRevision, FileAsset, Issue, Project,
     APIToken, ProjectMember, User, Workspace, WorkspaceMember,
+    WorkspaceMemberProjectGrant,
 )
 
 
@@ -814,6 +815,57 @@ class ArtifactLifecycleTests(TestCase):
         request = APIRequestFactory().get("/")
         with patch("plane.app.views.attachment_preview.source_response") as source_response:
             response = ArtifactPreviewSourceEndpoint.as_view()(request, token=token, filename=f"{asset.id.hex}-attachment.pdf")
+        self.assertEqual(response.status_code, 404)
+        source_response.assert_not_called()
+
+    def test_private_artifact_preview_token_is_revoked_after_profile_downgrade(self):
+        created = self.request("post", self.owner, self.payload(source_issue_ids=[str(self.issue.id)]))
+        artifact_id = created.data["id"]
+        asset = FileAsset.objects.create(
+            workspace=self.workspace,
+            user=self.owner,
+            entity_type=FileAsset.EntityTypeContext.ARTIFACT_ATTACHMENT,
+            entity_identifier=artifact_id,
+            is_uploaded=True,
+            asset="private-revocation.pdf",
+            attributes={"name": "private-revocation.pdf", "size": 10, "type": "application/pdf"},
+            size=10,
+        )
+        saved = self.request(
+            "patch", self.owner,
+            self.payload(version=1, source_issue_ids=[str(self.issue.id)], assets=[{"id": str(asset.id)}]),
+            artifact_id,
+        )
+        self.assertEqual(saved.status_code, 200, saved.data)
+        self.assertEqual(self.request("post", self.owner, {"version": 2}, artifact_id, "publish").status_code, 200)
+        artifact = Artifact.objects.get(id=artifact_id)
+        # Publishing sets workspace access by design; switch the published
+        # record to private after publish to exercise token reuse after a
+        # subsequent member-profile downgrade.
+        artifact.access = Artifact.Access.PRIVATE
+        artifact.save(update_fields=["access", "updated_at"])
+        revision = artifact.published_revision
+        token = signing.dumps(
+            {"artifact": str(artifact.id), "revision": str(revision.id), "user": str(self.owner.id), "asset": str(asset.id)},
+            salt=ARTIFACT_SOURCE_SALT,
+            compress=True,
+        )
+        request = APIRequestFactory().get("/source")
+        endpoint = ArtifactPreviewSourceEndpoint.as_view()
+        filename = f"{asset.id.hex}-attachment.pdf"
+
+        with patch("plane.app.views.attachment_preview.source_response", return_value=HttpResponse("ok")) as source_response:
+            self.assertEqual(endpoint(request, token=token, filename=filename).status_code, 200)
+            source_response.reset_mock()
+            WorkspaceMemberProjectGrant.objects.create(
+                workspace_member=WorkspaceMember.objects.get(workspace=self.workspace, member=self.owner),
+                project=self.project,
+            )
+            WorkspaceMember.objects.filter(workspace=self.workspace, member=self.owner).update(
+                access_profile="summary_observer"
+            )
+            response = endpoint(request, token=token, filename=filename)
+
         self.assertEqual(response.status_code, 404)
         source_response.assert_not_called()
 

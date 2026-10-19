@@ -18,6 +18,8 @@ from plane.app.serializers import APITokenSerializer, APITokenReadSerializer
 
 
 class ApiTokenEndpoint(BaseAPIView):
+    access_policy_global_exempt = True
+
     def post(self, request: Request) -> Response:
         label = request.data.get("label", str(uuid4().hex))
         description = request.data.get("description", "")

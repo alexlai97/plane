@@ -171,7 +171,7 @@ export default function ArtifactManagePage() {
                 <TableRow key={row.id}>
                   <TableCell className="font-medium">{row.title}</TableCell>
                   <TableCell>
-                    <ArtifactAssignees ids={row.assignee_ids} showNames />
+                    <ArtifactAssignees ids={row.assignee_ids} resolvedMembers={row.assignees} showNames />
                   </TableCell>
                   <TableCell>{row.category || "未分类"}</TableCell>
                   <TableCell>

@@ -3,6 +3,7 @@ import base64
 import html as html_utils
 import os
 import re
+import uuid
 from pathlib import PurePosixPath
 from urllib.parse import quote, unquote
 
@@ -11,11 +12,12 @@ from django.core import signing
 from django.http import HttpResponse, HttpResponseRedirect, StreamingHttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework.permissions import AllowAny
+from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.views import APIView
 
 from plane.app.permissions import ROLE, allow_permission
 from plane.app.views.base import BaseAPIView
-from plane.db.models import FileAsset
+from plane.db.models import FileAsset, Issue, User
 from plane.settings.storage import S3Storage
 
 CLOSE_BRIDGE = """<script>function closeAttachmentPreview(){if(parent!==window)parent.postMessage({type:'bokang:close-attachment-preview'},location.origin)}document.addEventListener('keydown',function(event){if(event.key==='Escape')closeAttachmentPreview()});window.addEventListener('message',function(event){if(event.origin===location.origin&&event.source!==parent&&event.data&&event.data.type==='bokang:close-attachment-preview')closeAttachmentPreview()});</script>"""
@@ -25,6 +27,13 @@ ARTIFACT_SOURCE_SALT = "bokang-artifact-preview-source-v1"
 PREVIEW_EXTENSIONS = frozenset("md markdown txt log csv json xml pdf doc docx xls xlsx ppt pptx odt ods odp rtf jpg jpeg png gif webp bmp tif tiff mp3 wav ogg m4a aac flac mp4 webm mov avi mkv".split())
 OFFICE_PREVIEW_EXTENSIONS = frozenset("doc docx xls xlsx ppt pptx odt ods odp rtf".split())
 STATIC_ROOTS = frozenset("js css bootstrap bootstrap-table pdfjs xlsx excel xspreadsheet pptx highlight images ckplayer".split())
+
+
+def _valid_uuid_claims(claims, *keys):
+    try:
+        return all(uuid.UUID(str(claims[key])) for key in keys)
+    except (KeyError, TypeError, ValueError, AttributeError):
+        return False
 
 
 def is_previewable_asset(asset_or_name, size=None):
@@ -85,11 +94,46 @@ class AttachmentPreviewSourceEndpoint(APIView):
 
     def get(self, request, token, filename):
         try:
-            asset_id = signing.loads(token, salt=SOURCE_SALT, max_age=600)
+            claims = signing.loads(token, salt=SOURCE_SALT, max_age=600)
         except signing.BadSignature:
             return HttpResponse(status=403)
-        asset = get_object_or_404(FileAsset, pk=asset_id, is_uploaded=True, is_deleted=False,
+        # Require user-bound claims so profile and membership changes revoke
+        # already-issued preview links instead of leaving a ten-minute bypass.
+        if not isinstance(claims, dict) or not _valid_uuid_claims(claims, "asset", "user", "workspace"):
+            return HttpResponse(status=403)
+        asset = get_object_or_404(FileAsset, pk=claims["asset"], is_uploaded=True, is_deleted=False,
                                   entity_type=FileAsset.EntityTypeContext.ISSUE_ATTACHMENT)
+        user = User.objects.filter(id=claims["user"], is_active=True).first()
+        if not user or str(asset.workspace_id) != str(claims.get("workspace")):
+            return HttpResponse(status=404)
+        try:
+            from types import SimpleNamespace
+            from plane.db.models import ProjectMember
+            from plane.utils.access_policy import get_workspace_access_policy
+
+            policy = get_workspace_access_policy(SimpleNamespace(user=user), asset.workspace.slug)
+            policy.require("work_item.detail.read", project_id=asset.project_id)
+            project_member = ProjectMember.objects.filter(
+                project_id=asset.project_id,
+                workspace=asset.workspace,
+                member=user,
+                is_active=True,
+                deleted_at__isnull=True,
+                project__deleted_at__isnull=True,
+            ).select_related("project").first()
+            if not project_member:
+                return HttpResponse(status=404)
+            if project_member.role == ROLE.GUEST.value and not project_member.project.guest_view_all_features:
+                issue = Issue.issue_objects.filter(
+                    id=asset.issue_id,
+                    workspace=asset.workspace,
+                    project_id=asset.project_id,
+                    deleted_at__isnull=True,
+                ).only("created_by_id").first()
+                if issue is None or issue.created_by_id != user.id:
+                    return HttpResponse(status=404)
+        except PermissionDenied:
+            return HttpResponse(status=404)
         if not filename.startswith(f"{asset.id.hex}-"):
             return HttpResponse(status=404)
         return source_response(asset, request)
@@ -107,26 +151,52 @@ class ArtifactPreviewSourceEndpoint(APIView):
             claims = signing.loads(token, salt=ARTIFACT_SOURCE_SALT, max_age=600)
         except signing.BadSignature:
             return HttpResponse(status=403)
+        if not isinstance(claims, dict) or not _valid_uuid_claims(claims, "artifact", "user", "asset"):
+            return HttpResponse(status=403)
+        if claims.get("revision") and not _valid_uuid_claims(claims, "revision"):
+            return HttpResponse(status=403)
         artifact = get_object_or_404(Artifact, id=claims.get("artifact"), deleted_at__isnull=True)
+        user = User.objects.filter(id=claims.get("user"), is_active=True).first()
+        if not user:
+            return HttpResponse(status=404)
+        try:
+            from types import SimpleNamespace
+            from plane.utils.access_policy import get_workspace_access_policy
+
+            policy = get_workspace_access_policy(SimpleNamespace(user=user), artifact.workspace.slug)
+        except PermissionDenied:
+            return HttpResponse(status=404)
         if claims.get("revision"):
             revision = artifact.revisions.filter(id=claims["revision"]).first()
             if revision is None or artifact.status != Artifact.Status.PUBLISHED or str(artifact.published_revision_id) != str(revision.id):
                 return HttpResponse(status=404)
+            sources = (revision.snapshot or {}).get("sources", [])
+            if policy.is_restricted and not sources:
+                return HttpResponse(status=404)
+            for source in sources:
+                issue = Issue.issue_objects.filter(
+                    id=source.get("id"), workspace=artifact.workspace, deleted_at__isnull=True
+                ).first() if source.get("id") else None
+                project_id = issue.project_id if issue else source.get("project_id")
+                if policy.is_restricted and not project_id:
+                    return HttpResponse(status=404)
+                try:
+                    policy.require("artifact.published.read", project_id=project_id)
+                    policy.require("artifact.material.read", project_id=project_id)
+                except PermissionDenied:
+                    return HttpResponse(status=404)
         else:
             from types import SimpleNamespace
             if artifact.version != claims.get("draft_version"):
                 return HttpResponse(status=404)
             from plane.app.services.artifacts import can_edit
-            if not can_edit(User.objects.filter(id=claims.get("user"), is_active=True).first(), artifact):
+            if policy.is_restricted or not can_edit(user, artifact):
                 return HttpResponse(status=404)
             from plane.app.services.artifacts import snapshot
             revision = SimpleNamespace(snapshot=snapshot(artifact, artifact.workspace.slug))
-        user = User.objects.filter(id=claims.get("user"), is_active=True).first()
-        if not user:
-            return HttpResponse(status=404)
         try:
-            asset = render_authorized_asset(user, artifact, revision, claims.get("asset"))
-        except Exception:
+            asset = render_authorized_asset(user, artifact, revision, claims.get("asset"), policy=policy)
+        except (PermissionDenied, NotFound):
             return HttpResponse(status=404)
         if not filename.startswith(f"{asset.id.hex}-"):
             return HttpResponse(status=404)
@@ -187,7 +257,15 @@ def preview_authorized_asset(request, asset, resource="onlinePreview"):
             token = signing.dumps(claim, salt=ARTIFACT_SOURCE_SALT, compress=True)
             source_path = "/api/artifact-preview-source/"
         else:
-            token = signing.dumps(str(asset.id), salt=SOURCE_SALT, compress=True)
+            token = signing.dumps(
+                {
+                    "asset": str(asset.id),
+                    "user": str(request.user.id),
+                    "workspace": str(asset.workspace_id),
+                },
+                salt=SOURCE_SALT,
+                compress=True,
+            )
             source_path = "/api/attachment-preview-source/"
         filename = f"{asset.id.hex}-attachment.{extension}"
         # The conversion service must reach this deployment's API instance.

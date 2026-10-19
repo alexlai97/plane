@@ -16,6 +16,7 @@ from plane.utils.openapi import USER_EXAMPLE
 
 
 class UserEndpoint(BaseAPIView):
+    access_policy_global_exempt = True
     serializer_class = UserLiteSerializer
     model = User
 

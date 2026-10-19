@@ -6,8 +6,10 @@
 
 import { useEffect } from "react";
 import { observer } from "mobx-react";
-import { Outlet } from "react-router";
+import { Outlet, useLocation, useParams } from "react-router";
 import { useWorkspace } from "@/hooks/store/use-workspace";
+import { useWorkspaceAccessPolicy } from "@/components/workspace/access-policy-context";
+import { ObserverWorkspace } from "@/components/workspace/observer-workspace";
 import { getWorkspaceAppearance } from "../../../../core/helpers/workspace-appearance";
 import { ProjectsAppPowerKProvider } from "@/components/power-k/projects-app-provider";
 // plane web components
@@ -15,7 +17,10 @@ import { ProjectAppSidebar } from "./_sidebar";
 import { ExtendedProjectSidebar } from "./extended-project-sidebar";
 
 function WorkspaceLayout() {
+  const { workspaceSlug = "" } = useParams();
+  const location = useLocation();
   const { currentWorkspace } = useWorkspace();
+  const { policy, loading, error } = useWorkspaceAccessPolicy();
   const appearance = getWorkspaceAppearance(currentWorkspace?.appearance);
   const theme = appearance.theme || undefined;
   // Header and portal menus are outside this layout's DOM subtree.
@@ -27,6 +32,35 @@ function WorkspaceLayout() {
       delete document.body.dataset.bokangTheme;
     };
   }, [theme]);
+
+  if (loading)
+    return (
+      <div className="flex size-full items-center justify-center text-13 text-secondary" role="status">
+        正在确认工作区访问权限…
+      </div>
+    );
+  if (error || !policy)
+    return (
+      <div className="flex size-full items-center justify-center text-13 text-secondary" role="alert">
+        无法确认工作区访问权限，请刷新或联系管理员。
+      </div>
+    );
+  if (policy.profile === "summary_observer")
+    return (
+      <ObserverWorkspace
+        workspaceSlug={workspaceSlug}
+        policy={policy}
+        pathname={location.pathname}
+        search={location.search}
+      />
+    );
+  if (policy.profile !== "standard")
+    return (
+      <div className="flex size-full items-center justify-center text-13 text-secondary" role="alert">
+        此工作区访问类型暂不支持，请联系管理员。
+      </div>
+    );
+
   return (
     <>
       <ProjectsAppPowerKProvider />

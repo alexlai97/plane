@@ -23,6 +23,8 @@ from plane.api.rate_limit import ApiKeyRateThrottle
 
 
 class ArtifactEndpoint(BaseAPIView):
+    access_policy_capabilities = {"GET": "artifact.published.read", "HEAD": "artifact.published.read", "OPTIONS": "artifact.published.read"}
+
     def workspace(self, slug):
         ws = get_object_or_404(Workspace, slug=slug, deleted_at__isnull=True)
         role = member_role(self.request.user, ws)
@@ -34,9 +36,15 @@ class ArtifactEndpoint(BaseAPIView):
 
     def get(self, request, slug, pk=None):
         ws = self.workspace(slug)
+        from plane.utils.access_policy import get_workspace_access_policy
+        policy = get_workspace_access_policy(request, slug)
+        requested_view = request.query_params.get("view", "published")
+        if policy.is_restricted and (request.query_params.get("scope") == "manage" or requested_view == "draft"):
+            raise NotFound()
         if pk:
             obj = active_artifact(request.user, ws, pk)
-            return Response(serialize_artifact(obj, request.user, request.query_params.get("view", "published")))
+            context = ArtifactReadContext(request.user, ws, [obj], policy=policy)
+            return Response(serialize_artifact(obj, request.user, requested_view, read_context=context))
         manage = request.query_params.get("scope") == "manage"
         qs = Artifact.objects.filter(workspace=ws, deleted_at__isnull=True)
         role = self.workspace_role
@@ -50,7 +58,7 @@ class ArtifactEndpoint(BaseAPIView):
         if term:
             qs = qs.filter(title__icontains=term) | qs.filter(summary__icontains=term)
         artifacts = list(artifact_read_queryset(qs))
-        read_context = ArtifactReadContext(request.user, ws, artifacts, role=role)
+        read_context = ArtifactReadContext(request.user, ws, artifacts, role=role, policy=policy)
         rows = []
         for obj in artifacts:
             try:
@@ -58,7 +66,7 @@ class ArtifactEndpoint(BaseAPIView):
                 rows.append(serialize_artifact(obj, request.user, view, read_context=read_context))
             except (NotFound, PermissionDenied):
                 continue
-        return Response({"results": rows, "count": len(rows), "can_create": role in (ROLE.ADMIN.value, ROLE.MEMBER.value)})
+        return Response({"results": rows, "count": len(rows), "can_create": not policy.is_restricted and role in (ROLE.ADMIN.value, ROLE.MEMBER.value)})
 
     def post(self, request, slug, pk=None, action=None, revision_id=None):
         ws = self.workspace(slug)
@@ -99,6 +107,8 @@ class ArtifactEndpoint(BaseAPIView):
 
 
 class ArtifactRevisionEndpoint(ArtifactEndpoint):
+    access_policy_capabilities = {"GET": "artifact.manage", "HEAD": "artifact.manage", "OPTIONS": "artifact.manage"}
+
     def get(self, request, slug, pk=None, revision_id=None):
         ws = self.workspace(slug)
         obj = active_artifact(request.user, ws, pk)

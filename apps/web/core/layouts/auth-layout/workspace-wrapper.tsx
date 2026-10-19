@@ -7,7 +7,7 @@
 import type { ReactNode } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, usePathname, useSearchParams } from "next/navigation";
 import useSWR from "swr";
 // ui
 import { LogOut } from "lucide-react";
@@ -40,6 +40,9 @@ import { useProjectState } from "@/hooks/store/use-project-state";
 import { useWorkspace } from "@/hooks/store/use-workspace";
 import { useUser, useUserPermissions } from "@/hooks/store/user";
 import { usePlatformOS } from "@/hooks/use-platform-os";
+import { accessPolicyService } from "@/services/access-policy.service";
+import { WorkspaceAccessPolicyContext } from "@/components/workspace/access-policy-context";
+import { resolveObserverRoute } from "@/helpers/observer-navigation";
 
 interface IWorkspaceAuthWrapper {
   children: ReactNode;
@@ -50,6 +53,10 @@ export const WorkspaceAuthWrapper = observer(function WorkspaceAuthWrapper(props
   const { children, isLoading: isParentLoading = false } = props;
   // router params
   const { workspaceSlug } = useParams();
+  const pathname = usePathname() ?? "";
+  const searchParams = useSearchParams();
+  const search = searchParams.toString();
+  const slug = workspaceSlug?.toString() ?? "";
   // store hooks
   const { signOut, data: currentUser } = useUser();
   const { fetchPartialProjects } = useProject();
@@ -62,6 +69,16 @@ export const WorkspaceAuthWrapper = observer(function WorkspaceAuthWrapper(props
   const { loader, workspaceInfoBySlug, fetchUserWorkspaceInfo, fetchUserProjectPermissions, allowPermissions } =
     useUserPermissions();
   const { fetchWorkspaceStates } = useProjectState();
+  const accessPolicyKey = slug ? `WORKSPACE_ACCESS_POLICY_${slug}` : null;
+  const {
+    data: accessPolicy,
+    error: accessPolicyError,
+    isLoading: isAccessPolicyLoading,
+  } = useSWR(accessPolicyKey, () => accessPolicyService.getWorkspacePolicy(slug), {
+    revalidateIfStale: false,
+    revalidateOnFocus: false,
+  });
+  const isStandardAccess = accessPolicy?.profile === "standard";
   // derived values
   const canPerformWorkspaceMemberActions = allowPermissions(
     [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
@@ -79,51 +96,57 @@ export const WorkspaceAuthWrapper = observer(function WorkspaceAuthWrapper(props
     { revalidateIfStale: false, revalidateOnFocus: false }
   );
   useSWR(
-    workspaceSlug && currentWorkspace ? WORKSPACE_PROJECTS_ROLES_INFORMATION(workspaceSlug.toString()) : null,
-    workspaceSlug && currentWorkspace ? () => fetchUserProjectPermissions(workspaceSlug.toString()) : null,
+    workspaceSlug && currentWorkspace && isStandardAccess
+      ? WORKSPACE_PROJECTS_ROLES_INFORMATION(workspaceSlug.toString())
+      : null,
+    workspaceSlug && currentWorkspace && isStandardAccess
+      ? () => fetchUserProjectPermissions(workspaceSlug.toString())
+      : null,
     { revalidateIfStale: false, revalidateOnFocus: false }
   );
 
   // fetching workspace projects
   useSWR(
-    workspaceSlug && currentWorkspace ? WORKSPACE_PARTIAL_PROJECTS(workspaceSlug.toString()) : null,
-    workspaceSlug && currentWorkspace ? () => fetchPartialProjects(workspaceSlug.toString()) : null,
+    workspaceSlug && currentWorkspace && isStandardAccess ? WORKSPACE_PARTIAL_PROJECTS(workspaceSlug.toString()) : null,
+    workspaceSlug && currentWorkspace && isStandardAccess ? () => fetchPartialProjects(workspaceSlug.toString()) : null,
     { revalidateIfStale: false, revalidateOnFocus: false }
   );
   // fetch workspace members
   useSWR(
-    workspaceSlug && currentWorkspace ? WORKSPACE_MEMBERS(workspaceSlug.toString()) : null,
-    workspaceSlug && currentWorkspace ? () => fetchWorkspaceMembers(workspaceSlug.toString()) : null,
+    workspaceSlug && currentWorkspace && isStandardAccess ? WORKSPACE_MEMBERS(workspaceSlug.toString()) : null,
+    workspaceSlug && currentWorkspace && isStandardAccess
+      ? () => fetchWorkspaceMembers(workspaceSlug.toString())
+      : null,
     { revalidateIfStale: false, revalidateOnFocus: false }
   );
   // fetch workspace favorite
   useSWR(
-    workspaceSlug && currentWorkspace && canPerformWorkspaceMemberActions
+    workspaceSlug && currentWorkspace && isStandardAccess && canPerformWorkspaceMemberActions
       ? WORKSPACE_FAVORITE(workspaceSlug.toString())
       : null,
-    workspaceSlug && currentWorkspace && canPerformWorkspaceMemberActions
+    workspaceSlug && currentWorkspace && isStandardAccess && canPerformWorkspaceMemberActions
       ? () => fetchFavorite(workspaceSlug.toString())
       : null,
     { revalidateIfStale: false, revalidateOnFocus: false }
   );
   // fetch workspace states
   useSWR(
-    workspaceSlug ? WORKSPACE_STATES(workspaceSlug.toString()) : null,
-    workspaceSlug ? () => fetchWorkspaceStates(workspaceSlug.toString()) : null,
+    workspaceSlug && isStandardAccess ? WORKSPACE_STATES(workspaceSlug.toString()) : null,
+    workspaceSlug && isStandardAccess ? () => fetchWorkspaceStates(workspaceSlug.toString()) : null,
     { revalidateIfStale: false, revalidateOnFocus: false }
   );
 
   // fetch workspace sidebar preferences
   useSWR(
-    workspaceSlug ? WORKSPACE_SIDEBAR_PREFERENCES(workspaceSlug.toString()) : null,
-    workspaceSlug ? () => fetchSidebarNavigationPreferences(workspaceSlug.toString()) : null,
+    workspaceSlug && isStandardAccess ? WORKSPACE_SIDEBAR_PREFERENCES(workspaceSlug.toString()) : null,
+    workspaceSlug && isStandardAccess ? () => fetchSidebarNavigationPreferences(workspaceSlug.toString()) : null,
     { revalidateIfStale: false, revalidateOnFocus: false }
   );
 
   // fetch workspace project navigation preferences
   useSWR(
-    workspaceSlug ? WORKSPACE_PROJECT_NAVIGATION_PREFERENCES(workspaceSlug.toString()) : null,
-    workspaceSlug ? () => fetchProjectNavigationPreferences(workspaceSlug.toString()) : null,
+    workspaceSlug && isStandardAccess ? WORKSPACE_PROJECT_NAVIGATION_PREFERENCES(workspaceSlug.toString()) : null,
+    workspaceSlug && isStandardAccess ? () => fetchProjectNavigationPreferences(workspaceSlug.toString()) : null,
     { revalidateIfStale: false, revalidateOnFocus: false }
   );
 
@@ -237,5 +260,41 @@ export const WorkspaceAuthWrapper = observer(function WorkspaceAuthWrapper(props
     );
   }
 
-  return <>{children}</>;
+  if (isAccessPolicyLoading || (!accessPolicy && !accessPolicyError)) {
+    return (
+      <div className="grid h-full place-items-center rounded-lg border border-subtle p-4">
+        <LogoSpinner />
+      </div>
+    );
+  }
+  if (
+    accessPolicyError ||
+    !accessPolicy ||
+    (accessPolicy.profile !== "standard" && accessPolicy.profile !== "summary_observer")
+  ) {
+    return (
+      <div className="grid h-full place-items-center p-6 text-center text-13 text-secondary" role="alert">
+        无法确认此工作区的访问范围，请联系管理员。
+      </div>
+    );
+  }
+  if (
+    accessPolicy.profile === "summary_observer" &&
+    resolveObserverRoute(slug, pathname, `?${search}`, accessPolicy).kind === "denied"
+  ) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-4 p-6 text-center text-13 text-secondary">
+        <p role="alert">此页面不可用。你可以查看已授权的汇总视图和已发布成果。</p>
+        <Link href={`/${encodeURIComponent(slug)}/workspace-views/`} className={getButtonStyling("primary", "base")}>
+          返回汇总视图
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <WorkspaceAccessPolicyContext.Provider value={{ policy: accessPolicy, loading: false }}>
+      {children}
+    </WorkspaceAccessPolicyContext.Provider>
+  );
 });

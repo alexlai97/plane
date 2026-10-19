@@ -10,7 +10,7 @@ from rest_framework.exceptions import APIException, NotFound, PermissionDenied, 
 from plane.app.permissions import ROLE
 from plane.db.models import (
     Artifact, ArtifactCategory, ArtifactMaterial, ArtifactRevision, ArtifactSource,
-    FileAsset, Issue, IssueAssignee, ProjectMember, Workspace, WorkspaceMember,
+    FileAsset, Issue, IssueAssignee, ProjectMember, User, Workspace, WorkspaceMember,
 )
 
 
@@ -234,10 +234,11 @@ def artifact_read_queryset(queryset):
 class ArtifactReadContext:
     """Request-local, workspace-scoped authorization and lookup maps for a collection read."""
 
-    def __init__(self, user, workspace, artifacts, role=None):
+    def __init__(self, user, workspace, artifacts, role=None, policy=None):
         self.user = user
         self.workspace = workspace
         self.role = role if role is not None else member_role(user, workspace)
+        self.policy = policy
         artifacts = list(artifacts)
         source_rows = [row for artifact in artifacts for row in self._sources(artifact)]
         materials = [item for artifact in artifacts for item in self._materials(artifact)]
@@ -245,11 +246,17 @@ class ArtifactReadContext:
         issue_ids = {str(row.issue_id) for row in source_rows if row.issue_id}
         asset_ids = {str(item.asset_id) for item in materials if item.asset_id}
         category_ids = {str(artifact.category_id) for artifact in artifacts if artifact.category_id}
+        assignee_ids = set()
         for artifact in artifacts:
+            if hasattr(artifact, "_artifact_read_assignees"):
+                assignee_ids.update(str(assignee.id) for assignee in artifact._artifact_read_assignees)
+            else:
+                assignee_ids.update(str(value) for value in artifact.assignees.values_list("id", flat=True))
             revision = artifact.published_revision
             if not revision:
                 continue
             snap = revision.snapshot or {}
+            assignee_ids.update(str(value) for value in snap.get("assignee_ids", []))
             category_id = snap.get("category_id")
             if category_id:
                 category_ids.add(category_id)
@@ -265,6 +272,8 @@ class ArtifactReadContext:
             project__deleted_at__isnull=True,
         ).values_list("project_id", flat=True)
         self.project_ids = {str(value) for value in projects}
+        if policy is not None and policy.allowed_project_ids is not None:
+            self.project_ids.update(str(value) for value in policy.allowed_project_ids)
         self.issues = {
             str(issue.id): issue
             for issue in Issue.all_objects.filter(id__in=issue_ids, workspace=workspace).select_related("project")
@@ -278,6 +287,14 @@ class ArtifactReadContext:
         self.categories = {
             str(category.id): category
             for category in ArtifactCategory.objects.filter(id__in=category_ids, workspace=workspace, deleted_at__isnull=True)
+        }
+        active_assignee_ids = set(map(str, WorkspaceMember.objects.filter(
+            workspace=workspace, member_id__in=assignee_ids, is_active=True,
+            deleted_at__isnull=True, member__is_active=True,
+        ).values_list("member_id", flat=True)))
+        self.assignees = {
+            str(member.id): member
+            for member in User.objects.filter(id__in=active_assignee_ids).select_related("avatar_asset")
         }
         active_members = WorkspaceMember.objects.filter(
             workspace=workspace, is_active=True, deleted_at__isnull=True, member__is_active=True,
@@ -306,11 +323,20 @@ class ArtifactReadContext:
         return bool(asset and (asset.entity_type != FileAsset.EntityTypeContext.ARTIFACT_ATTACHMENT
                                or str(asset.entity_identifier) == str(artifact.id)))
 
+    def assignee_details(self, values):
+        """Resolve only the assignee IDs frozen into the serialized snapshot."""
+        return artifact_assignee_projection(self.workspace, values, self.assignees)
+
     def authorize_snapshot(self, snap):
         unavailable = 0
+        if self.policy is not None and self.policy.is_restricted and not snap.get("sources"):
+            raise NotFound()
         for source in snap.get("sources", []):
             issue = self.issues.get(str(source.get("id"))) if source.get("id") else None
             project_id = issue.project_id if issue else source.get("project_id")
+            if self.policy is not None:
+                self.policy.require("artifact.published.read", project_id=project_id)
+                self.policy.require("artifact.material.read", project_id=project_id)
             if not project_id or str(project_id) not in self.project_ids:
                 raise NotFound()
             if issue is None or issue.deleted_at is not None:
@@ -325,10 +351,36 @@ class ArtifactReadContext:
             self.authorize_snapshot({"sources": [source]})
 
     def can_edit(self, artifact):
+        if self.policy is not None and self.policy.is_restricted:
+            return False
         return self.role == ROLE.ADMIN.value or (
             self.role == ROLE.MEMBER.value
             and (artifact.access == Artifact.Access.WORKSPACE or artifact.owner_id == self.user.id)
         )
+
+
+def artifact_assignee_projection(workspace, values, loaded_members=None):
+    """Build the same minimal assignee projection for single and batched reads."""
+    ordered_ids = list(dict.fromkeys(str(value) for value in (values or [])))
+    if loaded_members is None:
+        active_ids = WorkspaceMember.objects.filter(
+            workspace=workspace, member_id__in=ordered_ids, is_active=True,
+            deleted_at__isnull=True, member__is_active=True,
+        ).values_list("member_id", flat=True)
+        loaded_members = {
+            str(member.id): member
+            for member in User.objects.filter(id__in=active_ids).select_related("avatar_asset")
+        }
+    result = []
+    for member_id in ordered_ids:
+        member = loaded_members.get(member_id)
+        if member is not None:
+            result.append({
+                "id": str(member.id),
+                "display_name": member.display_name or member.full_name,
+                "avatar_url": member.avatar_url,
+            })
+    return result
 
 
 def _serialize_source(issue, slug, read_context=None):
@@ -503,19 +555,32 @@ def update_artifact(user, artifact, data):
     return artifact
 
 
-def render_authorized_asset(user, artifact, revision, asset_id):
+def render_authorized_asset(user, artifact, revision, asset_id, policy=None):
     require_workspace(user, artifact.workspace)
     if artifact.deleted_at or artifact.workspace.deleted_at:
         raise NotFound()
-    if artifact.status == Artifact.Status.PUBLISHED and artifact.access == Artifact.Access.PRIVATE and not can_edit(user, artifact):
+    if artifact.status == Artifact.Status.PUBLISHED and artifact.access == Artifact.Access.PRIVATE and (
+        (policy is not None and policy.is_restricted) or not can_edit(user, artifact)
+    ):
         raise NotFound()
     if getattr(revision, "id", None) is None:
         authorize_existing_sources(user, artifact)
-    authorize_snapshot_sources(user, artifact.workspace, revision.snapshot)
+    if policy is None:
+        authorize_snapshot_sources(user, artifact.workspace, revision.snapshot)
+    elif policy.is_restricted:
+        if not revision.snapshot.get("sources"):
+            raise NotFound()
+        for source in revision.snapshot.get("sources", []):
+            issue = Issue.all_objects.filter(id=source.get("id"), workspace=artifact.workspace).select_related("project").first() if source.get("id") else None
+            project_id = issue.project_id if issue else source.get("project_id")
+            policy.require("artifact.published.read", project_id=project_id)
+            policy.require("artifact.material.read", project_id=project_id)
+            if issue is None or issue.deleted_at is not None:
+                raise NotFound()
     sources = []
     for source in revision.snapshot.get("sources", []):
         issue = Issue.issue_objects.filter(id=source["id"], workspace=artifact.workspace, deleted_at__isnull=True).first()
-        if not issue or not can_project(user, issue):
+        if not issue or (not (policy is not None and policy.is_restricted) and not can_project(user, issue)):
             raise NotFound()
         sources.append(issue)
     snap = revision.snapshot
@@ -640,6 +705,26 @@ def serialize_artifact(artifact, user, view="published", read_context=None):
             if snap is None:
                 raise NotFound()
     snap.setdefault("assignee_ids", [])
+    # Keep the frozen IDs intact while sharing the exact same small identity
+    # projection between single-object and request-batched reads.
+    snap["assignees"] = (
+        read_context.assignee_details(snap["assignee_ids"])
+        if read_context is not None
+        else artifact_assignee_projection(artifact.workspace, snap["assignee_ids"])
+    )
+    if read_context is not None and read_context.policy is not None and read_context.policy.is_restricted:
+        # Published source references are identifiers for provenance, not a route
+        # into the issue-detail surface.
+        snap["sources"] = [
+            {
+                "id": source.get("id"),
+                "name": source.get("name"),
+                "project_id": source.get("project_id"),
+                "project_name": source.get("project_name"),
+                "identifier": source.get("identifier"),
+            }
+            for source in snap.get("sources", []) if source.get("id")
+        ]
     if read_context is None:
         editable = can_edit(user, artifact)
     if editable:
