@@ -10,7 +10,6 @@ import {
   ChevronRight,
   Maximize,
   Pencil,
-  Paperclip,
   Plus,
   Save,
   X,
@@ -1049,21 +1048,6 @@ const PresentationsPage = observer(function PresentationsPage() {
                           referrerPolicy="no-referrer"
                           srcDoc={revealHtml}
                         />
-                        <div className="absolute top-4 right-4 z-10 flex max-w-[90%] flex-wrap justify-end gap-2">
-                          {slide?.media
-                            .filter((item) => item.can_preview && item.file_url)
-                            .map((item) => (
-                              <button
-                                key={item.asset_id}
-                                title={item.caption || item.filename}
-                                className={button + " shadow-sm max-w-56 bg-white/95"}
-                                onClick={() => openPreview(item)}
-                              >
-                                <Paperclip className="size-3.5 shrink-0" />
-                                <span className="truncate">{item.caption || item.filename || "查看原件"}</span>
-                              </button>
-                            ))}
-                        </div>
                       </div>
                       {slide?.media.map((item) =>
                         item.can_preview && (item.file_url || item.preview_file_url) ? (

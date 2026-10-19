@@ -57,6 +57,13 @@ export function buildRevealDocument(document: PresentationDocument, version: str
               return `<figure><button type="button" class="media-preview" data-asset-id="${escapeHtml(item.asset_id)}" aria-label="查看原始附件"><img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(item.caption || item.filename || "汇报配图")}"></button><figcaption>${escapeHtml(item.caption)}</figcaption></figure>`;
             })
             .join("");
+          const attachments = slide.media
+            .filter((item) => item.can_preview && (item.file_url || item.preview_file_url))
+            .map(
+              (item) =>
+                `<button type="button" class="attachment-action" data-asset-id="${escapeHtml(item.asset_id)}" title="${escapeHtml(item.filename || item.caption)}"><span aria-hidden="true">📎</span> ${escapeHtml(item.caption || item.filename || "查看原件")}</button>`
+            )
+            .join("");
           const links = slide.links
             .map((link) =>
               /^https?:\/\//i.test(link.url)
@@ -64,7 +71,7 @@ export function buildRevealDocument(document: PresentationDocument, version: str
                 : ""
             )
             .join("");
-          return `<section><p class="eyebrow">${escapeHtml(section.title)}</p><h2>${escapeHtml(slide.title)}</h2><div class="slide-layout${media ? " with-media" : ""}"><div class="copy"><div class="body">${markdownToSafeHtml(slide.body)}</div><div class="links">${links}</div></div>${media ? `<div class="evidence">${media}</div>` : ""}</div></section>`;
+          return `<section><p class="eyebrow">${escapeHtml(section.title)}</p><h2>${escapeHtml(slide.title)}</h2>${attachments ? `<nav class="attachments" aria-label="本页附件">${attachments}</nav>` : ""}<div class="slide-layout${media ? " with-media" : ""}"><div class="copy"><div class="body">${markdownToSafeHtml(slide.body)}</div><div class="links">${links}</div></div>${media ? `<div class="evidence">${media}</div>` : ""}</div></section>`;
         })
         .join("");
       return `<section>${slides}</section>`;
@@ -78,10 +85,15 @@ html,body{height:100%;margin:0;background:#f8fafc}
 .reveal h2{color:#15344f;font-size:1.5em;font-weight:650;line-height:1.25;margin:0 0 28px;letter-spacing:-.025em}
 .eyebrow{color:#51718c;letter-spacing:.04em;font-size:.62em;margin:0 0 10px}
 .slide-layout{max-height:550px;overflow:auto}.slide-layout.with-media{display:grid;grid-template-columns:1.1fr 1fr;gap:36px;align-items:start}
+.body strong{font-weight:700}.body em{font-style:italic}
 .body p{margin:0 0 .8em}.body ul,.body ol{padding-left:1.2em;margin:.6em 0}.body li{margin:.4em 0}
 .reveal figure{margin:0 0 16px}.reveal img{max-height:470px;max-width:100%;object-fit:contain;border-radius:10px}
 .reveal figcaption{font-size:.62em;line-height:1.4;color:#627d98;margin-top:10px}
 .reveal a{color:#306b99;text-decoration:underline}.links{font-size:.8em;margin-top:20px}.links p{margin:.5em 0}
+.reveal .slides section:has(.attachments) .slide-layout{max-height:490px}
+.attachments{display:flex;flex-wrap:wrap;gap:8px;margin:-10px 0 20px;max-height:84px;overflow:auto}
+.attachment-action{display:inline-flex;align-items:center;gap:6px;max-width:100%;font:inherit;font-size:.57em;color:#30618a;background:#fff;border:1px solid #c7d7e7;border-radius:7px;padding:7px 12px;cursor:pointer;text-align:left}
+.attachment-action:hover{background:#eaf2f8}.attachment-action:focus-visible,.media-preview:focus-visible{outline:3px solid #376f99;outline-offset:3px}
 .media-preview{cursor:zoom-in;border:1px solid #d9e2ec;border-radius:12px;background:#fff;padding:8px;max-width:100%}
 .reveal .controls{color:#376f99}.reveal .progress{color:#376f99}
 </style></head><body><div class="reveal"><div class="slides">${sections}</div></div><script src="/vendor/reveal/${version}/reveal.js"></script><script>
