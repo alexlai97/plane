@@ -23,7 +23,17 @@ export type PresentationSlide = {
 };
 export type PresentationSection = { id: string; title: string; slides: PresentationSlide[] };
 export type PresentationDocument = { schema_version: 1; sections: PresentationSection[] };
+export type PresentationSource = {
+  id: string;
+  identifier?: string;
+  name?: string;
+  url?: string;
+  is_available: boolean;
+  is_archived?: boolean;
+  context?: string;
+};
 export type Presentation = {
+  sources?: PresentationSource[];
   id: string;
   title: string;
   project_id: string;

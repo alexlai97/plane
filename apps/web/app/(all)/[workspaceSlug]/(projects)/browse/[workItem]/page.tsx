@@ -7,6 +7,9 @@
 import { useEffect } from "react";
 import { observer } from "mobx-react";
 import { useTheme } from "next-themes";
+import { redirect } from "react-router";
+import { validate as isUuid } from "uuid";
+import { IssueService } from "@/services/issue/issue.service";
 import useSWR from "swr";
 // plane imports
 import { useTranslation } from "@plane/i18n";
@@ -31,6 +34,18 @@ import { useWorkItemProperties } from "@/hooks/use-issue-properties";
 import { WorkItemDetailRoot } from "@/components/browse/workItem-detail";
 
 import type { Route } from "./+types/page";
+
+// Resolve previously shared UUID links through the same permission-scoped reference contract.
+export async function clientLoader({ params }: Route.ClientLoaderArgs) {
+  if (!isUuid(params.workItem)) return null;
+  try {
+    const reference = await new IssueService().getWorkItemReference(params.workspaceSlug, params.workItem);
+    throw redirect(reference.url);
+  } catch (error) {
+    if (error instanceof Response) throw error;
+    return null;
+  }
+}
 
 export const IssueDetailsPage = observer(function IssueDetailsPage({ params }: Route.ComponentProps) {
   // router
