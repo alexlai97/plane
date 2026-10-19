@@ -24,6 +24,8 @@ SUMMARY_OBSERVER_CAPABILITIES = frozenset(
         "work_item.summary.read",
         "artifact.published.read",
         "artifact.material.read",
+        "presentation.published.read",
+        "presentation.material.read",
         "member.self.read",
     }
 )

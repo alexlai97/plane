@@ -6,7 +6,7 @@
 
 import React, { useMemo } from "react";
 import { observer } from "mobx-react";
-import { Ellipsis, GalleryVerticalEnd } from "lucide-react";
+import { Ellipsis, GalleryVerticalEnd, Presentation } from "lucide-react";
 import { Disclosure, Transition } from "@headlessui/react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
@@ -169,6 +169,21 @@ export const SidebarMenuItems = observer(function SidebarMenuItems() {
                     >
                       <GalleryVerticalEnd className="size-4 flex-shrink-0" />
                       <span className="text-13 leading-5 font-medium">成果与应用</span>
+                    </Link>
+                  </SidebarNavItem>
+                )}
+                {showGallery && (
+                  <SidebarNavItem isActive={pathname.includes("/presentations")}>
+                    <Link
+                      href={`/${slug}/presentations`}
+                      onClick={() => {
+                        if (window.innerWidth < 768) toggleSidebar();
+                        if (isExtendedSidebarOpened) toggleExtendedSidebar(false);
+                      }}
+                      className="flex w-full items-center gap-1.5 py-[1px]"
+                    >
+                      <Presentation className="size-4 flex-shrink-0" />
+                      <span className="text-13 leading-5 font-medium">汇报与演示</span>
                     </Link>
                   </SidebarNavItem>
                 )}

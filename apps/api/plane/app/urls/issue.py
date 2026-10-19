@@ -33,11 +33,12 @@ from plane.app.views import (
     IssueDetailIdentifierEndpoint,
 )
 
-from plane.app.views.attachment_preview import AttachmentPreviewEndpoint, AttachmentPreviewSourceEndpoint, ArtifactPreviewSourceEndpoint
+from plane.app.views.attachment_preview import AttachmentPreviewEndpoint, AttachmentPreviewSourceEndpoint, ArtifactPreviewSourceEndpoint, PresentationPreviewSourceEndpoint
 
 urlpatterns = [
     path("attachment-preview-source/<str:token>/<str:filename>", AttachmentPreviewSourceEndpoint.as_view()),
     path("artifact-preview-source/<str:token>/<str:filename>", ArtifactPreviewSourceEndpoint.as_view()),
+    path("presentation-preview-source/<str:token>/<str:filename>", PresentationPreviewSourceEndpoint.as_view()),
     path("assets/v2/workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/attachments/<uuid:pk>/preview/<path:resource>", AttachmentPreviewEndpoint.as_view()),
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/issues/list/",

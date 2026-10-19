@@ -24,6 +24,7 @@ CLOSE_BRIDGE = """<script>function closeAttachmentPreview(){if(parent!==window)p
 
 SOURCE_SALT = "bokang-attachment-preview-source-v1"
 ARTIFACT_SOURCE_SALT = "bokang-artifact-preview-source-v1"
+PRESENTATION_SOURCE_SALT = "bokang-presentation-preview-source-v1"
 PREVIEW_EXTENSIONS = frozenset("md markdown txt log csv json xml pdf doc docx xls xlsx ppt pptx odt ods odp rtf jpg jpeg png gif webp bmp tif tiff mp3 wav ogg m4a aac flac mp4 webm mov avi mkv".split())
 OFFICE_PREVIEW_EXTENSIONS = frozenset("doc docx xls xlsx ppt pptx odt ods odp rtf".split())
 STATIC_ROOTS = frozenset("js css bootstrap bootstrap-table pdfjs xlsx excel xspreadsheet pptx highlight images ckplayer".split())
@@ -74,14 +75,24 @@ def source_response(asset, request):
             yield from body.iter_chunks(chunk_size=65536)
         finally:
             body.close()
+    content_type = asset.attributes.get("type", "application/octet-stream")
+    normalized_type = str(content_type).split(";", 1)[0].strip().lower()
+    active_content_types = {
+        "text/html", "application/xhtml+xml", "image/svg+xml", "application/xml", "text/xml",
+        "application/javascript", "text/javascript", "application/ecmascript", "text/ecmascript",
+    }
     response = StreamingHttpResponse(chunks(), status=206 if "ContentRange" in obj else 200,
-                                     content_type=asset.attributes.get("type", "application/octet-stream"))
+                                     content_type=content_type)
     response["Content-Length"] = str(obj["ContentLength"])
     response["Accept-Ranges"] = "bytes"
     if "ContentRange" in obj:
         response["Content-Range"] = obj["ContentRange"]
-    response["Content-Disposition"] = "attachment" if asset.attributes.get("type") in ("text/html", "image/svg+xml", "application/xml", "text/xml") else "inline"
+    response["Content-Disposition"] = "attachment" if normalized_type in active_content_types else "inline"
     response["Cache-Control"] = "private, no-store"
+    # Keep any accidentally active or mislabeled media inert when it is opened
+    # directly on the application origin. The conversion service fetches source
+    # bytes server-side, so this does not affect image/PDF preview conversion.
+    response["Content-Security-Policy"] = "sandbox; default-src 'none';"
     response["X-Content-Type-Options"] = "nosniff"
     return response
 
@@ -203,11 +214,82 @@ class ArtifactPreviewSourceEndpoint(APIView):
         return source_response(asset, request)
 
 
+class PresentationPreviewSourceEndpoint(APIView):
+    """Short-lived conversion URL bound to a live presentation view and asset."""
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def get(self, request, token, filename):
+        from plane.app.services.presentations import active_presentation, can_edit
+        from plane.db.models import Presentation, User
+        try:
+            claims = signing.loads(token, salt=PRESENTATION_SOURCE_SALT, max_age=600)
+        except signing.BadSignature:
+            return HttpResponse(status=403)
+        if not isinstance(claims, dict) or not _valid_uuid_claims(claims, "presentation", "user", "asset"):
+            return HttpResponse(status=403)
+        if claims.get("revision") and not _valid_uuid_claims(claims, "revision"):
+            return HttpResponse(status=403)
+        presentation = Presentation.objects.filter(id=claims["presentation"], deleted_at__isnull=True).select_related("workspace", "project", "published_revision").first()
+        user = User.objects.filter(id=claims["user"], is_active=True).first()
+        if presentation is None or user is None:
+            return HttpResponse(status=404)
+        try:
+            from types import SimpleNamespace
+            from plane.utils.access_policy import get_workspace_access_policy
+            policy = get_workspace_access_policy(SimpleNamespace(user=user), presentation.workspace.slug)
+            active_presentation(user, presentation.workspace, presentation.id)
+            if claims.get("revision"):
+                revision = presentation.published_revision
+                if revision is None or str(revision.id) != str(claims["revision"]):
+                    return HttpResponse(status=404)
+                policy.require("presentation.published.read", project_id=presentation.project_id)
+                policy.require("presentation.material.read", project_id=presentation.project_id)
+                document = revision.snapshot.get("document", {})
+            else:
+                if claims.get("draft_version") != presentation.version or not can_edit(user, presentation) or policy.is_restricted:
+                    return HttpResponse(status=404)
+                document = presentation.document
+        except (PermissionDenied, NotFound):
+            return HttpResponse(status=404)
+        if not filename.startswith(f"{uuid.UUID(claims['asset']).hex}-"):
+            return HttpResponse(status=404)
+        selected = {str(media.get(key)) for section in document.get("sections", []) for slide in section.get("slides", []) for media in slide.get("media", []) for key in ("asset_id", "preview_asset_id") if media.get(key)}
+        preview_sources = {str(media["preview_asset_id"]): str(media["asset_id"]) for section in document.get("sections", []) for slide in section.get("slides", []) for media in slide.get("media", []) if media.get("preview_asset_id")}
+        if str(claims["asset"]) not in selected:
+            return HttpResponse(status=404)
+        asset = FileAsset.objects.filter(id=claims["asset"], workspace=presentation.workspace, project=presentation.project,
+                                         is_uploaded=True, is_deleted=False, deleted_at__isnull=True).first()
+        if asset is None:
+            return HttpResponse(status=404)
+        if str(asset.id) in preview_sources:
+            from plane.app.services.presentations import presentation_preview_asset_matches
+            source_asset = FileAsset.objects.filter(id=preview_sources[str(asset.id)], workspace=presentation.workspace, project=presentation.project,
+                                                    is_uploaded=True, is_deleted=False, deleted_at__isnull=True).first()
+            if source_asset is None or not presentation_preview_asset_matches(asset, source_asset, presentation):
+                return HttpResponse(status=404)
+        if asset.entity_type == "PRESENTATION_ATTACHMENT":
+            from plane.app.services.presentations import presentation_derived_asset_is_live
+            if str(asset.entity_identifier) != str(presentation.id) or not presentation_derived_asset_is_live(asset, presentation):
+                return HttpResponse(status=404)
+        if asset.entity_type != "PRESENTATION_ATTACHMENT":
+            from plane.app.services.presentations import presentation_source_asset_is_live
+            if not presentation_source_asset_is_live(asset, presentation.workspace, presentation.project):
+                return HttpResponse(status=404)
+        from plane.app.services.presentations import can_view_project_media
+        if not can_view_project_media(user, presentation, asset, restricted=policy.is_restricted):
+            return HttpResponse(status=404)
+        return source_response(asset, request)
+
+
 class AttachmentPreviewResponseMixin:
     def finalize_response(self, request, response, *args, **kwargs):
         response = super().finalize_response(request, response, *args, **kwargs)
         response["X-Frame-Options"] = "SAMEORIGIN"
-        response["Content-Security-Policy"] = "frame-ancestors 'self'"
+        policy = response.get("Content-Security-Policy", "")
+        if not any(directive.strip().lower().startswith("frame-ancestors ") for directive in policy.split(";")):
+            policy = f"{policy.rstrip('; ')}; frame-ancestors 'self'" if policy else "frame-ancestors 'self'"
+        response["Content-Security-Policy"] = policy
         response["Cache-Control"] = "private, no-store"
         return response
 
@@ -254,8 +336,12 @@ def preview_authorized_asset(request, asset, resource="onlinePreview"):
         claim = getattr(request, "artifact_preview_claim", None)
         if claim:
             claim = {**claim, "asset": str(asset.id)}
-            token = signing.dumps(claim, salt=ARTIFACT_SOURCE_SALT, compress=True)
-            source_path = "/api/artifact-preview-source/"
+            if claim.get("presentation"):
+                token = signing.dumps(claim, salt=PRESENTATION_SOURCE_SALT, compress=True)
+                source_path = "/api/presentation-preview-source/"
+            else:
+                token = signing.dumps(claim, salt=ARTIFACT_SOURCE_SALT, compress=True)
+                source_path = "/api/artifact-preview-source/"
         else:
             token = signing.dumps(
                 {

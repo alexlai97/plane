@@ -1,0 +1,30 @@
+{
+  "version": "6.0.2",
+  "source": "https://github.com/hakimel/reveal.js/tree/6.0.2",
+  "files": [
+    {
+      "upstream": "dist/reveal.js",
+      "git_blob": "8552303437371881684a4784265485684896291a",
+      "sha256": "aa1bbbf2617b23a623b23612cb3c5bdb63de512e652bf20fcfa832b045d37844",
+      "bytes": 118912
+    },
+    {
+      "upstream": "dist/reveal.css",
+      "git_blob": "4ea0ceaa2a2d20fd8eedaf7c27e4bb899636d815",
+      "sha256": "5c38071afd0e46673eda82211146fbcf4e66b671a8a86f9763e1c3b0a883c271",
+      "bytes": 53875
+    },
+    {
+      "upstream": "dist/reset.css",
+      "git_blob": "f32cc18c70bece46ac4e9e6495deba55d399ef6c",
+      "sha256": "39413c3490fdcf826427c26ff4c1ee59ea961a0aa8507c18454e0c6dc96c12d8",
+      "bytes": 594
+    },
+    {
+      "upstream": "LICENSE",
+      "git_blob": "c512bcdc6748a3a90b70a32ad90ba582d5d6e876",
+      "sha256": "b2883e4b610bfa1b4d8fff84c4d4b825cc7d553cbd9fec4777c04068a2859dc0",
+      "bytes": 1108
+    }
+  ]
+}

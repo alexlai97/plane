@@ -15,6 +15,7 @@ from .work_item import urlpatterns as work_item_patterns
 from .invite import urlpatterns as invite_patterns
 from .sticky import urlpatterns as sticky_patterns
 from plane.app.urls.artifact import api_urlpatterns as artifact_patterns
+from plane.app.urls.presentation import api_urlpatterns as presentation_patterns
 
 urlpatterns = [
     *asset_patterns,
@@ -30,4 +31,5 @@ urlpatterns = [
     *invite_patterns,
     *sticky_patterns,
     *artifact_patterns,
+    *presentation_patterns,
 ]

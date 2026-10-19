@@ -8,8 +8,8 @@ import React from "react";
 import ReactMarkdown from "react-markdown";
 
 interface CustomComponentProps {
-  href: string;
-  children: React.ReactNode;
+  href?: string;
+  children?: React.ReactNode;
 }
 
 type CustomComponent = React.ComponentType<CustomComponentProps>;

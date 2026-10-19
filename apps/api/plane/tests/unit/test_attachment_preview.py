@@ -6,7 +6,7 @@ from django.http import HttpResponse
 from django.core import signing
 from rest_framework.test import APIRequestFactory, force_authenticate
 from plane.db.models import User, Workspace, WorkspaceMember, Project, ProjectMember, Issue, FileAsset
-from plane.app.views.attachment_preview import AttachmentPreviewEndpoint, AttachmentPreviewSourceEndpoint, allowed_preview_path, SOURCE_SALT
+from plane.app.views.attachment_preview import AttachmentPreviewEndpoint, AttachmentPreviewSourceEndpoint, allowed_preview_path, SOURCE_SALT, source_response
 
 
 class AttachmentPreviewTests(TestCase):
@@ -82,6 +82,34 @@ class AttachmentPreviewTests(TestCase):
         with patch("django.core.signing.time.time", return_value=1000):
             token = signing.dumps(str(self.asset.id), salt=SOURCE_SALT)
         self.assertEqual(endpoint(request, token=token, filename=f"{self.asset.id.hex}-attachment.md").status_code, 403)
+
+    def test_direct_source_normalizes_active_mime_and_sandboxes_every_media_type(self):
+        request = APIRequestFactory().get("/source")
+        body = MagicMock()
+        body.iter_chunks.return_value = iter([b"content"])
+        for mime_type in ("text/html; charset=utf-8", "image/svg+xml; charset=utf-8"):
+            self.asset.attributes = {"name": "active.bin", "type": mime_type}
+            self.asset.save(update_fields=["attributes"])
+            storage = MagicMock()
+            storage.aws_storage_bucket_name = "test-bucket"
+            storage.s3_client.get_object.return_value = {"Body": body, "ContentLength": 7}
+            with patch("plane.app.views.attachment_preview.S3Storage", return_value=storage):
+                response = source_response(self.asset, request)
+            self.assertEqual(response["Content-Type"], mime_type)
+            self.assertEqual(response["Content-Disposition"], "attachment")
+            self.assertIn("sandbox", response["Content-Security-Policy"])
+
+        for mime_type in ("image/png", "application/pdf"):
+            self.asset.attributes = {"name": "safe-media", "type": mime_type}
+            self.asset.save(update_fields=["attributes"])
+            storage = MagicMock()
+            storage.aws_storage_bucket_name = "test-bucket"
+            storage.s3_client.get_object.return_value = {"Body": body, "ContentLength": 7}
+            with patch("plane.app.views.attachment_preview.S3Storage", return_value=storage):
+                response = source_response(self.asset, request)
+            self.assertEqual(response["Content-Type"], mime_type)
+            self.assertEqual(response["Content-Disposition"], "inline")
+            self.assertIn("sandbox", response["Content-Security-Policy"])
 
     def test_existing_source_ticket_rechecks_profile_and_project_membership(self):
         endpoint = AttachmentPreviewSourceEndpoint.as_view()

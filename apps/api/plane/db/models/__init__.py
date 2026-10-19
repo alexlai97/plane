@@ -95,3 +95,4 @@ from .description import Description, DescriptionVersion
 
 from .work_item_template import WorkItemTemplate
 from .artifact import Artifact, ArtifactCategory, ArtifactMaterial, ArtifactRevision, ArtifactSource
+from .presentation import Presentation, PresentationRevision

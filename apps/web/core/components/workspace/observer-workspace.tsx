@@ -255,6 +255,7 @@ export function ObserverWorkspace({ workspaceSlug, policy, pathname, search }: P
     policy.capabilities.includes("view.summary.read") &&
     policy.capabilities.includes("work_item.summary.read");
   const artifactsAllowed = policy.capabilities.includes("artifact.published.read");
+  const presentationsAllowed = policy.capabilities.includes("presentation.published.read");
   const relative = pathname.startsWith(`${prefix}/`) ? pathname.slice(prefix.length) : "";
   const observerContent =
     route.kind === "home" || route.kind === "summary-list" ? (
@@ -269,6 +270,8 @@ export function ObserverWorkspace({ workspaceSlug, policy, pathname, search }: P
         policy={policy}
       />
     ) : route.kind === "gallery" ? (
+      <Outlet />
+    ) : route.kind === "presentations" ? (
       <Outlet />
     ) : (
       <ObserverDenied />
@@ -296,6 +299,14 @@ export function ObserverWorkspace({ workspaceSlug, policy, pathname, search }: P
               className={`block rounded px-3 py-2 text-13 hover:bg-surface-2 ${relative.startsWith("/gallery") ? "bg-surface-2 font-medium" : "text-secondary"}`}
             >
               成果与应用
+            </Link>
+          )}
+          {presentationsAllowed && (
+            <Link
+              to={`${prefix}/presentations/`}
+              className={`block rounded px-3 py-2 text-13 hover:bg-surface-2 ${relative.startsWith("/presentations") ? "bg-surface-2 font-medium" : "text-secondary"}`}
+            >
+              汇报与演示
             </Link>
           )}
         </nav>

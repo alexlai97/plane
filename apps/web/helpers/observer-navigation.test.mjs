@@ -45,6 +45,20 @@ test("observer cannot open saved summaries without every summary capability and 
   assert.deepEqual(resolveObserverRoute(slug, "/acme/workspace-views/view-a", "", ungranted), { kind: "denied" });
 });
 
+test("observer presentation routes require published presentation access and reject draft URLs", () => {
+  const policy = { capabilities: ["presentation.published.read"] };
+  assert.deepEqual(resolveObserverRoute("acme", "/acme/presentations", "", policy), { kind: "presentations" });
+  assert.deepEqual(resolveObserverRoute("acme", "/acme/presentations/report-a", "", policy), {
+    kind: "presentations",
+  });
+  assert.deepEqual(resolveObserverRoute("acme", "/acme/presentations/report-a", "?view=draft", policy), {
+    kind: "denied",
+  });
+  assert.deepEqual(resolveObserverRoute("acme", "/acme/presentations/report-a", "", { capabilities: [] }), {
+    kind: "denied",
+  });
+});
+
 test("summary load state clears old workspace/view data before a new request", () => {
   const old = resolveSummaryLoad("acme:view-a", { results: ["old private row"] });
   const next = beginSummaryLoad("acme:view-b");

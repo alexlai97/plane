@@ -4,6 +4,7 @@ export type ObserverRoute =
   | { kind: "summary-view"; viewId: string }
   | { kind: "project-summary-view"; projectId: string; viewId: string }
   | { kind: "gallery" }
+  | { kind: "presentations" }
   | { kind: "denied" };
 
 type RoutePolicy = {
@@ -58,6 +59,9 @@ export function resolveObserverRoute(
     !isDraft
   )
     return { kind: "gallery" };
+
+  const presentation = relative.match(/^\/presentations(?:\/([^/]+))?\/?$/);
+  if (presentation && capabilities.has("presentation.published.read") && !isDraft) return { kind: "presentations" };
 
   return { kind: "denied" };
 }
