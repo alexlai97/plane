@@ -12,6 +12,7 @@ from .user import UserLiteSerializer, UserAdminLiteSerializer
 
 from plane.db.models import (
     Workspace,
+    Label,
     WorkspaceMember,
     WorkspaceMemberInvite,
     WorkspaceTheme,
@@ -45,6 +46,20 @@ class WorkSpaceSerializer(DynamicBaseSerializer):
     logo_url = serializers.CharField(read_only=True)
     role = serializers.IntegerField(read_only=True)
     appearance = serializers.JSONField(required=False, allow_null=True)
+
+    def validate_observer_hidden_label_ids(self, value):
+        from uuid import UUID
+        if not isinstance(value, list):
+            raise serializers.ValidationError("Must be a list of label IDs.")
+        try:
+            ids = sorted({str(UUID(item)) for item in value})
+        except (ValueError, TypeError, AttributeError):
+            raise serializers.ValidationError("Must contain valid label IDs.")
+        if ids and (self.instance is None or Label.objects.filter(
+            workspace=self.instance, id__in=ids
+        ).count() != len(ids)):
+            raise serializers.ValidationError("Labels must belong to this workspace.")
+        return ids
 
     APPEARANCE_KEYS = {"theme", "organization_logo_url"}
 

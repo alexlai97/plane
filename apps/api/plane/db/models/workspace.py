@@ -139,6 +139,7 @@ class Workspace(BaseModel):
     background_color = models.CharField(max_length=255, default=get_random_color)
     # Workspace-level presentation metadata; kept separate from per-user WorkspaceTheme.
     appearance = models.JSONField(default=dict, blank=True)
+    observer_hidden_label_ids = models.JSONField(default=list, blank=True)
 
     def __str__(self):
         """Return name of the Workspace"""

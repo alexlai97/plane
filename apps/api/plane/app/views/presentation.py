@@ -2,7 +2,7 @@ from django.shortcuts import get_object_or_404
 from django.db import transaction
 from django.utils import timezone
 from rest_framework import status
-from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.response import Response
 
 from plane.app.services.presentations import (
@@ -52,7 +52,7 @@ class PresentationEndpoint(BaseAPIView):
         for obj in rows:
             try:
                 results.append(serialize_presentation(obj, request.user, policy, view, detail=False))
-            except NotFound:
+            except (NotFound, PermissionDenied):
                 continue
         return Response({"results": results, "count": len(results), "can_create": not policy.is_restricted and role in (ROLE.ADMIN.value, ROLE.MEMBER.value)})
 
@@ -119,6 +119,7 @@ class PresentationAssetEndpoint(AttachmentPreviewResponseMixin, BaseAPIView):
             revision_id = obj.published_revision_id
             policy.require("presentation.published.read", project_id=obj.project_id)
             policy.require("presentation.material.read", project_id=obj.project_id)
+        policy.require_document(document)
         media_ids = {str(media.get(key)) for section in document.get("sections", []) for slide in section.get("slides", []) for media in slide.get("media", []) for key in ("asset_id", "preview_asset_id") if media.get(key)}
         preview_sources = {str(media["preview_asset_id"]): str(media["asset_id"]) for section in document.get("sections", []) for slide in section.get("slides", []) for media in slide.get("media", []) if media.get("preview_asset_id")}
         if str(asset_id) not in media_ids:

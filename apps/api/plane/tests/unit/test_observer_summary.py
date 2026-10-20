@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 from plane.app.views.observer import SummaryViewListEndpoint, SummaryViewWorkItemsEndpoint
 from plane.db.models import (
-    Artifact, ArtifactRevision, Issue, IssueView, Project, ProjectMember,
+    Artifact, ArtifactRevision, Issue, IssueLabel, Label, IssueView, Project, ProjectMember,
     User, Workspace, WorkspaceMember, WorkspaceMemberProjectGrant,
     WorkspaceMemberViewGrant,
 )
@@ -55,6 +55,60 @@ class SummaryObserverReadTests(TestCase):
         cls.filtered_out = Issue.objects.create(project=cls.project, name="Excluded by saved view")
         cls.other_issue = Issue.objects.create(project=cls.other_project, name="Window outside project")
         cls.observer_policy = get_workspace_access_policy(SimpleNamespace(user=cls.user), cls.workspace.slug)
+
+    def hide_parent(self):
+        label = Label.objects.create(workspace=self.workspace, project=self.project, name="Configurable restriction")
+        IssueLabel.objects.create(workspace=self.workspace, project=self.project, issue=self.parent, label=label)
+        self.workspace.observer_hidden_label_ids = [str(label.id)]
+        self.workspace.save(update_fields=["observer_hidden_label_ids"])
+        return label
+
+    def test_configured_subtree_hidden_before_projection_and_counts(self):
+        self.hide_parent()
+        grandchild = Issue.objects.create(project=self.project, name="Window unlabelled grandchild", parent=self.child)
+        for user, expected in ((self.user, 0), (self.guest, 3)):
+            request = APIRequestFactory().get("/summary/views/work-items/?filters={}")
+            force_authenticate(request, user=user)
+            response = SummaryViewWorkItemsEndpoint.as_view()(request, slug=self.workspace.slug, view_id=self.view.id)
+            self.assertEqual(response.status_code, 200, response.data)
+            self.assertEqual(response.data["count"], expected)
+            if user == self.user:
+                self.assertNotIn(str(grandchild.id), str(response.data))
+
+    def test_hidden_source_blocks_snapshot_but_unrelated_source_remains(self):
+        self.hide_parent()
+        policy = get_workspace_access_policy(SimpleNamespace(user=self.user), self.workspace.slug)
+        context = ArtifactReadContext(self.user, self.workspace, [], role=5, policy=policy)
+        with self.assertRaises(PermissionDenied):
+            context.authorize_snapshot({"sources": [{"id": str(self.child.id), "project_id": str(self.project.id)}]})
+        policy.require_issue(self.filtered_out.id)
+        with self.assertRaises(PermissionDenied):
+            policy.require_document({"sections": [{"slides": [{"issue_ids": [str(self.child.id)]}]}]})
+        policy.require_document({"sections": [{"slides": [{"issue_ids": [str(self.filtered_out.id)]}]}]})
+        from plane.app.services.artifacts.service import render_authorized_asset
+        artifact = Artifact.objects.create(workspace=self.workspace, owner=self.owner, title="Hidden source", kind="guide", access=Artifact.Access.WORKSPACE, status=Artifact.Status.PUBLISHED)
+        revision = ArtifactRevision.objects.create(artifact=artifact, number=1, snapshot={"sources": [{"id": str(self.child.id), "project_id": str(self.project.id)}]})
+        with self.assertRaises(PermissionDenied):
+            render_authorized_asset(self.user, artifact, revision, self.child.id, policy=policy)
+        from plane.app.serializers.workspace import WorkSpaceSerializer
+        other = Workspace.objects.create(name="Other", slug="other-label-scope", owner=self.owner)
+        foreign = Label.objects.create(workspace=other, name="Foreign")
+        serializer = WorkSpaceSerializer(self.workspace)
+        from rest_framework.exceptions import ValidationError
+        with self.assertRaises(ValidationError):
+            serializer.validate_observer_hidden_label_ids([str(foreign.id)])
+        with self.assertRaises(ValidationError):
+            serializer.validate_observer_hidden_label_ids("invalid")
+
+    def test_removing_label_restores_subtree_and_invalid_config_fails_closed(self):
+        label = self.hide_parent()
+        IssueLabel.objects.filter(issue=self.parent, label=label).delete()
+        policy = get_workspace_access_policy(SimpleNamespace(user=self.user), self.workspace.slug)
+        self.assertEqual(policy.hidden_issue_ids, frozenset())
+        self.workspace.observer_hidden_label_ids = ["bad-id"]
+        self.workspace.save(update_fields=["observer_hidden_label_ids"])
+        with self.assertRaises(PermissionDenied):
+            get_workspace_access_policy(SimpleNamespace(user=self.user), self.workspace.slug)
 
     def test_view_made_private_revokes_existing_grant(self):
         self.view.access = 0

@@ -4,12 +4,12 @@ Numeric Plane roles continue to govern existing workspace behavior. Access
 profiles add narrow, declarative policies for exceptional readers.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from django.db.models import Q
 from rest_framework.exceptions import PermissionDenied
 
-from plane.db.models import Workspace, WorkspaceMember
+from plane.db.models import Workspace, WorkspaceMember, Issue, IssueLabel, Label
 
 
 SUMMARY_OBSERVER = "summary_observer"
@@ -48,6 +48,23 @@ class WorkspaceAccessPolicy:
     allowed_view_ids: frozenset[str] | None
     workspace_id: str
 
+    hidden_issue_ids: frozenset[str] = field(default_factory=frozenset)
+
+    def require_issue(self, issue_id):
+        if self.is_restricted and str(issue_id) in self.hidden_issue_ids:
+            raise PermissionDenied("This work item is outside the granted workspace scope.")
+
+    def require_document(self, document):
+        if not self.is_restricted:
+            return
+        for section in document.get("sections", []):
+            for slide in section.get("slides", []):
+                for issue_id in slide.get("issue_ids", []):
+                    self.require_issue(issue_id)
+
+    def filter_issues(self, queryset):
+        return queryset.exclude(id__in=self.hidden_issue_ids) if self.is_restricted else queryset
+
     @property
     def is_restricted(self):
         return self.profile != STANDARD
@@ -73,6 +90,42 @@ class WorkspaceAccessPolicy:
             "project_ids": None if self.allowed_project_ids is None else sorted(self.allowed_project_ids),
             "view_ids": None if self.allowed_view_ids is None else sorted(self.allowed_view_ids),
         }
+
+
+def observer_hidden_issues(workspace):
+    """A configured label hides a complete subtree, independently of saved filters.
+
+    Include deleted ancestors so surviving descendants cannot become public
+    roots. Removing an active label assignment intentionally restores access.
+    """
+    configured = workspace.observer_hidden_label_ids
+    if configured == []:
+        return frozenset()
+    from uuid import UUID
+    try:
+        if not isinstance(configured, list):
+            raise ValueError()
+        label_ids = {str(UUID(value)) for value in configured}
+    except (ValueError, TypeError, AttributeError):
+        raise PermissionDenied("Invalid observer visibility configuration.")
+    existing = {str(value) for value in Label.objects.filter(
+        workspace=workspace, id__in=label_ids
+    ).values_list("id", flat=True)}
+    if existing != label_ids:
+        raise PermissionDenied("Invalid observer visibility configuration.")
+    hidden = {str(value) for value in IssueLabel.objects.filter(
+        workspace=workspace, label_id__in=label_ids
+    ).values_list("issue_id", flat=True)}
+    children = {}
+    for issue_id, parent_id in Issue.all_objects.filter(workspace=workspace).values_list("id", "parent_id"):
+        children.setdefault(str(parent_id), []).append(str(issue_id))
+    pending = list(hidden)
+    while pending:
+        for child in children.get(pending.pop(), []):
+            if child not in hidden:
+                hidden.add(child)
+                pending.append(child)
+    return frozenset(hidden)
 
 
 def get_workspace_access_policy(request, workspace_slug):
@@ -129,7 +182,8 @@ def get_workspace_access_policy(request, workspace_slug):
         projects = frozenset()
         views = frozenset()
 
-    policy = WorkspaceAccessPolicy(profile, capabilities, projects, views, str(workspace.id))
+    hidden = observer_hidden_issues(workspace) if profile != STANDARD else frozenset()
+    policy = WorkspaceAccessPolicy(profile, capabilities, projects, views, str(workspace.id), hidden)
     cache[str(workspace_slug)] = policy
     request._workspace_access_policies = cache
     request.workspace_access_policy = policy

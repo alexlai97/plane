@@ -305,6 +305,7 @@ def serialize_presentation(obj, user, policy, view="published", detail=False):
         raise NotFound()
     draft_view = view == "draft" and editable
     source = {"title": obj.title, "document": obj.document} if draft_view or revision is None else revision.snapshot
+    policy.require_document(source["document"])
     result = {"id": str(obj.id), "title": source["title"], "project_id": str(obj.project_id), "version": obj.version,
               "published_revision_id": str(revision.id) if revision else None,
               "has_unpublished_changes": bool(revision and (revision.snapshot.get("title") != obj.title or revision.snapshot.get("document") != obj.document)),
