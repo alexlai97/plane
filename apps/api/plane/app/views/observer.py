@@ -116,6 +116,7 @@ class SummaryViewWorkItemsEndpoint(BaseAPIView):
                 | Q(project__project_projectmember__role=5, project__guest_view_all_features=False, created_by=request.user)
             )
         queryset = queryset.filter(membership_scope).distinct()
+        queryset = policy.filter_issues(queryset)
         allowed = set(queryset.values_list("id", flat=True))
         # Filtering happens before root selection. A matching child becomes a
         # root when its parent is excluded, so excluded labels never leak as

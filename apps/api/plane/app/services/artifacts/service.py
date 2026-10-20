@@ -335,6 +335,7 @@ class ArtifactReadContext:
             issue = self.issues.get(str(source.get("id"))) if source.get("id") else None
             project_id = issue.project_id if issue else source.get("project_id")
             if self.policy is not None:
+                self.policy.require_issue(source.get("id"))
                 self.policy.require("artifact.published.read", project_id=project_id)
                 self.policy.require("artifact.material.read", project_id=project_id)
             if not project_id or str(project_id) not in self.project_ids:
@@ -573,6 +574,7 @@ def render_authorized_asset(user, artifact, revision, asset_id, policy=None):
         for source in revision.snapshot.get("sources", []):
             issue = Issue.all_objects.filter(id=source.get("id"), workspace=artifact.workspace).select_related("project").first() if source.get("id") else None
             project_id = issue.project_id if issue else source.get("project_id")
+            policy.require_issue(source.get("id"))
             policy.require("artifact.published.read", project_id=project_id)
             policy.require("artifact.material.read", project_id=project_id)
             if issue is None or issue.deleted_at is not None:
